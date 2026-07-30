@@ -73,6 +73,7 @@
 - [ ] 심문 세션이 API → UI 단일 경로로 동작
 - [ ] Baseline RAG vs Advanced RAG 비교 수치 1회 이상
 - [ ] 5분 Golden Route 데모 (범인 지목 → 자백) 완주
+- [ ] 게임 룰: 3-Out · 멘탈 붕괴 · (선택) 20초 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
 
 ---
 

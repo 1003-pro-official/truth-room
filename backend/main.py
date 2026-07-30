@@ -53,6 +53,12 @@ class SearchBody(BaseModel):
 
 class AccuseBody(BaseModel):
     suspect_id: str
+    evidence_ids: list[str] = Field(
+        ...,
+        min_length=2,
+        max_length=2,
+        description="결정적 증거 2장 (세션 보유분)",
+    )
 
 
 class ToolBody(BaseModel):
@@ -87,7 +93,10 @@ def ask(session_id: str, body: AskBody) -> dict[str, Any]:
     result = engine.ask(session, body.suspect_id, body.question)
     if result.get("error") == "session_ended":
         raise HTTPException(status_code=409, detail="session already ended")
-    return {**result, "state": engine.public_state(session)}
+    return {
+        **result,
+        "state": engine.public_state(session, focus_suspect=body.suspect_id),
+    }
 
 
 @app.post("/api/v1/session/{session_id}/search")
@@ -95,7 +104,10 @@ def search(session_id: str, body: SearchBody) -> dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
-    return {**engine.search(session, body.query), "state": engine.public_state(session)}
+    result = engine.search(session, body.query)
+    if result.get("error") == "session_ended":
+        raise HTTPException(status_code=409, detail="session already ended")
+    return {**result, "state": engine.public_state(session)}
 
 
 @app.post("/api/v1/session/{session_id}/tool")
@@ -114,4 +126,19 @@ def accuse(session_id: str, body: AccuseBody) -> dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
-    return {**engine.accuse(session, body.suspect_id), "state": engine.public_state(session)}
+    result = engine.accuse(session, body.suspect_id, body.evidence_ids)
+    if result.get("error") == "session_ended":
+        raise HTTPException(status_code=409, detail="session already ended")
+    return {**result, "state": engine.public_state(session)}
+
+
+@app.post("/api/v1/session/{session_id}/pass_turn")
+def pass_turn(session_id: str) -> dict[str, Any]:
+    """타임어택 만료 등 — break/pressure 미증가 (docs/GAME_RULES.md)."""
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    result = engine.pass_turn(session, reason="timeout")
+    if result.get("error") == "session_ended":
+        raise HTTPException(status_code=409, detail="session already ended")
+    return {**result, "state": engine.public_state(session)}

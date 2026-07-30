@@ -51,8 +51,8 @@
 | :--- | :--- | :--- |
 | 조력 AI ↔ 용의자 AI 분리 | `data/personas/` · `agent_graph.py` | 페르소나·GM 프롬프트 강화 (Generative Agents 참고) |
 | Modular / Hybrid RAG | `lib/rag_core.py` · `rag_pipeline.py` | Routing·rerank·eval 개선 (RAG Survey 참고) |
-| Stateful 압박 루프 | `agent_graph.py` · pressure | Cyclic 분기 유지 · `langgraph` 패키지는 **선택** |
-| Streamlit 심문 UI | `app.py` | `st.chat_message` 등 · **FastAPI만** 호출 |
+| Stateful 압박 루프 | `agent_graph.py` · pressure · **break_count** | Cyclic 분기 · [docs/GAME_RULES.md](docs/GAME_RULES.md) |
+| Streamlit 심문 UI | `app.py` | `st.chat_message` · 타이머 · mental_break · **FastAPI만** |
 | Function Calling | `lib/tools.py` · `/tool` | CCTV·포렌식 페이로드 확장 |
 | 리포트 자동화 | `update_report.py` · `update_notion.py` | 실험 후 README/Notion 동기화 |
 

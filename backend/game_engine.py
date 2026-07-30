@@ -1,5 +1,6 @@
+# -*- coding: utf-8 -*-
 """
-backend/game_engine.py — 세션 · 심문 · RAG 검색 · Function Calling
+backend/game_engine.py — 세션 · 심문 · RAG 검색 · Function Calling · 게임 룰
 """
 
 from __future__ import annotations
@@ -17,10 +18,21 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from lib.game_rules import (  # noqa: E402
+    SMOKING_GUN_IDS,
+    apply_break_count,
+    clue_title,
+    judge_alibi_broken,
+    judge_combo_accuse,
+    load_game_cfg,
+    mental_break_suspects,
+    session_status,
+)
 from lib.rag_core import get_or_build_index, retrieve  # noqa: E402
 from lib.tools import call_tool  # noqa: E402
 
 DEFAULT_API_CONFIG = ROOT / "configs" / "api.yaml"
+AGENT_CONFIG = ROOT / "configs" / "agent.yaml"
 SCENARIO_PATH = ROOT / "data" / "scenarios" / "case_01.yaml"
 PERSONA_DIR = ROOT / "data" / "personas"
 RAG_CONFIG = ROOT / "configs" / "rag.yaml"
@@ -47,6 +59,9 @@ class Session:
     messages: list[dict[str, Any]] = field(default_factory=list)
     evidence_ids: list[str] = field(default_factory=list)
     pressure: dict[str, float] = field(default_factory=dict)
+    break_count: dict[str, int] = field(default_factory=dict)
+    timeout_strikes: int = 0
+    stamina: int = 3
     tool_log: list[dict[str, Any]] = field(default_factory=list)
     accused: str | None = None
     ended: bool = False
@@ -78,13 +93,15 @@ _FALLBACK_CATALOG = [
 
 
 class GameEngine:
-    """In-memory 게임 엔진 — RAG search + detective tools."""
+    """In-memory 게임 엔진 — RAG search + detective tools + GAME_RULES."""
 
     def __init__(self) -> None:
         self.sessions: dict[str, Session] = {}
         self.scenario: dict[str, Any] = {}
         self.personas: dict[str, dict[str, Any]] = {}
         self.rag_cfg: dict[str, Any] = {}
+        self.agent_cfg: dict[str, Any] = {}
+        self.game_cfg: dict[str, Any] = load_game_cfg({})
         self._load_content()
 
     def _load_content(self) -> None:
@@ -97,6 +114,10 @@ class GameEngine:
                 self.personas[pid] = persona
         if RAG_CONFIG.exists():
             self.rag_cfg = load_yaml(RAG_CONFIG)
+        cfg_path = AGENT_CONFIG if AGENT_CONFIG.exists() else ROOT / "configs" / "agent.yaml.example"
+        if cfg_path.exists():
+            self.agent_cfg = load_yaml(cfg_path)
+        self.game_cfg = load_game_cfg(self.agent_cfg)
 
     def create_session(self) -> Session:
         suspects = list(self.scenario.get("suspects") or self.personas.keys())
@@ -104,6 +125,8 @@ class GameEngine:
             session_id=str(uuid.uuid4())[:8],
             case_id=str(self.scenario.get("case_id", "case_01")),
             pressure={s: 0.0 for s in suspects},
+            break_count={s: 0 for s in suspects},
+            stamina=int(self.game_cfg["stamina_max"]),
         )
         self.sessions[session.session_id] = session
         return session
@@ -111,8 +134,18 @@ class GameEngine:
     def get_session(self, session_id: str) -> Session | None:
         return self.sessions.get(session_id)
 
-    def public_state(self, session: Session) -> dict[str, Any]:
+    def _broken_list(self, session: Session) -> list[str]:
+        return mental_break_suspects(
+            session.break_count,
+            threshold=int(self.game_cfg["break_threshold"]),
+        )
+
+    def public_state(self, session: Session, *, focus_suspect: str | None = None) -> dict[str, Any]:
         suspect_ids = list(self.scenario.get("suspects") or self.personas.keys())
+        broken = self._broken_list(session)
+        strike_max = int(self.game_cfg["timeout_strike_max"])
+        stamina_max = int(self.game_cfg["stamina_max"])
+        turn_out = session.ended and session.timeout_strikes >= strike_max and session.stamina > 0
         return {
             "session_id": session.session_id,
             "case_id": session.case_id,
@@ -123,21 +156,65 @@ class GameEngine:
             ],
             "evidence_ids": list(session.evidence_ids),
             "pressure": dict(session.pressure),
+            "break_count": dict(session.break_count),
+            "mental_break_suspects": broken,
+            "timeout_strikes": int(session.timeout_strikes),
+            "timeout_strike_max": strike_max,
+            "stamina": int(session.stamina),
+            "stamina_max": stamina_max,
+            "status": session_status(
+                focus_suspect,
+                broken,
+                timeout_strikes=session.timeout_strikes,
+                timeout_strike_max=strike_max,
+                ended=session.ended,
+                turn_out=turn_out,
+                stamina=session.stamina,
+            ),
+            "turn_seconds": int(self.game_cfg["turn_seconds"]),
+            "timer_enabled": bool(self.game_cfg["timer_enabled"]),
             "ended": session.ended,
             "accused": session.accused,
             "turn": len(session.messages),
             "tool_calls": len(session.tool_log),
         }
 
+    def _compose_answer(self, persona: dict[str, Any], suspect_id: str, question: str, mental: bool) -> str:
+        name = persona.get("name", suspect_id)
+        alibi = persona.get("alibi", "기억이 안 납니다.")
+        if mental:
+            return (
+                f"[{name} · 멘탈 붕괴] …{alibi} "
+                f"더 이상 버티기 어렵습니다. (질문: {question[:60]})"
+            )
+        return f"[{name}] 알리바이 기준으로 말하면, {alibi} (질문 요약: {question[:80]})"
+
     def ask(self, session: Session, suspect_id: str, question: str) -> dict[str, Any]:
         if session.ended:
             return {"error": "session_ended"}
         persona = self.personas.get(suspect_id) or {"name": suspect_id, "alibi": "모릅니다."}
-        answer = (
-            f"[{persona.get('name', suspect_id)}] "
-            f"알리바이 기준으로 말하면, {persona.get('alibi', '기억이 안 납니다.')} "
-            f"(질문 요약: {question[:80]})"
+        threshold = int(self.game_cfg["break_threshold"])
+
+        is_broken = judge_alibi_broken(suspect_id, question, session.evidence_ids)
+        session.break_count, incremented = apply_break_count(
+            session.break_count,
+            suspect_id,
+            is_broken=is_broken,
+            threshold=threshold,
+            max_per_turn=int(self.game_cfg["max_break_per_turn"]),
         )
+        broken = self._broken_list(session)
+        mental = suspect_id in broken
+        status = session_status(
+            suspect_id,
+            broken,
+            timeout_strikes=session.timeout_strikes,
+            timeout_strike_max=int(self.game_cfg["timeout_strike_max"]),
+            ended=session.ended,
+        )
+
+        answer = self._compose_answer(persona, suspect_id, question, mental)
+
         pressure = float(session.pressure.get(suspect_id, 0.0))
         if any(
             k in question
@@ -158,20 +235,84 @@ class GameEngine:
                 "오메가",
                 "CCTV",
                 "포렌식",
+                "알리바이",
             )
         ):
             pressure = min(1.0, pressure + 0.15)
-            session.pressure[suspect_id] = pressure
-        # Decisive evidence already collected → higher pressure on culprit
+        if incremented:
+            pressure = min(1.0, pressure + 0.2)
         if suspect_id == self.scenario.get("culprit_id") and "ev_net_01" in session.evidence_ids:
             pressure = min(1.0, max(pressure, 0.85))
-            session.pressure[suspect_id] = pressure
+        session.pressure[suspect_id] = pressure
+
         session.messages.append(
-            {"role": "suspect", "suspect_id": suspect_id, "question": question, "answer": answer}
+            {
+                "role": "suspect",
+                "suspect_id": suspect_id,
+                "question": question,
+                "answer": answer,
+                "is_alibi_broken": is_broken and incremented,
+            }
         )
-        return {"answer": answer, "pressure": pressure, "suspect_id": suspect_id}
+        return {
+            "answer": answer,
+            "pressure": pressure,
+            "suspect_id": suspect_id,
+            "is_alibi_broken": bool(is_broken and incremented),
+            "break_count": int(session.break_count.get(suspect_id, 0)),
+            "status": status,
+        }
+
+    def pass_turn(self, session: Session, reason: str = "timeout") -> dict[str, Any]:
+        """타임어택 만료 — timeout_strikes 증가. 3회면 turn_out(패배). 알리바이 break는 미증가."""
+        if session.ended:
+            return {"error": "session_ended"}
+        strike_max = int(self.game_cfg["timeout_strike_max"])
+        session.timeout_strikes = min(strike_max, int(session.timeout_strikes) + 1)
+        session.messages.append(
+            {
+                "role": "system",
+                "event": "pass_turn",
+                "reason": reason,
+                "timeout_strikes": session.timeout_strikes,
+            }
+        )
+        turn_out = session.timeout_strikes >= strike_max
+        if turn_out:
+            session.ended = True
+        return {
+            "passed": True,
+            "reason": reason,
+            "timeout_strikes": session.timeout_strikes,
+            "timeout_strike_max": strike_max,
+            "turn_out": turn_out,
+            "status": "turn_out" if turn_out else "playing",
+            "ending": (
+                f"턴 3진 아웃: 시간 초과 {strike_max}회. 미션 실패."
+                if turn_out
+                else None
+            ),
+        }
+
+    def _apply_stamina_loss(self, session: Session, amount: int = 1) -> dict[str, Any]:
+        session.stamina = max(0, int(session.stamina) - amount)
+        revoked = session.stamina <= 0
+        if revoked:
+            session.ended = True
+        return {
+            "stamina": session.stamina,
+            "stamina_max": int(self.game_cfg["stamina_max"]),
+            "authority_revoked": revoked,
+            "ending": (
+                "감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다."
+                if revoked
+                else None
+            ),
+        }
 
     def search(self, session: Session, query: str) -> dict[str, Any]:
+        if session.ended:
+            return {"error": "session_ended"}
         retrieval = self.rag_cfg.get("retrieval", {})
         top_k = int(retrieval.get("top_k", 5))
         rrf_k = int(retrieval.get("rrf_k", 60))
@@ -204,52 +345,112 @@ class GameEngine:
             hits = []
 
         if not hits:
-            tokens = [t for t in query.split() if t]
+            tokens = [t for t in query.split() if len(t) >= 2]
             hits = [
                 c
                 for c in _FALLBACK_CATALOG
-                if any(tok in c["snippet"] or tok in query for tok in tokens)
-            ] or _FALLBACK_CATALOG[:2]
+                if tokens
+                and any(tok in c["snippet"] or tok in query for tok in tokens)
+            ]
+            # 토큰 매칭 실패 시 빈 hits → 헛수색(수사 권한 감소). 무료 카탈로그 지급 금지.
 
+        before = set(session.evidence_ids)
+        newly: list[str] = []
         for h in hits:
             eid = h.get("evidence_id")
             if eid and eid not in session.evidence_ids:
                 session.evidence_ids.append(str(eid))
-        return {"query": query, "hits": hits, "evidence_ids": list(session.evidence_ids)}
+                newly.append(str(eid))
+
+        new_clues = [
+            {
+                "evidence_id": eid,
+                "title": clue_title(eid),
+                "snippet": next(
+                    (str(h.get("snippet", ""))[:160] for h in hits if h.get("evidence_id") == eid),
+                    "",
+                ),
+                "smoking_gun": eid in SMOKING_GUN_IDS,
+            }
+            for eid in newly
+            if eid in SMOKING_GUN_IDS or eid not in before
+        ]
+        # UI 연출은 smoking gun 위주
+        new_clues = [c for c in new_clues if c["smoking_gun"]]
+
+        useless = len(newly) == 0
+        stamina_info: dict[str, Any] = {}
+        if useless:
+            stamina_info = self._apply_stamina_loss(session, 1)
+
+        return {
+            "query": query,
+            "hits": hits,
+            "evidence_ids": list(session.evidence_ids),
+            "new_clues": new_clues,
+            "useless_search": useless,
+            **stamina_info,
+        }
 
     def tool(self, session: Session, name: str, args: dict[str, Any] | None = None) -> dict[str, Any]:
         if session.ended:
             return {"error": "session_ended"}
         result = call_tool(name, args or {})
         session.tool_log.append({"name": name, "args": args or {}, "result": result})
-        # Forensic on Lee laptop unlocks network hint → count as related evidence
-        if name == "run_forensic" and (args or {}).get("device") in {
-            "lee_laptop",
-            "이대리",
-            "suspect_b",
-            "lee",
-        }:
-            if "ev_net_01" not in session.evidence_ids:
-                # soft unlock: player still needs RAG, but MAC hint recorded
-                pass
         return {"name": name, "args": args or {}, "result": result}
 
-    def accuse(self, session: Session, suspect_id: str) -> dict[str, Any]:
+    def accuse(
+        self,
+        session: Session,
+        suspect_id: str,
+        evidence_ids: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """조합 지목: 용의자 + 결정적 증거 2장 (docs/GAME_RULES.md §8.2)."""
+        if session.ended:
+            return {"error": "session_ended"}
+        submitted = list(evidence_ids or [])
+        win_ids = list((self.scenario.get("win_condition") or {}).get("min_evidence_ids") or [])
         culprit = str(self.scenario.get("culprit_id", ""))
-        session.accused = suspect_id
-        session.ended = True
-        correct = bool(culprit) and suspect_id == culprit
-        if correct:
+        verdict = judge_combo_accuse(
+            suspect_id=suspect_id,
+            evidence_ids=submitted,
+            culprit_id=culprit,
+            win_evidence_ids=win_ids,
+            owned_evidence_ids=session.evidence_ids,
+        )
+
+        if verdict["correct"]:
+            session.accused = suspect_id
+            session.ended = True
             ending = (
                 "자백 엔딩: 이대리 — 공로·보너스 불만으로 중국 경쟁사 5억에 응해 "
                 "라운지 Wi-Fi로 Omega 가중치 약 100GB를 유출. 미션 클리어."
             )
+            return {
+                "accused": suspect_id,
+                "evidence_ids": submitted,
+                "correct": True,
+                "ending": ending,
+                "judge": verdict,
+            }
+
+        # 오답 → 수사 권한 감소 (세션 유지 가능)
+        stamina_info = self._apply_stamina_loss(session, 1)
+        msg = "조합 지목 실패: " + (
+            "; ".join(verdict["errors"]) if verdict["errors"] else "진범·증거가 일치하지 않습니다."
+        )
+        if stamina_info.get("authority_revoked"):
+            session.accused = suspect_id
+            ending = stamina_info["ending"]
         else:
-            ending = "오심 엔딩: 진범 자백을 확보하지 못했습니다."
+            ending = msg + f" (수사 권한 {session.stamina}/{self.game_cfg['stamina_max']})"
         return {
-            "accused": suspect_id,
-            "correct": correct,
+            "accused": suspect_id if stamina_info.get("authority_revoked") else None,
+            "evidence_ids": submitted,
+            "correct": False,
             "ending": ending,
+            "judge": verdict,
+            **stamina_info,
         }
 
 

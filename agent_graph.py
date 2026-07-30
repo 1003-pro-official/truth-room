@@ -20,6 +20,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
+from lib.game_rules import apply_break_count, judge_alibi_broken, load_game_cfg, mental_break_suspects  # noqa: E402
 from lib.rag_core import get_or_build_index, retrieve  # noqa: E402
 from lib.tools import call_tool  # noqa: E402
 
@@ -40,6 +41,7 @@ class AgentState:
     messages: list[dict[str, Any]] = field(default_factory=list)
     evidence_ids: list[str] = field(default_factory=list)
     pressure: dict[str, float] = field(default_factory=dict)
+    break_count: dict[str, int] = field(default_factory=dict)
     last_retrieval: list[dict[str, Any]] = field(default_factory=list)
     tool_results: list[dict[str, Any]] = field(default_factory=list)
     phase: Phase = "interrogate"
@@ -178,14 +180,32 @@ def node_update_pressure(state: AgentState, cfg: dict[str, Any], personas: dict[
         gain += step
     new_p = min(1.0, cur + gain)
     state.pressure[sid] = new_p
+
+    game = load_game_cfg(cfg)
+    # 스모크: 수집 증거 + 목표 문구로 알리바이 붕괴 1회 반영
+    is_broken = judge_alibi_broken(sid, state.user_goal, state.evidence_ids)
+    state.break_count, incremented = apply_break_count(
+        state.break_count or {sid: 0},
+        sid,
+        is_broken=is_broken,
+        threshold=int(game["break_threshold"]),
+        max_per_turn=int(game["max_break_per_turn"]),
+    )
+    if incremented:
+        state.pressure[sid] = min(1.0, state.pressure[sid] + step)
+
     threshold = float(personas.get(sid, {}).get("leak_threshold", 0.9))
+    broken = mental_break_suspects(state.break_count, int(game["break_threshold"]))
     state.trace.append(
         {
             "node": "update_pressure",
             "suspect_id": sid,
-            "pressure": new_p,
+            "pressure": state.pressure[sid],
+            "break_count": int(state.break_count.get(sid, 0)),
+            "is_alibi_broken": bool(incremented),
+            "mental_break": sid in broken,
             "leak_threshold": threshold,
-            "stress_exceeded": new_p >= threshold,
+            "stress_exceeded": state.pressure[sid] >= threshold,
         }
     )
     return state
@@ -244,6 +264,7 @@ def run_graph(
         suspect_id=suspect_id,
         user_goal=user_goal,
         pressure={s: 0.0 for s in suspects},
+        break_count={s: 0 for s in suspects},
     )
 
     state = node_route(state, cfg)
@@ -269,6 +290,10 @@ def run_graph(
             "suspect_id": state.suspect_id,
             "evidence_ids": state.evidence_ids,
             "pressure": state.pressure,
+            "break_count": state.break_count,
+            "mental_break_suspects": mental_break_suspects(
+                state.break_count, int(load_game_cfg(cfg)["break_threshold"])
+            ),
             "clue_count": state.clue_count,
             "phase": state.phase,
             "ended": state.ended,

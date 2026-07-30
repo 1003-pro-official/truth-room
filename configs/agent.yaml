@@ -17,6 +17,15 @@ graph:
   max_turns: 20
   pressure_step: 0.15
 
+# docs/GAME_RULES.md — 3-Out · 타임어택
+game:
+  break_threshold: 3
+  turn_seconds: 20
+  timer_enabled: true
+  max_break_per_turn: 1
+  timeout_strike_max: 3
+  stamina_max: 3
+
 tools:
   retrieve: true
   accuse: true

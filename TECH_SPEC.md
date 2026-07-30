@@ -88,7 +88,9 @@ system_prompt: |
 | `POST` | `/api/v1/session/{id}/ask` | 심문 `{suspect_id, question}` |
 | `POST` | `/api/v1/session/{id}/search` | 증거 RAG `{query}` |
 | `POST` | `/api/v1/session/{id}/tool` | `{name, args}` — CCTV / forensic |
-| `POST` | `/api/v1/session/{id}/accuse` | 지목 `{suspect_id}` |
+| `POST` | `/api/v1/session/{id}/pass_turn` | 타임아웃 턴 패스 (pressure/break 미증가) |
+| `POST` | `/api/v1/session/{id}/accuse` | 조합 지목 `{suspect_id, evidence_ids[2]}` |
+| `POST` | `/api/v1/session/{id}/search` 응답 | `new_clues[]` · `useless_search` · `stamina` |
 
 UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `accuse` 판정에만 사용.
 
@@ -102,6 +104,11 @@ State:
   messages[]
   evidence_ids[]
   pressure: {suspect_a: float, ...}
+  break_count: {suspect_a: int, ...}   # 알리바이 3-Out (docs/GAME_RULES.md)
+  timeout_strikes: int                 # 턴 타임아웃 3진 아웃 (0..3)
+  stamina / stamina_max                # 수사 권한 (명탐정 S 하트 대응)
+  mental_break_suspects[]
+  status: playing | mental_break | turn_out | authority_revoked
   last_retrieval[]
   tool_results[]
   clue_count
@@ -109,6 +116,8 @@ State:
 ```
 
 노드: `route` → `interrogate` | `retrieve_evidence` | `call_tool` → `update_pressure` → `confront` → `judge_ending`
+
+**게임 룰 정본:** [docs/GAME_RULES.md](docs/GAME_RULES.md) (3-Out · 멘탈 붕괴 · 20초 · 수사 권한 · 조합 지목)
 
 ---
 
