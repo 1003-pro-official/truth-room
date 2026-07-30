@@ -1,0 +1,117 @@
+"""
+backend/main.py — Phase 2 FastAPI (진실의 방으로)
+
+실행:
+  uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
+문서:
+  http://localhost:8000/docs
+"""
+
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from backend.game_engine import engine, load_api_config
+
+ROOT = Path(__file__).resolve().parent.parent
+API_CONFIG = ROOT / "configs" / "api.yaml"
+
+
+def _cors_origins() -> list[str]:
+    cfg = load_api_config(API_CONFIG) if API_CONFIG.exists() else load_api_config()
+    return list(cfg.get("cors_origins", ["http://localhost:8501"]))
+
+
+app = FastAPI(
+    title="진실의 방으로 API",
+    description="심문 · 증거 검색 · 지목 세션 API (초안)",
+    version="0.1.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=_cors_origins(),
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+
+class AskBody(BaseModel):
+    suspect_id: str
+    question: str = Field(min_length=1)
+
+
+class SearchBody(BaseModel):
+    query: str = Field(min_length=1)
+
+
+class AccuseBody(BaseModel):
+    suspect_id: str
+
+
+class ToolBody(BaseModel):
+    name: str = Field(min_length=1, description="request_cctv_log | run_forensic")
+    args: dict[str, Any] = Field(default_factory=dict)
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.post("/api/v1/session")
+def create_session() -> dict[str, Any]:
+    session = engine.create_session()
+    return engine.public_state(session)
+
+
+@app.get("/api/v1/session/{session_id}")
+def get_session(session_id: str) -> dict[str, Any]:
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    return engine.public_state(session)
+
+
+@app.post("/api/v1/session/{session_id}/ask")
+def ask(session_id: str, body: AskBody) -> dict[str, Any]:
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    result = engine.ask(session, body.suspect_id, body.question)
+    if result.get("error") == "session_ended":
+        raise HTTPException(status_code=409, detail="session already ended")
+    return {**result, "state": engine.public_state(session)}
+
+
+@app.post("/api/v1/session/{session_id}/search")
+def search(session_id: str, body: SearchBody) -> dict[str, Any]:
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    return {**engine.search(session, body.query), "state": engine.public_state(session)}
+
+
+@app.post("/api/v1/session/{session_id}/tool")
+def tool(session_id: str, body: ToolBody) -> dict[str, Any]:
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    result = engine.tool(session, body.name, body.args)
+    if result.get("error") == "session_ended":
+        raise HTTPException(status_code=409, detail="session already ended")
+    return {**result, "state": engine.public_state(session)}
+
+
+@app.post("/api/v1/session/{session_id}/accuse")
+def accuse(session_id: str, body: AccuseBody) -> dict[str, Any]:
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    return {**engine.accuse(session, body.suspect_id), "state": engine.public_state(session)}

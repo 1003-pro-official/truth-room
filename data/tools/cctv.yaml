@@ -1,0 +1,29 @@
+# CCTV tool payloads — request_cctv_log(location)
+
+default_note: "2024-07-29 야간 · 폭우로 다수 카메라 결측"
+
+locations:
+  lobby:
+    status: unavailable
+    reason: "폭우·정전으로 로비 CCTV 녹화 구간 결측 (23:00~24:00)"
+    entries: []
+  lounge:
+    status: partial
+    reason: "라운지 카메라는 간헐 녹화"
+    entries:
+      - ts: "2024-07-29T23:06:00+09:00"
+        summary: "라운지 좌석에서 노트북 화면을 응시하는 남성(헤드폰) 포착"
+      - ts: "2024-07-29T23:24:00+09:00"
+        summary: "동일 좌석 인물이 화면을 응시한 채 장시간 유지 · 얼굴 식별 불가"
+  server_room:
+    status: unavailable
+    reason: "서버실 전용 CCTV는 보안 정책상 외부 감사 계정 비공개 · 출입 로그로 대체 권고"
+    entries: []
+  office_floor3:
+    status: partial
+    reason: "복도 카메라 일부만 복구"
+    entries:
+      - ts: "2024-07-29T23:19:00+09:00"
+        summary: "3층 복도에서 후드티 차림의 신입 추정 인물이 서버실 방향 이동"
+      - ts: "2024-07-29T23:31:00+09:00"
+        summary: "엘리베이터 홀에서 중년 남성(김팀장 추정) 하차 후 건물 외출"

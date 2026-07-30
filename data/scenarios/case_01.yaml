@@ -1,0 +1,29 @@
+case_id: case_01
+title: "진실의 방 — 100억의 야근자들"
+synopsis: |
+  2024-07-29 23:00~24:00, 폭우로 CCTV가 먹통인 사이 사내망에서
+  프로젝트 Omega 핵심 가중치 파일이 불법 반출되었다(추정 피해 약 100억).
+  당시 건물 잔류 인원은 김팀장·이대리·박신입 세 명뿐.
+  플레이어는 외부 디지털 포렌식 감사관으로서 RAG로 거짓을 걷어내고 진범의 자백을 받는다.
+progression:
+  - phase: opening
+    goal: 사건 브리핑 · 역할 고지
+  - phase: 1
+    suspect_id: suspect_a
+    goal: 김팀장 알리바이 붕괴 → 현장 부재로 제외
+    key_evidence: ev_card_03
+  - phase: 2
+    suspect_id: suspect_c
+    goal: 박신입 알리바이 붕괴 → 목격자화
+    key_evidence: ev_msg_12
+  - phase: 3
+    suspect_id: suspect_b
+    goal: 이대리 압박 MAX → 자백
+    key_evidence: [ev_log_07, ev_net_01]
+  - phase: ending
+    goal: 진범 자백 · 미션 클리어
+culprit_id: suspect_b
+suspects: [suspect_a, suspect_b, suspect_c]
+win_condition:
+  accuse_culprit: true
+  min_evidence_ids: [ev_card_03, ev_msg_12, ev_net_01]

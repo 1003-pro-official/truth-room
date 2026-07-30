@@ -1,0 +1,18 @@
+# ingest.yaml — raw evidence → chunks
+# cp configs/ingest.yaml.example configs/ingest.yaml
+
+raw_dirs:
+  - data/raw/statements
+  - data/raw/forensics
+  - data/raw/messenger
+  - data/raw/logs
+  - data/raw/corporate_card
+  - data/raw/network
+
+output:
+  chunks: data/processed/chunks.jsonl
+  summary: runs/ingest/summary.yaml
+
+chunking:
+  max_chars: 500
+  overlap: 50

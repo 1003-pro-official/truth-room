@@ -1,0 +1,19 @@
+# rag.yaml
+# cp configs/rag.yaml.example configs/rag.yaml
+
+embedding_model: local_hashing_ngram
+persist_dir: runs/rag/index
+collection: truth_room
+local_dense_dim: 256
+
+retrieval:
+  top_k: 5
+  rrf_k: 60
+  rerank: true
+  modes:
+    baseline: dense
+    advanced: hybrid_rrf   # dense + sparse RRF + rerank
+
+generation:
+  model: gpt-4o-mini
+  temperature: 0.2

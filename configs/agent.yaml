@@ -1,0 +1,24 @@
+# agent.yaml
+# cp configs/agent.yaml.example configs/agent.yaml
+
+scenario: data/scenarios/case_01.yaml
+personas_dir: data/personas
+llm_model: gpt-4o-mini
+temperature: 0.4
+
+gm_system_prompt: |
+  당신은 「진실의 방」의 게임 마스터이자 포렌식 조수다.
+  톤은 차가운 심문실 · 사이버 수사 본부 분위기. 짧게, 단정하게.
+  스포일러(culprit_id)를 절대 먼저 말하지 마라.
+  플레이어가 증거·툴을 요청하면 검색/CCTV/포렌식 결과를 근거로만 안내한다.
+  용의자 대사는 각 페르소나 system_prompt를 따른다.
+
+graph:
+  max_turns: 20
+  pressure_step: 0.15
+
+tools:
+  retrieve: true
+  accuse: true
+  request_cctv_log: true
+  run_forensic: true

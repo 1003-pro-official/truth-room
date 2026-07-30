@@ -1,0 +1,27 @@
+# CODEOWNERS — kickoff 시 실 GitHub ID로 교체
+# 역할: docs/ROLES.md
+
+*                       @YOUR_GITHUB_ID
+
+/data/                  @YOUR_SCENARIO_OWNER @YOUR_RAG_OWNER
+/ingest.py              @YOUR_RAG_OWNER
+/build_index.py         @YOUR_RAG_OWNER
+/rag_pipeline.py        @YOUR_RAG_OWNER
+/evaluate.py            @YOUR_RAG_OWNER
+
+/agent_graph.py         @YOUR_AGENT_OWNER
+/configs/agent.yaml     @YOUR_AGENT_OWNER
+
+/backend/               @YOUR_SERVICE_OWNER
+/app.py                 @YOUR_SERVICE_OWNER
+/configs/api.yaml       @YOUR_SERVICE_OWNER
+
+/README.md              @YOUR_DOCS_OWNER
+/docs/PEER_REVIEW.md    @YOUR_DOCS_OWNER
+/PRESENTATION.md        @YOUR_DOCS_OWNER
+/MASTER_PLAN.md         @YOUR_DOCS_OWNER
+/TECH_SPEC.md           @YOUR_DOCS_OWNER
+/AI_CONVENTION.md       @YOUR_DOCS_OWNER
+/CLAUDE.md              @YOUR_DOCS_OWNER
+/docs/                  @YOUR_DOCS_OWNER
+/tests/                 @YOUR_RAG_OWNER @YOUR_SERVICE_OWNER

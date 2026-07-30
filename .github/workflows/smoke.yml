@@ -1,0 +1,36 @@
+name: Smoke
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Start API (background)
+        run: |
+          uvicorn backend.main:app --host 127.0.0.1 --port 8000 &
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8000/health && exit 0
+            sleep 1
+          done
+          echo "API failed to start"
+          exit 1
+
+      - name: Run smoke tests
+        env:
+          API_BASE: http://127.0.0.1:8000
+        run: pytest tests/smoke/ -v

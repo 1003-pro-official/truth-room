@@ -1,0 +1,30 @@
+# Forensic tool payloads — run_forensic(device)
+
+devices:
+  lee_laptop:
+    label: "이대리 개인 노트북"
+    owner: suspect_b
+    mac: "AA:BB:CC:11:22:33"
+    findings:
+      - type: deleted_messages
+        items:
+          - ts: "2024-07-29T22:40:00+09:00"
+            text: "[삭제됨] 계좌 확인했어. 절반 선입금 오면 바로 넘겨."
+          - ts: "2024-07-29T23:26:00+09:00"
+            text: "[삭제됨] 전송 완료. 로그 지우는 중."
+      - type: network_hint
+        text: "동일 MAC이 23:25 라운지 AP(192.168.1.15) bulk transfer와 매칭됨 (ev_net_01)"
+  kim_pc:
+    label: "김팀장 업무 PC"
+    owner: suspect_a
+    findings:
+      - type: document_activity
+        text: "23:00~23:20 기획안 문서 자동저장 없음 · 야근 알리바이와 불일치"
+      - type: badge_note
+        text: "배지 E-A 복제/위조 가능성은 별도 출입 로그(ev_log_07)와 교차 검증 필요"
+  park_phone:
+    label: "박신입 스마트폰"
+    owner: suspect_c
+    findings:
+      - type: slack_cache
+        text: "23:20 슬랙 DM 초안 캐시: 서버실 진입·타인 존재 암시 (ev_msg_12와 일치)"

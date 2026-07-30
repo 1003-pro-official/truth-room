@@ -1,0 +1,7 @@
+# eval.yaml
+# cp configs/eval.yaml.example configs/eval.yaml
+
+dataset: data/processed/eval_questions.jsonl   # Phase 1d에서 작성
+metrics: [context_precision, context_recall, faithfulness, answer_relevancy]
+sample_size: 20
+output_dir: runs/eval

@@ -1,0 +1,10 @@
+.env
+__pycache__/
+.venv/
+.DS_Store
+.pytest_cache/
+runs/
+data/processed/
+*.pt
+# 대용량 원본이 생기면 추가
+# data/raw_private/

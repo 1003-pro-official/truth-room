@@ -1,0 +1,18 @@
+# api.yaml — FastAPI
+# cp configs/api.yaml.example configs/api.yaml
+
+case: data/scenarios/case_01.yaml
+personas_dir: data/personas
+rag_config: configs/rag.yaml
+agent_config: configs/agent.yaml
+
+server:
+  host: 0.0.0.0
+  port: 8000
+
+cors_origins:
+  - http://localhost:8501
+  - http://127.0.0.1:8501
+
+# stub_mode: true 이면 LLM 없이 game_engine 스텁 사용 (현재 기본 동작)
+stub_mode: true

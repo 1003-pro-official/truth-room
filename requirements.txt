@@ -1,0 +1,12 @@
+# CI · API 스모크 (최소)
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pytest>=8.0.0
+requests>=2.31.0
+pyyaml>=6.0
+pydantic>=2.0
+python-dotenv>=1.0.0
+notion-client>=2.2.1
+
+# Phase 3 UI — 데모 시 설치
+# streamlit>=1.40.0

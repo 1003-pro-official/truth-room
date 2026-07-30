@@ -1,0 +1,18 @@
+# docs/ — 문서 인덱스 (진실의 방으로)
+
+| 문서 | 용도 |
+| :--- | :--- |
+| [../README.md](../README.md) | 결과 분석 리포트 |
+| [../GETTING_STARTED.md](../GETTING_STARTED.md) | 설치·실행 |
+| [../MASTER_PLAN.md](../MASTER_PLAN.md) | 제품 목표 · 성공 기준 |
+| [../TECH_SPEC.md](../TECH_SPEC.md) | 스택 · 스키마 · API |
+| [../references.md](../references.md) | 아이디어·논문·OSS 레퍼런스 |
+| [../AI_CONVENTION.md](../AI_CONVENTION.md) | 코딩·역할 경계 |
+| [../CLAUDE.md](../CLAUDE.md) | Phase 게이트 · references→경로 매핑 |
+| [ROLES.md](ROLES.md) | 팀 역할 (5인) |
+| [WORKFLOW.md](WORKFLOW.md) | Git · 파이프라인 명령 |
+| [INTEGRATION.md](INTEGRATION.md) | PR → main |
+| [ENVIRONMENTS.md](ENVIRONMENTS.md) | OS·venv·Colab |
+| [ANTIPATTERNS.md](ANTIPATTERNS.md) | Only Me · API 우회 등 |
+| [../PROJECT_SCHEDULE.md](../PROJECT_SCHEDULE.md) | DLthon2 전략·마일스톤 |
+| [PEER_REVIEW.md](PEER_REVIEW.md) | AIFFEL PRT (**에이전트 수정 금지**) |
