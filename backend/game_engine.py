@@ -305,12 +305,26 @@ class GameEngine:
             local_judge_lie,
             stress_delta_to_pressure,
         )
+        from lib.persona_prompt import render_suspect_prompt
 
         vars_ = persona.get("prompt_vars") if isinstance(persona.get("prompt_vars"), dict) else {}
-        # 사전 스텁 답변으로 npc_response 자리 채움 (LLM 연동 시 실제 응답으로 교체)
-        draft_answer = self._compose_answer(
-            persona, suspect_id, question, mental=False, pressure=pressure
+        broken_pre = self._broken_list(session)
+        mental_pre = suspect_id in broken_pre
+
+        ag_cfg = (
+            self.agent_cfg.get("autogen")
+            if isinstance(self.agent_cfg.get("autogen"), dict)
+            else {}
         )
+        use_autogen = bool(ag_cfg.get("enabled", False))
+        agent_transcript: list[dict[str, str]] = []
+        assistant_note = ""
+        autogen_meta: dict[str, Any] = {"used": False}
+
+        draft_answer = self._compose_answer(
+            persona, suspect_id, question, mental=mental_pre, pressure=pressure
+        )
+        answer = draft_answer
         verdict = local_judge_lie(
             suspect_id=suspect_id,
             user_input=question,
@@ -318,6 +332,68 @@ class GameEngine:
             prompt_vars=vars_,
             npc_response=draft_answer,
         )
+
+        if use_autogen:
+            try:
+                from lib.autogen_runtime import autogen_available, run_interrogation_turn
+
+                if not autogen_available():
+                    raise RuntimeError("pyautogen not installed")
+                suspect_sys = render_suspect_prompt(
+                    persona, pressure=pressure, mental_break=mental_pre
+                )
+                ag = run_interrogation_turn(
+                    question=question,
+                    suspect_system=suspect_sys,
+                    assistant_system=str(self.agent_cfg.get("gm_system_prompt") or ""),
+                    # 템플릿 변수 치환은 local_judge 경로용 — GroupChat은 runtime 기본 심판 사용
+                    judge_system=None,
+                    evidence_ids=list(session.evidence_ids),
+                    model=str(
+                        ag_cfg.get("model")
+                        or self.agent_cfg.get("llm_model")
+                        or "gpt-4o-mini"
+                    ),
+                    max_round=int(ag_cfg.get("max_round") or 4),
+                    temperature=float(ag_cfg.get("temperature") or 0.2),
+                    timeout_sec=int(ag_cfg.get("timeout_sec") or 50),
+                )
+                answer = str(ag.get("answer") or draft_answer)
+                agent_transcript = list(ag.get("transcript") or [])
+                assistant_note = str(ag.get("assistant_note") or "")
+                gv = ag.get("gm_verdict") or {}
+                # AutoGen 심판 우선, 실패 시 로컬 재판정
+                if gv.get("status") in ("lie_broken", "no_effect"):
+                    verdict = {
+                        "status": gv.get("status"),
+                        "stress_delta": int(gv.get("stress_delta") or 0),
+                        "judge": "autogen",
+                    }
+                else:
+                    verdict = local_judge_lie(
+                        suspect_id=suspect_id,
+                        user_input=question,
+                        evidence_ids=session.evidence_ids,
+                        prompt_vars=vars_,
+                        npc_response=answer,
+                    )
+                autogen_meta = {
+                    "used": True,
+                    "elapsed_sec": ag.get("elapsed_sec"),
+                    "n_messages": ag.get("n_messages"),
+                    "backend": ag.get("backend"),
+                }
+            except Exception as exc:  # noqa: BLE001 — 데모 안정: 폴백
+                autogen_meta = {"used": False, "fallback": True, "error": str(exc)[:200]}
+                answer = draft_answer
+                verdict = local_judge_lie(
+                    suspect_id=suspect_id,
+                    user_input=question,
+                    evidence_ids=session.evidence_ids,
+                    prompt_vars=vars_,
+                    npc_response=draft_answer,
+                )
+
         is_broken = is_lie_broken(verdict)
         session.break_count, incremented = apply_break_count(
             session.break_count,
@@ -336,9 +412,12 @@ class GameEngine:
             ended=session.ended,
         )
 
-        answer = self._compose_answer(
-            persona, suspect_id, question, mental, pressure=pressure
-        )
+        # 폴백 경로에서만 멘탈 톤으로 재합성 (AutoGen 성공 시 응답 유지)
+        if not autogen_meta.get("used"):
+            answer = self._compose_answer(
+                persona, suspect_id, question, mental, pressure=pressure
+            )
+
         if any(
             k in question
             for k in (
@@ -362,7 +441,10 @@ class GameEngine:
             )
         ):
             pressure = min(1.0, pressure + 0.15)
-        pressure = min(1.0, max(0.0, pressure + stress_delta_to_pressure(int(verdict.get("stress_delta") or 0))))
+        pressure = min(
+            1.0,
+            max(0.0, pressure + stress_delta_to_pressure(int(verdict.get("stress_delta") or 0))),
+        )
         if incremented:
             pressure = min(1.0, pressure + 0.2)
         if suspect_id == self.scenario.get("culprit_id") and "ev_net_01" in session.evidence_ids:
@@ -376,11 +458,13 @@ class GameEngine:
                 "question": question,
                 "answer": answer,
                 "is_alibi_broken": is_broken and incremented,
+                "agent_transcript": agent_transcript,
+                "assistant_note": assistant_note,
+                "autogen": autogen_meta,
                 "gm_verdict": {
                     "status": verdict.get("status"),
                     "stress_delta": verdict.get("stress_delta"),
                     "judge": verdict.get("judge"),
-                    # reason_internal은 서버 로그/트레이스용 — 클라 public 필드와 분리
                 },
             }
         )
@@ -393,6 +477,9 @@ class GameEngine:
             "status": status,
             "gm_status": verdict.get("status"),
             "stress_delta": verdict.get("stress_delta"),
+            "agent_transcript": agent_transcript,
+            "assistant_note": assistant_note,
+            "autogen": autogen_meta,
         }
 
     def pass_turn(self, session: Session, reason: str = "timeout") -> dict[str, Any]:

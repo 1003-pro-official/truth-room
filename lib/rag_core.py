@@ -1,6 +1,6 @@
 """lib/rag_core.py — local Hybrid RAG (dense + sparse RRF + rerank)
 
-OpenAI/Chroma 없이도 스모크 가능. API 키 embedding 훅은 확장 포인트만 둔다.
+기본 스모크·데모 백엔드. OpenAI+Chroma 실험은 `lib/rag_chroma.py`.
 """
 
 from __future__ import annotations

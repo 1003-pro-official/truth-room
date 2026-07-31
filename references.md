@@ -2,7 +2,7 @@
 
 > **역할:** 아이디어·실현 근거·논문·채택 OSS의 **탐색 지도**.  
 > **에이전트 지침:** 구현 전 본 문서를 읽고, [CLAUDE.md](CLAUDE.md) §0.5·[AI_CONVENTION.md](AI_CONVENTION.md)와 함께 적용.  
-> 핵심 파이프라인은 **이미 구현됨** — 범위 안에서 확장·고도화. AutoGen·UI→LLM 직결·YOLO/CV는 비범위.
+> 핵심 파이프라인은 **이미 구현됨** — 범위 안에서 확장·고도화. UI→LLM 직결·YOLO/CV는 비범위. AutoGen은 심문 턴 본선(`lib/autogen_runtime.py`).
 
 ---
 
@@ -12,12 +12,13 @@
 | :--- | :--- | :--- | :--- | :--- |
 | S1 | **Hybrid RAG** (`lib/rag_core.py`) | 증거 검색 · Baseline/Advanced | **1b** | Gao et al. RAG Survey · Modular RAG |
 | S2 | **LangGraph-style** (`agent_graph.py`) | 심문·압박·상태 분기 (순수 Python) | **1c** | [LangGraph Docs](https://langchain-ai.github.io/langgraph/) |
+| S2b | **AutoGen** (`lib/autogen_runtime.py`) | ask 턴 GroupChat (용의자·조수·심판) | **1c/2** | [microsoft/autogen](https://github.com/microsoft/autogen) · round_robin · max_round |
 | S3 | **Function Calling** (`lib/tools.py`) | CCTV·포렌식 툴 | **1c** | OpenAI / 로컬 툴 스키마 |
 | S4 | **FastAPI** | Session · ask · search · tool · accuse | **2** | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) |
 | S5 | **Streamlit** | 심문 UI (`st.chat_message` 등) · **API only** | **3** | [Streamlit chat](https://docs.streamlit.io/develop/api-reference/chat) |
 | S6 | **notion-client** | README → Notion 리포트 | 공통 | [developers.notion.com](https://developers.notion.com/) |
 
-**비채택(범위 밖):** AutoGen 실시간 티키타카 · YOLO/CV · UI에서 LLM 직결
+**비채택(범위 밖):** 무제한 AutoGen 티키타카(상한·폴백 없는) · YOLO/CV · UI에서 LLM 직결
 
 ---
 
@@ -91,7 +92,7 @@
 @CLAUDE.md @AI_CONVENTION.md @references.md @TECH_SPEC.md
 references.md의 Modular RAG·역할 분리 범위 안에서
 기존 lib/rag_core.py · evaluate.py만 고도화하고,
-뼈대 재작성·AutoGen·UI→LLM 직결은 넣지 마.
+뼈대 재작성·UI→LLM 직결·무제한 AutoGen은 넣지 마. 심문 AutoGen은 `lib/autogen_runtime.py`만.
 ```
 
 ```text

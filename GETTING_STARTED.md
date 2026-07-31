@@ -26,7 +26,7 @@
 
 ```bash
 cd truth-room
-cp .env.example .env          # OPENAI_API_KEY 등
+cp .env.example .env          # OPENAI_API_KEY (AutoGen 심문 ask 본선)
 
 pip install -r requirements.txt -r requirements-llm.txt
 pip install streamlit
@@ -36,6 +36,7 @@ python3 build_index.py
 python3 rag_pipeline.py --mode baseline
 python3 rag_pipeline.py --mode advanced
 python3 agent_graph.py --smoke
+python3 scripts/smoke_autogen_ask.py   # AutoGen 본선 ask 검증
 python3 evaluate.py
 python3 update_report.py          # runs/ → README.md 자동 반영
 # Notion (선택): .env에 NOTION_TOKEN · NOTION_PAGE_ID

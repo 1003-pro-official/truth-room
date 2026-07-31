@@ -32,7 +32,7 @@ Browser ──HTTPS──► Cloudflare Worker
 | Docker Desktop | `docker info` 성공해야 함 (`linux/amd64` 빌드) |
 | Node 18+ | `deploy/cloudflare` 에서 wrangler |
 | Cloudflare 계정 | Workers Paid 플랜에 Containers 포함 여부 확인 |
-| 시크릿 | `OPENAI_API_KEY` (선택 — 스텁 모드면 없어도 데모 가능) |
+| 시크릿 | `OPENAI_API_KEY` (권장 — AutoGen 심문. 없으면 스텁 폴백) |
 
 ---
 
@@ -40,7 +40,7 @@ Browser ──HTTPS──► Cloudflare Worker
 
 ```bash
 cd truth-room
-# .env 에 OPENAI_API_KEY 등 (선택)
+# .env 에 OPENAI_API_KEY 등 (AutoGen 심문용 권장)
 docker compose up --build
 ```
 
@@ -57,7 +57,7 @@ cd deploy/cloudflare
 npm install
 npx wrangler login
 
-# (선택) LLM 키
+# (권장) AutoGen 심문 키
 npx wrangler secret put OPENAI_API_KEY
 
 # Docker Desktop 실행 중인 상태에서

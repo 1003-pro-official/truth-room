@@ -204,5 +204,5 @@ game:
 - 프로필 API도 `secrets` / `role` / 내부 프롬프트 미노출
 - UI → LLM 직결 금지
 - 알리바이 3-Out만으로 엔딩 강제 금지 — **조합 지목**이 최종 클리어
-- AutoGen 필수화 없음 ([references.md](../references.md))
+- AutoGen 심문 턴은 본선(`lib/autogen_runtime.py`) — 무제한 티키타카·상한/폴백 없는 구성은 비범위 ([references.md](../references.md))
 - 명탐정 S의 「무기·동기」카드는 본작에서 **결정적 증거 2장**으로 치환 (세계관상 무기 개념 없음)

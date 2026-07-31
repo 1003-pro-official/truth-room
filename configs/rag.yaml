@@ -2,9 +2,16 @@
 # cp configs/rag.yaml.example configs/rag.yaml
 
 embedding_model: local_hashing_ngram
+index_backend: local  # local | chroma (실험 시 chroma + build_index --backend chroma)
 persist_dir: runs/rag/index
 collection: truth_room
 local_dense_dim: 256
+
+# 선택 실험 — OpenAI embedding + Chroma
+openai_embedding:
+  model: text-embedding-3-small
+  persist_dir: runs/rag/chroma
+  batch_size: 64
 
 retrieval:
   top_k: 5
@@ -13,6 +20,7 @@ retrieval:
   modes:
     baseline: dense
     advanced: hybrid_rrf   # dense + sparse RRF + rerank
+    embedding: openai_chroma
 
 generation:
   model: gpt-4o-mini

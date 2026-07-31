@@ -43,6 +43,29 @@ IMAGE_MD_PATTERN = re.compile(r"^!\[(.*?)\]\((.+?)\)\s*$")
 HTML_COMMENT_PATTERN = re.compile(r"<!--.*?-->", re.DOTALL)
 BULLET_LINE_PATTERN = re.compile(r"^(\s*)[-*]\s+(.*)$")
 
+# Notion code block language allowlist aliases
+_NOTION_LANG_ALIAS = {
+    "": "plain text",
+    "text": "plain text",
+    "txt": "plain text",
+    "plaintext": "plain text",
+    "plain-text": "plain text",
+    "sh": "shell",
+    "zsh": "shell",
+    "bash": "bash",
+    "yml": "yaml",
+    "py": "python",
+    "js": "javascript",
+    "ts": "typescript",
+    "md": "markdown",
+    "dockerfile": "docker",
+}
+
+
+def _notion_code_language(lang: str) -> str:
+    raw = (lang or "").strip().lower()
+    return _NOTION_LANG_ALIAS.get(raw, raw or "plain text")
+
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="README.md 내용을 Notion 페이지에 반영합니다.")
@@ -396,7 +419,7 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
                     "type": "code",
                     "code": {
                         "rich_text": [_text_segment("\n".join(code_lines)[:2000])],
-                        "language": lang or "plain text",
+                        "language": _notion_code_language(lang),
                     },
                 }
             )

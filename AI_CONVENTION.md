@@ -39,7 +39,7 @@
 2. **비밀값** — `.env` only
 3. **서빙 단일 경로** — UI → FastAPI only (LLM/인덱스 직접 로드 금지)
 4. **정본은 `.py`** — 노트북은 실험 래퍼
-5. **비범위** — AutoGen 필수화 · YOLO/CV · UI→LLM 직결 ([references.md](references.md) §1)
+5. **비범위** — 무제한 AutoGen 티키타카 · YOLO/CV · UI→LLM 직결 ([references.md](references.md) §1). AutoGen 심문 턴은 `lib/autogen_runtime.py` + `autogen.enabled`로 본선.
 6. **범인 ID** — `culprit_id`를 클라이언트 응답에 넣지 말 것 (`accuse` 결과만)
 7. **한국어 페르소나** — 시스템 프롬프트·UI 카피는 한국어 기본 (Generative Agents 참고 가능)
 8. **최소 변경** — 요청과 무관한 리팩터·문서 양산 금지 · **기존 뼈대 재작성 금지**

@@ -1547,6 +1547,7 @@ if not st.session_state.get("game"):
             if _hr.status_code == 200:
                 st.session_state["game"] = _hr.json()
                 st.session_state["log"] = []
+                st.session_state.pop("last_agent_turn", None)
                 st.session_state["hits"] = []
                 st.session_state["pending_clues"] = []
                 st.session_state["last_ending"] = None
@@ -1576,6 +1577,7 @@ with st.sidebar:
             r.raise_for_status()
             st.session_state["game"] = r.json()
             st.session_state["log"] = []
+            st.session_state.pop("last_agent_turn", None)
             st.session_state["hits"] = []
             st.session_state["pending_clues"] = []
             st.session_state["last_ending"] = None
@@ -1749,11 +1751,12 @@ with left:
                 st.warning("시간 초과 — 턴이 패스됩니다.")
                 _handle_timeout(sid)
             else:
-                resp = requests.post(
-                    f"{_api()}/api/v1/session/{sid}/ask",
-                    json={"suspect_id": suspect_id, "question": question},
-                    timeout=60,
-                )
+                with st.spinner("에이전트 협의 중… (용의자 · 조수 · 심판)"):
+                    resp = requests.post(
+                        f"{_api()}/api/v1/session/{sid}/ask",
+                        json={"suspect_id": suspect_id, "question": question},
+                        timeout=90,
+                    )
                 if resp.status_code == 200:
                     data = resp.json()
                     st.session_state["game"] = data.get("state", game)
@@ -1761,10 +1764,49 @@ with left:
                     if data.get("is_alibi_broken"):
                         line = f"알리바이 붕괴! (break {data.get('break_count')}/3) — {line}"
                     st.session_state.setdefault("log", []).append(line)
+                    note = (data.get("assistant_note") or "").strip()
+                    if note:
+                        st.session_state.setdefault("log", []).append(f"[조수] {note}")
+                    transcript = data.get("agent_transcript") or []
+                    if transcript:
+                        st.session_state["last_agent_turn"] = {
+                            "question": question,
+                            "transcript": transcript,
+                            "autogen": data.get("autogen") or {},
+                            "gm_status": data.get("gm_status"),
+                        }
                     _reset_timer()
                     st.rerun()
                 else:
                     st.error(resp.text)
+
+        last_ag = st.session_state.get("last_agent_turn")
+        if last_ag and last_ag.get("transcript"):
+            meta = last_ag.get("autogen") or {}
+            label = "멀티에이전트 대화 (AutoGen)"
+            if meta.get("used"):
+                label += f" · {meta.get('n_messages', '?')}msgs · {meta.get('elapsed_sec', '?')}s"
+            elif meta.get("fallback"):
+                label = "멀티에이전트 (폴백 — 스텁 응답)"
+            with st.expander(label, expanded=True):
+                st.caption(f"Q: {last_ag.get('question') or ''}")
+                role_label = {
+                    "Detective": "탐정",
+                    "Suspect": "용의자",
+                    "ForensicAssistant": "포렌식 조수",
+                    "Judge": "심판",
+                }
+                for turn in last_ag["transcript"]:
+                    role = str(turn.get("role") or "")
+                    content = str(turn.get("content") or "")
+                    if role == "Judge":
+                        # 심판 JSON은 요약만 (reason_internal 노출 최소화)
+                        st.caption(
+                            f"**심판** · status=`{last_ag.get('gm_status') or '—'}`"
+                        )
+                        continue
+                    who = role_label.get(role, role or "agent")
+                    st.markdown(f"**{who}** — {content}")
 
     with tab_search:
         query = st.text_input("검색 키워드", placeholder="법인카드 룸살롱 / Wi-Fi 100GB")

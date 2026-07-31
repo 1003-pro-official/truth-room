@@ -17,7 +17,7 @@
 
 **완성 전략 (요약):** Day 1 문서·몹 기획으로 시나리오/데이터 동시 설계 → 상태머신↔Streamlit 뼈대 먼저 연결 → RAG·프롬프트를 얹어 데모 안정화.
 
-> **AutoGen:** 발표 멘트의 “멀티에이전트”는 역할 분리(용의자·포렌식 툴·GM)로 구현. AutoGen 라이브러리는 **미적용·선택 실험**.
+> **AutoGen:** 심문 ask 본선 — `lib/autogen_runtime.py` GroupChat(용의자·포렌식 조수·심판). `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백. 오프라인 상태머신 smoke는 `agent_graph.py`.
 
 ---
 
@@ -82,7 +82,7 @@
 - 실시간 음성 / 3D
 - 대규모 파인튜닝 (LoRA는 선택·시간 남으면)
 - 상용 배포 (로컬·Colab 데모면 충분)
-- AutoGen 필수 도입 · OpenAI embedding/Chroma 필수화 (선택 고도화)
+- 무제한 AutoGen 티키타카(상한·폴백 없는) · OpenAI embedding/Chroma 필수화 (선택 실험만)
 - 객체탐지(YOLO) · CV 학습 파이프라인
 
 상세 기술 → [TECH_SPEC.md](TECH_SPEC.md) · 코딩 규칙 → [AI_CONVENTION.md](AI_CONVENTION.md)

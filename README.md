@@ -104,14 +104,15 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 후보 | 요지 | 장점 | 단점 | 채택 |
 | :--- | :--- | :--- | :--- | :---: |
 | A. Dense-only + LLM | hashing dense top-k | 구현 단순 | 키워드 Smoking Gun 순위 불안정 | Baseline만 |
-| B. Hybrid RRF + rerank + LLM | dense+sparse+evidence rerank | 결정 증거 top-1 안정화 | 로컬 임베딩 품질 한계 | **Advanced (본선)** |
-| C. OpenAI Embedding + Chroma | 상용 임베딩 | 의미 검색 품질↑ | 비용·네트워크·재현성↓ | 미채택(다음) |
+| B. Hybrid RRF + rerank + LLM | dense+sparse+evidence rerank | 결정 증거 top-1 안정화 | 로컬 임베딩 의미 품질 한계 | **Advanced (본선)** |
+| C. OpenAI Embedding + Chroma | `text-embedding-3-small` + Chroma | 상용 의미 검색 | 비용·네트워크 · **본 Task Hit@5에서 Advanced 미상회** | 실험 완료·미채택 |
 | D. 대규모 LLM 파인튜닝 | 페르소나/생성 SFT | 말투 고정 가능 | 학습쌍 수천+·시간·MASTER_PLAN 비범위 | **비범위** |
 
 **생성 LLM:** `configs/rag.yaml` → `gpt-4o-mini` (온도 0.2). 심문·요약에 충분하고 비용·지연이 낮아 데모에 적합.  
-**검색 백본:** `local_hashing_ngram` dim=256 — GPU/유료 임베딩 없이 CI·로컬 스모크 가능.
+**검색 백본(본선):** `local_hashing_ngram` + Hybrid RRF.  
+**실험 백본:** `python3 build_index.py --backend chroma` · `rag_pipeline.py --mode embedding` (`lib/rag_chroma.py`).
 
-선정 결론: **B(Hybrid Advanced) + gpt-4o-mini**. 파인튜닝 대신 retrieval 고도화로 Task KPI(증거 Hit)를 먼저 맞춤.
+선정 결론: **B(Hybrid Advanced) + gpt-4o-mini**. OpenAI+Chroma는 구현·측정까지 했으나, Smoking Gun `evidence_id` Hit@5 KPI에서는 Advanced를 넘지 못해 본선 미채택.
 
 ---
 
@@ -142,18 +143,19 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 골든 루트 4증거에 대해 **같은 쿼리**로 Baseline/Advanced를 재측정했습니다.  
 산출물: `runs/rag/exp_compare_fixed_queries.json`
 
-| 쿼리 | 목표 ID | Baseline Hit@5 | Baseline 비고 | Advanced Hit@5 | Advanced 순위 |
-| :--- | :--- | :---: | :--- | :---: | ---: |
-| `법인카드 룸살롱` | `ev_card_03` | ❌ | top-1=`logs`(출입) · 카드 청크는 있으나 **ID 미표기 노이즈** | ✅ | **1** |
-| `슬랙 DM 박신입 서버실` | `ev_msg_12` | ❌ | dense가 목표 ID 미회수 | ❌* | — (`ev_msg` partial) |
-| `김팀장 지문 서버실` | `ev_log_07` | ❌ | 목표 ID 미회수 | ✅ | 3 |
-| `라운지 Wi-Fi 100GB` | `ev_net_01` | ❌ | 목표 ID 미회수 | ✅ | **1** |
+| 쿼리 | 목표 ID | Baseline Hit@5 | Advanced Hit@5 | Embedding Hit@5 | Advanced 순위 |
+| :--- | :--- | :---: | :---: | :---: | ---: |
+| `법인카드 룸살롱` | `ev_card_03` | ❌ | ✅ | ❌ | **1** |
+| `슬랙 DM 박신입 서버실` | `ev_msg_12` | ❌ | ❌* | ❌ | — |
+| `김팀장 지문 서버실` | `ev_log_07` | ❌ | ✅ | ❌ | 3 |
+| `라운지 Wi-Fi 100GB` | `ev_net_01` | ❌ | ✅ | ❌ | **1** |
 
 \* Advanced도 `ev_msg_12` exact Hit는 실패 — 유사 태그 `ev_msg`가 상위에 올라 **부분 성공·한계**로 기록 (아래 실패 실험).
 
-**요약:** 4쿼리 중 Baseline Hit@5 = **0/4**, Advanced = **3/4**(exact) + 1 partial. Hybrid 개선 논리가 동일 프로토콜에서 재현됨.
+**요약 (Hit@5 / 4쿼리):** Baseline **0/4** · Advanced **3/4** · OpenAI+Chroma Embedding **0/4**.  
+희소 `evidence_id` 회수 Task에서는 **키워드·evidence rerank(Advanced)** 가 상용 dense만 쓰는 Embedding보다 유리했다.  
+산출물: `runs/rag/exp_compare_fixed_queries.json` · `runs/rag/exp_compare_embedding.json`
 
-상세 JSON: `runs/rag/exp_baseline/last_query.json` · `runs/rag/exp_advanced/last_query.json`
 
 ### [정성] 분석
 
@@ -173,8 +175,13 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | :--- | :--- | :--- | :--- |
 | **EXP-RAG-B** | dense-only 검색 | 고정 4쿼리 Hit@5 **0/4** · 순위 오염 | `runs/rag/exp_baseline/` |
 | **EXP-RAG-A** | hybrid RRF + rerank | 고정 4쿼리 exact Hit **3/4** · card/net top-1 | `runs/rag/exp_advanced/` |
+| **EXP-EMBED** | OpenAI `text-embedding-3-small` + Chroma | 동일 4쿼리 Hit@5 **0/4** · Advanced 미상회 | `runs/rag/exp_embedding/` · `lib/rag_chroma.py` |
+| **EXP-PROMPT** | 페르소나 템플릿에 알리바이·환각·단정 금지 조항 추가 | 3인 렌더 규칙 검사 **통과** · live 알리바이 유지 | `data/personas/prompt_template.yaml` · `runs/sft/persona_prompt_eval.json` |
+| **EXP-SFT-SMALL** | 소량 페르소나 SFT JSONL **78쌍** (OpenAI FT 형식) | dry-run 준비 완료 · `--submit`은 선택(과금) | `data/sft/` · `scripts/build_persona_sft.py` |
+| **EXP-AUTOGEN** | pyautogen GroupChat → **본선 ask 경로** | 고정 순서·max_round·timeout·폴백 · Streamlit transcript | `lib/autogen_runtime.py` · `configs/agent.yaml` `autogen` |
 | **EXP-FAIL-1** | dense만으로 카드 Smoking Gun 확정 | **실패** — top-1 출입로그 오탐 | 아래 |
 | **EXP-FAIL-2** | Advanced로 `ev_msg_12` exact 회수 | **부분 실패** — `ev_msg`만 상위 | 아래 |
+| **EXP-FAIL-3** | Embedding만으로 Smoking Gun ID 회수 | **실패** — 의미 유사 노이즈(logs 등)가 상위 | 아래 |
 | **EXP-TOOL** | `request_cctv_log` · `run_forensic` | 로비 CCTV 결측 · 이대리 노트북 MAC 힌트 | `data/tools/` · API `/tool` |
 | **EXP-AGENT** | ReAct: 심문→retrieve→CCTV→pressure | smoke 1턴 완주 | `runs/agent/smoke.json` |
 | **EXP-EVAL** | Faithfulness 로컬 루브릭 | 아래 §4 | `runs/eval/report.json` |
@@ -185,6 +192,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | :--- | :--- | :--- | :--- | :--- |
 | **EXP-FAIL-1** | dense만으로도 카드 증거가 위로 온다 | `rag_pipeline.py --mode baseline --query "법인카드 룸살롱"` | top-1=`access_control_*`, `ev_card_03` ∉ top-5 ID | Hybrid/rerank 필수 |
 | **EXP-FAIL-2** | Advanced면 슬랙 Smoking Gun도 exact Hit | 동일 프로토콜 · 쿼리 `슬랙 DM 박신입 서버실` | top-1=`ev_msg`(부분), `ev_msg_12` 미Hit | evidence 태깅·쿼리 정규화 보강 여지 |
+| **EXP-FAIL-3** | 상용 embedding이면 Hit@5가 Advanced를 이긴다 | `build_index.py --backend chroma` + `--mode embedding` | 4쿼리 Hit@5 **0/4** (예: 카드 쿼리→logs) | Task KPI엔 evidence/키워드 rerank가 더 직접적 |
 
 ### Agent 스모크 (1턴)
 
@@ -241,11 +249,11 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 4.3 Baseline vs Advanced — 게임 KPI와 연결
 
-| 관점 | Baseline | Advanced | 게임 의미 |
-| :--- | :--- | :--- | :--- |
-| 고정 4쿼리 Hit@5 | 0/4 | 3/4 exact | 카드·네트워크 단서 인벤토리 확보 가능 |
-| Context Recall (eval) | — (공용 eval은 Advanced 경로) | 0.75 | 골드를 “포함한” 검색은 대체로 성공 |
-| Faithfulness / Precision | 낮음(0.29 / 0.10) | 동일 백엔드 | **생성·순위 정밀도는 아직 약함** → UX에서 상위 하이라이트·툴 교차검증으로 보완 |
+| 관점 | Baseline | Advanced | Embedding | 게임 의미 |
+| :--- | :--- | :--- | :--- | :--- |
+| 고정 4쿼리 Hit@5 | 0/4 | **3/4** | 0/4 | 카드·네트워크 단서는 Advanced로 확보 |
+| Context Recall (eval) | — | 0.75 | — | 골드를 “포함한” 검색은 대체로 성공 |
+| Faithfulness / Precision | 낮음 | 동일 백엔드 | — | 생성 proxy는 보수적 · Hit@k가 주 KPI |
 
 골든 루트(카드→슬랙→네트워크→이대리 지목)는 **검색 Hit + 툴 교차검증**으로 성립하도록 설계되어 있으며, Faithfulness 절대값만으로 “모델이 우수하다”고 주장하지 않습니다.
 
@@ -256,9 +264,9 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | Hybrid (dense+sparse) | ✅ | 키워드·의미 교차 |
 | RRF + rerank | ✅ | Smoking Gun 순위 안정화 |
 | eval 질문 분리 | ✅ | 검색 코퍼스와 평가 질의 분리 |
-| OpenAI embedding / Chroma | ❌ (선택) | 현재는 로컬 인덱스로 재현성·오프라인 스모크 우선 |
-| AutoGen | ❌ | 역할 분리로 대체 · 라이브러리 미도입 |
-| 대규모 LLM FT | ❌ | 비범위 · 학습쌍·일정 제약 |
+| OpenAI embedding / Chroma | 🧪 실험 | `text-embedding-3-small` · Hit@5 **0/4** → 본선 미채택 |
+| AutoGen | ✅ 본선 ask | GroupChat (용의자·조수·심판) · `lib/autogen_runtime.py` · `autogen.enabled` · 실패 시 스텁 폴백. 오프라인 smoke는 `agent_graph.py` |
+| 대규모 LLM FT | ❌ | 비범위. 대신 **소량 SFT 78쌍** 준비(`data/sft/`) · 제출은 선택 |
 
 ### 오류 패턴 (검색)
 
@@ -275,7 +283,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 | 항목 | 상태 |
 | :--- | :--- |
-| FastAPI `/health` · session/ask/search/**tool**/accuse | ✅ smoke |
+| FastAPI `/health` · session/ask/search/**tool**/accuse · AutoGen ask | ✅ smoke (`scripts/smoke_autogen_ask.py`) |
 | Streamlit → API only | ✅ |
 | Golden Route (카드→슬랙→네트워크→이대리 지목) | 시나리오·데이터 준비 ✅ · UI 연출은 Phase 3 |
 
@@ -288,18 +296,18 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 ### 결론 (설득력 범위 명시)
 
 1. **데이터·전처리:** 6종 raw → 5838 청크 파이프라인이 재현 가능하며, EDA상 노이즈 불균형·evidence 희소성이 Hybrid 선택의 근거가 된다.
-2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 3/4**. Task KPI(결정 증거 회수) 기준으로 논리적으로 향상됨.
-3. **여러 시도:** Baseline/Advanced/Tool/Agent/Eval + **실패 2건**을 기록해 “성공만 보고”하지 않음.
+2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 3/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
+3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT-small/Tool/Agent/Eval + **실패 3건**을 기록.
 4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=6·로컬 overlap 한계.
-5. **비범위:** 대규모 파인튜닝은 채택하지 않음. 대신 retrieval·에이전트·툴로 데모 KPI를 맞춤.
+5. **비범위 준수:** 대규모 FT 필수는 하지 않음. AutoGen은 **심문 ask 본선**(`lib/autogen_runtime.py`, `autogen.enabled`) · 실패 시 스텁 폴백. 오프라인 상태머신은 `agent_graph.py`.
 
 ### Next
 
-1. eval n 확대 후 Hit@k·Faithfulness 재측정 (가능하면 RAGAS/임베딩 유사도).
-2. `ev_msg_12` exact 회수 개선 (태깅·동의어·쿼리 템플릿).
-3. Context Precision 향상: 메타필터·chunk 경계·(선택) 상용 임베딩.
-4. Agent는 LangGraph-**style** 순수 Python. `langgraph` 패키지·LLM 페르소나 실호출은 다음 스프린트.
-5. AutoGen 실시간 티키타카는 **미구현** — 발표 시 “역할 분리 Multi-Agent”로 정확히 서술.
+1. (선택) `python3 scripts/openai_finetune_persona.py --submit` 로 소량 FT job 제출 후 모델 ID를 `configs/agent.yaml`에 연결.
+2. eval n 확대 후 Hit@k·Faithfulness 재측정 (가능하면 RAGAS/임베딩 유사도).
+3. `ev_msg_12` exact 회수 개선 (태깅·동의어·쿼리 템플릿).
+4. Context Precision 향상: 메타필터·chunk 경계.
+5. AutoGen 심문 턴 본선 유지 — `max_round`/timeout/폴백 튜닝 · 발표 시 GroupChat transcript 시연.
 
 ---
 

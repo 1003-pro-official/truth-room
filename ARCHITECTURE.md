@@ -6,7 +6,7 @@
 > **제품 계획** → [MASTER_PLAN.md](MASTER_PLAN.md) · **기술** → [TECH_SPEC.md](TECH_SPEC.md) · **코딩** → [AI_CONVENTION.md](AI_CONVENTION.md)  
 > **문서 인덱스** → [docs/README.md](docs/README.md)
 
-Interactive Mystery · Advanced RAG · Multi-Agent(역할 분리) DLthon 프로젝트입니다.
+Interactive Mystery · Advanced RAG · Multi-Agent(AutoGen 심문) DLthon 프로젝트입니다.
 
 ---
 

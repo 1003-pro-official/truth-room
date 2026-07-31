@@ -70,6 +70,15 @@ game:
   timeout_strike_max: 3
   stamina_max: 3
 
+# 멀티에이전트 (AutoGen) — 심문 턴 본선
+# 실패 시 엔진 스텁 답변으로 폴백
+autogen:
+  enabled: true
+  model: gpt-4o-mini
+  max_round: 4
+  temperature: 0.2
+  timeout_sec: 50
+
 tools:
   retrieve: true
   accuse: true

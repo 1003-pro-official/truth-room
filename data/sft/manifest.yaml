@@ -1,0 +1,7 @@
+created_at: '2026-07-31T09:08:48.648965+00:00'
+n_examples: 78
+path: data/sft/persona_sft.jsonl
+meta_path: data/sft/persona_sft_meta.jsonl
+purpose: 소량 페르소나 SFT (OpenAI FT messages) · 대규모 FT 아님
+suspects: 3
+note: '제출: scripts/openai_finetune_persona.py --submit (비용 발생)'

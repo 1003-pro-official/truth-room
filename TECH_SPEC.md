@@ -10,8 +10,8 @@
 | 레이어 | 현재 선택 | 비고 |
 | :--- | :--- | :--- |
 | LLM | OpenAI / 대체 가능 (env) | `.env` 키만 · UI에서 직결 금지 |
-| Orchestration | **LangGraph-style 상태머신** (`agent_graph.py`) | 순수 Python 노드. `langgraph` 패키지 연동은 선택 고도화 |
-| Multi-Agent | 페르소나·GM·툴 역할 분리 | **AutoGen 미적용** (선택 실험·범위 밖) |
+| Orchestration | **LangGraph-style 상태머신** (`agent_graph.py`) + **AutoGen GroupChat** 심문 턴 | 오프라인 smoke=`agent_graph` · 온라인 ask=`lib/autogen_runtime` |
+| Multi-Agent | 용의자 · 포렌식 조수 · 심판 (pyautogen) | `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백 |
 | RAG | **로컬 Hybrid** (`lib/rag_core.py`) | Baseline=dense · Advanced=sparse+dense **RRF+rerank** · 인덱스 `runs/rag/index/` |
 | Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
 | Eval | 로컬 Faithfulness + 시나리오 루브릭 | `evaluate.py` · RAGAS는 선택 |
@@ -81,7 +81,8 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 | `ingest.py` | raw → chunks | `configs/ingest.yaml` |
 | `build_index.py` | 로컬 하이브리드 인덱스 | `configs/rag.yaml` |
 | `rag_pipeline.py` | Baseline / Advanced 검색 | `configs/rag.yaml` |
-| `agent_graph.py` | 심문 상태머신 · ReAct 툴 | `configs/agent.yaml` |
+| `agent_graph.py` | 심문 상태머신 · ReAct 툴 (오프라인 smoke) | `configs/agent.yaml` |
+| `lib/autogen_runtime.py` | ask 턴 AutoGen GroupChat | `configs/agent.yaml` `autogen` |
 | `evaluate.py` | Faithfulness 등 | `configs/eval.yaml` |
 
 ---
@@ -93,7 +94,7 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 | `GET` | `/health` | 헬스 |
 | `POST` | `/api/v1/session` | 새 게임 세션 |
 | `GET` | `/api/v1/session/{id}` | 상태 (수집 증거·압박) |
-| `POST` | `/api/v1/session/{id}/ask` | 심문 `{suspect_id, question}` |
+| `POST` | `/api/v1/session/{id}/ask` | 심문 `{suspect_id, question}` → `answer` · `agent_transcript` · `assistant_note` · `autogen` |
 | `POST` | `/api/v1/session/{id}/search` | 증거 RAG `{query}` |
 | `POST` | `/api/v1/session/{id}/tool` | `{name, args}` — CCTV / forensic |
 | `POST` | `/api/v1/session/{id}/pass_turn` | 타임아웃 턴 패스 (pressure/break 미증가) |

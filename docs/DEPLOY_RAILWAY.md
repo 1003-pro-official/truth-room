@@ -34,7 +34,7 @@ Internet ──HTTPS──► Railway ($PORT)
 4. **Variables** 에 추가:
    - `API_URL` = `http://127.0.0.1:8000`
    - `CORS_ALLOW_ALL` = `1`
-   - `OPENAI_API_KEY` = (선택 · 스텁 모드면 생략 가능)
+   - `OPENAI_API_KEY` = (권장 · AutoGen 심문 ask 본선. 없으면 스텁 폴백)
 5. **Settings → Networking → Generate Domain** (공개 URL)
 6. Deploy 완료 후 `https://<project>.up.railway.app` 접속 → **새 수사 개시**
 
