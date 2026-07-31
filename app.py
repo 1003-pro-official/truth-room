@@ -636,13 +636,43 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           from {{ opacity: 0; transform: translateY(10px); }}
           to {{ opacity: 1; transform: translateY(0); }}
         }}
+        .intro-visual {{
+          width: 100%;
+          aspect-ratio: 16 / 9;
+          max-height: min(38vh, 320px);
+          overflow: hidden;
+          background: #0d1016;
+          border-bottom: 1px solid rgba(200,210,220,0.1);
+        }}
+        .intro-visual img {{
+          width: 100%;
+          height: 100%;
+          object-fit: cover;
+          display: block;
+          filter: saturate(0.92) contrast(1.05);
+        }}
+        .intro-visual.is-trio {{
+          aspect-ratio: 21 / 9;
+          max-height: min(34vh, 280px);
+        }}
+        .intro-visual.is-trio img {{
+          object-fit: contain;
+          background: linear-gradient(180deg, #161b24 0%, #10141b 100%);
+          padding: 0.55rem 0.75rem;
+        }}
         .intro-panel {{
           flex: 1;
           display: flex;
           flex-direction: column;
           justify-content: center;
-          padding: 2.1rem 1.6rem 1.4rem;
-          min-height: min(52vh, 420px);
+          padding: 1.45rem 1.6rem 1.25rem;
+          min-height: 0;
+        }}
+        .intro-shell:has(.intro-visual) .intro-panel {{
+          min-height: auto;
+        }}
+        .intro-shell:has(.intro-visual) {{
+          min-height: auto;
         }}
         .intro-kicker {{
           font-size: 0.72rem;
@@ -793,6 +823,22 @@ def _fetch_case_overview(session_id: str) -> dict | None:
     return data if isinstance(data, dict) else None
 
 
+def _resolve_intro_image(image_key: str) -> Path | None:
+    """intro_scenes.image — assets 상대경로 또는 파일명."""
+    key = str(image_key or "").strip().lstrip("/")
+    if not key:
+        return None
+    candidates = [
+        ROOT / "assets" / key,
+        ROOT / "assets" / "intro" / key,
+        ROOT / key,
+    ]
+    for path in candidates:
+        if path.is_file():
+            return path
+    return None
+
+
 def _intro_scenes_from_case(case: dict, game: dict) -> list[dict[str, str]]:
     """API intro_scenes 우선. 없으면 overview 필드로 한 장면씩 폴백."""
     raw = case.get("intro_scenes") or []
@@ -801,13 +847,14 @@ def _intro_scenes_from_case(case: dict, game: dict) -> list[dict[str, str]]:
         for item in raw:
             if not isinstance(item, dict):
                 continue
-            text = str(item.get("text") or "").strip()
-            if not text:
+            body = str(item.get("text") or "").strip()
+            if not body:
                 continue
             scenes.append(
                 {
                     "caption": str(item.get("caption") or "").strip(),
-                    "text": text,
+                    "text": body,
+                    "image": str(item.get("image") or "").strip(),
                 }
             )
     if scenes:
@@ -822,14 +869,15 @@ def _intro_scenes_from_case(case: dict, game: dict) -> list[dict[str, str]]:
         ("브리핑", case.get("synopsis") or case.get("notes")),
     ]
     for caption, val in fallback:
-        text = str(val or "").strip()
-        if text:
-            scenes.append({"caption": caption, "text": text})
+        body = str(val or "").strip()
+        if body:
+            scenes.append({"caption": caption, "text": body, "image": ""})
     if not scenes:
         scenes.append(
             {
                 "caption": str(case.get("case_id") or game.get("case_id") or "case"),
                 "text": str(case.get("title") or game.get("title") or "수사를 시작합니다."),
+                "image": "",
             }
         )
     return scenes
@@ -846,7 +894,8 @@ def _render_case_intro(game: dict) -> None:
     st.session_state["intro_scene_idx"] = idx
     scene = scenes[idx]
     caption = str(scene.get("caption") or "")
-    text = str(scene.get("text") or "")
+    body = str(scene.get("text") or "")
+    image_key = str(scene.get("image") or "")
     case_no = str(case.get("case_id") or game.get("case_id") or "case_01")
     is_last = idx >= total - 1
 
@@ -857,14 +906,25 @@ def _render_case_intro(game: dict) -> None:
     caption_html = (
         f'<p class="intro-caption">{html.escape(caption)}</p>' if caption else ""
     )
+    visual_html = ""
+    img_path = _resolve_intro_image(image_key)
+    if img_path is not None:
+        data_uri = _file_data_uri(str(img_path))
+        trio_cls = " is-trio" if "trio" in img_path.stem.lower() else ""
+        visual_html = (
+            f'<div class="intro-visual{trio_cls}">'
+            f'<img src="{data_uri}" alt="{html.escape(caption or "장면")}" />'
+            f"</div>"
+        )
     hint = "탭하여 수사 시작" if is_last else "탭하여 다음 장면"
     # key에 idx를 넣어 장면마다 fade 애니메이션이 다시 걸리게 함
     st.markdown(
         f'<div class="intro-shell" key="scene-{idx}">'
+        f"{visual_html}"
         f'<div class="intro-panel">'
         f'<p class="intro-kicker">CASE · {html.escape(case_no)} · SCENE {idx + 1}/{total}</p>'
         f"{caption_html}"
-        f'<p class="intro-body">{html.escape(text)}</p>'
+        f'<p class="intro-body">{html.escape(body)}</p>'
         f"</div>"
         f'<div class="intro-foot">'
         f'<div class="intro-progress">{dots}</div>'
