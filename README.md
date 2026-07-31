@@ -179,7 +179,8 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-SFT-LOCAL** | SmolLM2-135M LoRA | train_loss≈1.87 · 한국어 품질 제한 | `runs/sft/local_lora/` (초기) |
 | **EXP-SFT-KO** | Qwen2.5-0.5B LoRA | train_loss≈2.96 · 한국어↑ | `runs/sft/local_lora_qwen05/` |
 | **EXP-SFT-KO15** | Qwen2.5-**1.5B** LoRA | train_loss≈2.75 · 알리바이 유지 개선 | `runs/sft/local_lora_qwen15/` · `lora_model_compare.json` |
-| **EXP-RAGAS** | ragas 패키지 + embedding faithfulness | ragas evaluate는 py3.9 instructor 이슈로 fail · **embedding cosine Faith≈0.37** | `scripts/eval_ragas.py` · `runs/eval/ragas_report.json` |
+| **EXP-RAGAS** | ragas on **Python 3.12** | **ok** Faith≈0.33 · C-Prec≈0.68 · C-Recall≈0.83 (n=6) | `scripts/eval_ragas.py` · `runs/eval/ragas_py312_report.json` |
+| **EXP-SFT-KO3B** | Qwen2.5-**3B** LoRA | train_loss≈2.79 · 알리바이 유지 | `runs/sft/local_lora_qwen3b/` |
 | **EXP-ROUTE** | source soft routing | Context Precision **0.22→0.40**, Hit@5 4/4 유지 | `lib/rag_core.py` `source_routing` |
 | **EXP-AUTOGEN** | pyautogen GroupChat → **본선 ask** | max_round=5 · timeout=60s · transcript UI | `lib/autogen_runtime.py` |
 | **EXP-FAIL-1** | dense만으로 카드 Smoking Gun 확정 | **실패** — top-1 출입로그 오탐 | 아래 |
@@ -268,8 +269,8 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | :--- | :--- | :--- | :--- | :--- |
 | 고정 4쿼리 Hit@5 | 0/4 | **4/4** | 0/4 | Smoking Gun 전원 Advanced로 확보 |
 | Context Recall (eval) | — | **1.00** | — | 골드 ID 회수 성공 |
-| Context Precision | — | **0.40** | — | source soft routing 후 |
-| Faithfulness (local / emb) | — | 0.27 / **0.37** | — | embedding cosine이 더 관대 |
+| Faithfulness (local / emb / **ragas**) | — | 0.27 / 0.36 / **0.33** | — | ragas는 py3.12 |
+| Context Precision (local / **ragas**) | — | **0.40** / **0.68** | — | ragas LLM-judge |
 
 골든 루트(카드→슬랙→네트워크→이대리 지목)는 **검색 Hit + 툴 교차검증**으로 성립하도록 설계되어 있으며, Faithfulness 절대값만으로 “모델이 우수하다”고 주장하지 않습니다.
 
@@ -291,8 +292,8 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | Baseline top-1 오탐 | 출입로그가 카드 쿼리를 가로챔 | Advanced sparse+RRF (**EXP-FAIL-1**) |
 | `ev_msg_12` exact 미Hit | (과거) partial `ev_msg` 태그 | **해결** — 줄단위 청킹·완전 ID |
 | Context Precision 보수적 | top-5 Smoking Gun 혼재 | **source soft routing** (0.22→0.40) |
-| Faithfulness 중간↓ | 토큰 overlap 한계 | embedding cosine proxy (0.37) · ragas는 py3.9 제약 |
-| 로컬 LoRA | 소형 모델 한계 | **1.5B Qwen**에서 알리바이 유지 개선 |
+| Faithfulness 중간↓ | 토큰 overlap 한계 | **ragas(py3.12)** Faith≈0.33 · emb≈0.36 |
+| 로컬 LoRA | 소형 모델 한계 | **3B Qwen**까지 스케일 · 알리바이 유지 |
 
 ---
 
@@ -325,11 +326,11 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 3. ~~`ev_msg_12` exact 회수~~ → **완료** (Advanced top-1)
 4. ~~Context Precision~~ → **완료** (0.10→**0.40**, source soft routing)
 5. ~~AutoGen 튜닝~~ → **완료** (`max_round=5`, `timeout_sec=60`)
-6. ~~RAGAS 도입~~ → **완료(부분)** — 패키지 설치·스크립트 추가, py3.9에서 ragas.evaluate fail → **embedding Faithfulness 0.37**으로 대체 측정
-7. ~~Precision source 라우팅~~ → **완료** (`configs/rag.yaml` `source_routing: soft`)
-8. ~~더 큰 Ko LLM LoRA~~ → **완료** (Qwen2.5-1.5B)
+6. ~~RAGAS 도입~~ → **완료** — Python **3.12**에서 `ragas.evaluate` 성공 (Faith 0.33 · Prec 0.68 · Recall 0.83). py3.9는 실패·embedding proxy만.
+7. ~~Precision source 라우팅~~ → **완료** (`source_routing: soft`)
+8. ~~더 큰 Ko LLM LoRA~~ → **완료** (1.5B → **3B** Qwen)
 
-선택 여지: Python≥3.10에서 ragas.evaluate 재시도 · 3B+ LoRA.
+선택 여지: RAGAS n 확대 · 7B LoRA(메모리 여유 시).
 
 ---
 

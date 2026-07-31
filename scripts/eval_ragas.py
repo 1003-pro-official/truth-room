@@ -2,8 +2,10 @@
 # -*- coding: utf-8 -*-
 """scripts/eval_ragas.py — RAGAS 또는 OpenAI-embedding faithfulness 평가
 
-  pip install 'ragas>=0.2.0' datasets   # 선택
-  python3 scripts/eval_ragas.py
+Python ≥3.10 권장 (3.12 검증). macOS 예:
+  /opt/homebrew/bin/python3.12 -m venv .venv310 && source .venv310/bin/activate
+  pip install ragas datasets langchain-community langchain-openai openai pyyaml python-dotenv
+  python scripts/eval_ragas.py --limit 6
 """
 
 from __future__ import annotations
@@ -62,36 +64,54 @@ def try_ragas(rows: list[dict[str, Any]], retrieved_map: dict[str, list[str]]) -
     try:
         from datasets import Dataset
         from ragas import evaluate
-        from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+        from ragas.metrics import ContextPrecision, ContextRecall, Faithfulness
     except ImportError as exc:
         return {"status": "skip", "reason": f"ragas_import_fail: {exc}"}
 
     payload = {
-        "question": [],
-        "answer": [],
-        "contexts": [],
-        "ground_truth": [],
+        "user_input": [],
+        "response": [],
+        "retrieved_contexts": [],
+        "reference": [],
     }
     for row in rows:
         qid = str(row.get("id") or "")
-        payload["question"].append(str(row.get("question") or ""))
-        payload["answer"].append(str(row.get("answer") or row.get("ground_truth") or ""))
-        # RAGAS contexts = retrieved snippets
-        payload["contexts"].append(retrieved_map.get(qid) or [str(c) for c in (row.get("contexts") or [])])
-        payload["ground_truth"].append(str(row.get("ground_truth") or ""))
+        gt = str(row.get("ground_truth") or "")
+        payload["user_input"].append(str(row.get("question") or ""))
+        payload["response"].append(str(row.get("answer") or gt))
+        payload["retrieved_contexts"].append(
+            retrieved_map.get(qid) or [str(c) for c in (row.get("contexts") or [])]
+        )
+        payload["reference"].append(gt)
 
     ds = Dataset.from_dict(payload)
+    # AnswerRelevancy는 임베딩 어댑터 이슈가 있어 제외 (faithfulness/precision/recall만)
+    metrics = [Faithfulness(), ContextPrecision(), ContextRecall()]
     try:
-        result = evaluate(
-            ds,
-            metrics=[faithfulness, context_precision, context_recall, answer_relevancy],
-        )
-        # ragas Result → dict-like
-        scores = dict(result) if hasattr(result, "items") else getattr(result, "_scores_dict", {})
-        flat = {str(k): (float(v) if isinstance(v, (int, float)) else v) for k, v in dict(scores).items()}
-        return {"status": "ok", "backend": "ragas", "scores": flat}
+        result = evaluate(ds, metrics=metrics)
+        scores: dict[str, Any] = {}
+        if hasattr(result, "to_pandas"):
+            pdf = result.to_pandas()
+            for col in ("faithfulness", "context_precision", "context_recall"):
+                if col in pdf.columns:
+                    series = pdf[col].dropna()
+                    if len(series):
+                        scores[col] = float(series.mean())
+        return {
+            "status": "ok",
+            "backend": "ragas",
+            "python": sys.version.split()[0],
+            "metrics": ["faithfulness", "context_precision", "context_recall"],
+            "scores": scores,
+            "n": len(rows),
+        }
     except Exception as exc:  # noqa: BLE001
-        return {"status": "fail", "backend": "ragas", "error": str(exc)[:400]}
+        return {
+            "status": "fail",
+            "backend": "ragas",
+            "python": sys.version.split()[0],
+            "error": str(exc)[:500],
+        }
 
 
 def main() -> int:
