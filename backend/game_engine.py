@@ -149,6 +149,21 @@ class GameEngine:
         if not isinstance(overview, dict):
             overview = {}
         synopsis = str(self.scenario.get("synopsis") or "").strip()
+        raw_scenes = overview.get("intro_scenes") or []
+        intro_scenes: list[dict[str, str]] = []
+        if isinstance(raw_scenes, list):
+            for item in raw_scenes:
+                if not isinstance(item, dict):
+                    continue
+                text = str(item.get("text") or "").strip()
+                if not text:
+                    continue
+                intro_scenes.append(
+                    {
+                        "caption": str(item.get("caption") or "").strip(),
+                        "text": text,
+                    }
+                )
         return {
             "case_id": str(self.scenario.get("case_id", "case_01")),
             "title": self.scenario.get("title"),
@@ -156,7 +171,10 @@ class GameEngine:
             "discovered_at": str(overview.get("discovered_at") or ""),
             "location": str(overview.get("location") or ""),
             "incident": str(overview.get("incident") or ""),
+            "player_role": str(overview.get("player_role") or ""),
+            "objective": str(overview.get("objective") or ""),
             "notes": str(overview.get("notes") or synopsis),
+            "intro_scenes": intro_scenes,
         }
 
     def public_suspect_profile(self, suspect_id: str) -> dict[str, Any] | None:

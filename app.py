@@ -616,6 +616,90 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           line-height: 1.45;
           color: #d5d8de;
         }}
+        .intro-shell {{
+          border: 1px solid rgba(200,210,220,0.14);
+          border-radius: 12px;
+          background:
+            radial-gradient(120% 80% at 50% 0%, rgba(90,120,150,0.18), transparent 55%),
+            linear-gradient(180deg, #1a2029 0%, #12161d 100%);
+          padding: 0;
+          margin: 0.15rem 0 0.85rem;
+          overflow: hidden;
+          min-height: min(62vh, 520px);
+          display: flex;
+          flex-direction: column;
+          cursor: pointer;
+          user-select: none;
+          animation: intro-fade 0.45s ease-out;
+        }}
+        @keyframes intro-fade {{
+          from {{ opacity: 0; transform: translateY(10px); }}
+          to {{ opacity: 1; transform: translateY(0); }}
+        }}
+        .intro-panel {{
+          flex: 1;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          padding: 2.1rem 1.6rem 1.4rem;
+          min-height: min(52vh, 420px);
+        }}
+        .intro-kicker {{
+          font-size: 0.72rem;
+          letter-spacing: 0.16em;
+          text-transform: uppercase;
+          color: var(--accent);
+          margin: 0 0 0.85rem !important;
+        }}
+        .intro-caption {{
+          font-family: var(--font-display);
+          font-size: 1.05rem;
+          letter-spacing: 0.04em;
+          color: #9eb0c2;
+          margin: 0 0 1.1rem !important;
+        }}
+        .intro-body {{
+          color: #e8eaef;
+          font-size: 1.28rem;
+          line-height: 1.75;
+          margin: 0 !important;
+          white-space: pre-wrap;
+          font-weight: 500;
+        }}
+        .intro-foot {{
+          padding: 0.85rem 1.35rem 1.1rem;
+          border-top: 1px solid rgba(200,210,220,0.1);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.75rem;
+        }}
+        .intro-progress {{
+          display: flex;
+          gap: 0.35rem;
+          align-items: center;
+        }}
+        .intro-dot {{
+          width: 7px;
+          height: 7px;
+          border-radius: 50%;
+          background: rgba(200,210,220,0.25);
+        }}
+        .intro-dot.is-on {{
+          background: var(--accent);
+          box-shadow: 0 0 0 3px rgba(122,155,184,0.22);
+        }}
+        .intro-hint {{
+          color: var(--muted);
+          font-size: 0.82rem;
+          margin: 0 !important;
+          letter-spacing: 0.02em;
+        }}
+        /* 장면 탭 버튼 — 패널 바로 아래 full-bleed */
+        div[data-testid="stVerticalBlock"]:has(.intro-shell) + div [data-testid="stBaseButton-primary"],
+        div[data-testid="stVerticalBlock"]:has(.intro-shell) ~ div [data-testid="stBaseButton-primary"] {{
+          min-height: 3rem;
+        }}
 
         [data-testid="stProgress"] > div > div {{
           background-color: #5f7a90 !important;
@@ -694,6 +778,111 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def _fetch_case_overview(session_id: str) -> dict | None:
+    try:
+        resp = requests.get(f"{_api()}/api/v1/session/{session_id}/case", timeout=10)
+    except requests.RequestException as exc:
+        st.error(f"사건개요 요청 실패: {exc}")
+        return None
+    if resp.status_code != 200:
+        st.error(resp.text)
+        return None
+    data = resp.json()
+    return data if isinstance(data, dict) else None
+
+
+def _intro_scenes_from_case(case: dict, game: dict) -> list[dict[str, str]]:
+    """API intro_scenes 우선. 없으면 overview 필드로 한 장면씩 폴백."""
+    raw = case.get("intro_scenes") or []
+    scenes: list[dict[str, str]] = []
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, dict):
+                continue
+            text = str(item.get("text") or "").strip()
+            if not text:
+                continue
+            scenes.append(
+                {
+                    "caption": str(item.get("caption") or "").strip(),
+                    "text": text,
+                }
+            )
+    if scenes:
+        return scenes
+    # 폴백: 필드 단위 장면
+    fallback = [
+        ("사건", case.get("incident")),
+        ("시각", case.get("discovered_at")),
+        ("장소", case.get("location")),
+        ("역할", case.get("player_role")),
+        ("목표", case.get("objective")),
+        ("브리핑", case.get("synopsis") or case.get("notes")),
+    ]
+    for caption, val in fallback:
+        text = str(val or "").strip()
+        if text:
+            scenes.append({"caption": caption, "text": text})
+    if not scenes:
+        scenes.append(
+            {
+                "caption": str(case.get("case_id") or game.get("case_id") or "case"),
+                "text": str(case.get("title") or game.get("title") or "수사를 시작합니다."),
+            }
+        )
+    return scenes
+
+
+def _render_case_intro(game: dict) -> None:
+    """웹툰형 인트로 — 한 장면씩 표시, 탭하면 다음 장면."""
+    sid = str(game.get("session_id") or "")
+    case = _fetch_case_overview(sid) or {}
+    scenes = _intro_scenes_from_case(case, game)
+    total = len(scenes)
+    idx = int(st.session_state.get("intro_scene_idx") or 0)
+    idx = max(0, min(idx, total - 1))
+    st.session_state["intro_scene_idx"] = idx
+    scene = scenes[idx]
+    caption = str(scene.get("caption") or "")
+    text = str(scene.get("text") or "")
+    case_no = str(case.get("case_id") or game.get("case_id") or "case_01")
+    is_last = idx >= total - 1
+
+    dots = "".join(
+        f'<span class="intro-dot{" is-on" if i == idx else ""}"></span>'
+        for i in range(total)
+    )
+    caption_html = (
+        f'<p class="intro-caption">{html.escape(caption)}</p>' if caption else ""
+    )
+    hint = "탭하여 수사 시작" if is_last else "탭하여 다음 장면"
+    # key에 idx를 넣어 장면마다 fade 애니메이션이 다시 걸리게 함
+    st.markdown(
+        f'<div class="intro-shell" key="scene-{idx}">'
+        f'<div class="intro-panel">'
+        f'<p class="intro-kicker">CASE · {html.escape(case_no)} · SCENE {idx + 1}/{total}</p>'
+        f"{caption_html}"
+        f'<p class="intro-body">{html.escape(text)}</p>'
+        f"</div>"
+        f'<div class="intro-foot">'
+        f'<div class="intro-progress">{dots}</div>'
+        f'<p class="intro-hint">{html.escape(hint)}</p>'
+        f"</div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+    btn_label = "수사 시작" if is_last else "다음 장면"
+    if st.button(btn_label, type="primary", use_container_width=True, key=f"intro_tap_{idx}"):
+        if is_last:
+            st.session_state["show_intro"] = False
+            st.session_state["intro_scene_idx"] = 0
+            _reset_timer()
+        else:
+            st.session_state["intro_scene_idx"] = idx + 1
+        st.rerun()
 
 
 def _queue_clues(clues: list) -> None:
@@ -1059,7 +1248,11 @@ with st.sidebar:
             st.session_state["hits"] = []
             st.session_state["pending_clues"] = []
             st.session_state["last_ending"] = None
-            _reset_timer()
+            st.session_state["show_intro"] = True
+            st.session_state["intro_scene_idx"] = 0
+            # 타이머는 브리핑(마지막 장면) 확인 후 시작
+            st.session_state["turn_deadline"] = None
+            st.rerun()
         except requests.RequestException as exc:
             st.error(f"세션 생성 실패: {exc}")
 
@@ -1098,6 +1291,24 @@ revoked = status == "authority_revoked" or (
 stamina = int(game.get("stamina") or 0)
 
 _inject_theme(mental=mental, revoked=revoked)
+
+# 웹툰형 사건 인트로 — 한 장면씩, 탭으로 진행
+if st.session_state.get("show_intro") and not game.get("ended"):
+    st.markdown(
+        """
+        <div class="hud">
+          <div>
+            <div class="brand-title">진실의 방</div>
+            <div class="brand-gap" style="height:16px;min-height:16px;" aria-hidden="true">&nbsp;</div>
+            <div class="brand-sub">사건 프롤로그</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    _render_case_intro(game)
+    st.stop()
+
 _render_hud(game)
 _render_clue_banner()
 
@@ -1114,6 +1325,7 @@ timer_on = (
     and bool(game.get("timer_enabled", True))
     and not game.get("ended")
     and game.get("status") not in ("turn_out", "authority_revoked")
+    and not st.session_state.get("show_intro")
 )
 total_sec = int(game.get("turn_seconds") or 20)
 turn_out_now = game.get("status") == "turn_out" or (
