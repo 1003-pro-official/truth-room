@@ -156,7 +156,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | `김팀장 지문 서버실`    | `ev_log_07`  |       ❌       |       ✅       |       ❌        |         **1** |
 | `라운지 Wi-Fi 100GB`    | `ev_net_01`  |       ❌       |       ✅       |       ❌        |         **1** |
 
-**요약 (Hit@5 / 4쿼리):** Baseline **0/4** · Advanced **4/4** (Next 개선 후) · OpenAI+Chroma Embedding **0/4**.  
+**요약 (Hit@5 / 4쿼리):** Baseline **0/4** · Advanced **4/4** (후속 개선 후) · OpenAI+Chroma Embedding **0/4**.  
 개선: JSONL 줄단위 청킹 + 완전 `evidence_id`만 태깅 + 쿼리 확장 + canonical boost.  
 재현: `python3 scripts/compare_fixed_queries.py` · `runs/rag/exp_compare_fixed_queries.json`
 
@@ -201,14 +201,14 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-AGENT**     | ReAct: 심문→retrieve→CCTV→pressure                  | smoke 1턴 완주                                                         | `runs/agent/smoke.json`                                                    |
 | **EXP-EVAL**      | Faithfulness 로컬 루브릭                            | 아래 §4                                                                | `runs/eval/report.json`                                                    |
 
-### 실패·한계 실험 (의도적으로 남긴 기록)
+### 실패·한계 실험
 
-| ID             | 가설                                         | 시도                                                        | 결과                                                       | 학습                                            |
+| ID             | 가설                                         | 시도                                                        | 결과                                                       | 시사점                                          |
 | :------------- | :------------------------------------------- | :---------------------------------------------------------- | :--------------------------------------------------------- | :---------------------------------------------- |
 | **EXP-FAIL-1** | dense만으로도 카드 증거가 위로 온다          | `rag_pipeline.py --mode baseline --query "법인카드 룸살롱"` | top-1=`access_control_*`, `ev_card_03` ∉ top-5 ID          | Hybrid/rerank 필수                              |
 | **EXP-FAIL-2** | Advanced면 슬랙 Smoking Gun도 exact Hit      | 줄단위 청킹·완전 ID·쿼리 확장 후 재측정                     | **해결** — `ev_msg_12` Advanced top-1                      | 부분 태그(`ev_msg`) 오염이 원인                 |
 | **EXP-FAIL-3** | 상용 embedding이면 Hit@5가 Advanced를 이긴다 | `build_index.py --backend chroma` + `--mode embedding`      | 4쿼리 Hit@5 **0/4** (예: 카드 쿼리→logs)                   | Task KPI엔 evidence/키워드 rerank가 더 직접적   |
-| **EXP-FAIL-4** | OpenAI FT로 페르소나 말투 고정               | `openai_finetune_persona.py --submit`                       | **403** `training_not_available` (self-serve FT wind-down) | 상용 FT 의존 위험 · 로컬 LoRA로 파이프라인 학습 |
+| **EXP-FAIL-4** | OpenAI FT로 페르소나 말투 고정               | `openai_finetune_persona.py --submit`                       | **403** `training_not_available` (self-serve FT wind-down) | 상용 FT 의존 위험 · 로컬 LoRA로 파이프라인 대체 |
 
 ### 소량 SFT · FT 실험 상세
 
@@ -218,7 +218,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 프롬프트-only live | `gpt-4o-mini` · 알리바이 유지·AI 미노출 (`runs/sft/persona_prompt_eval.json`)                                                                                        |
 | OpenAI FT submit   | **실패** — 조직에 신규 fine-tuning job 생성 권한 없음 ([deprecations](https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning)) |
 | 로컬 LoRA 대체     | `SmolLM2-135M-Instruct` · trainable **0.34%** · 30 steps · `train_loss≈1.87` · adapter `runs/sft/local_lora/`                                                        |
-| 학습               | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 데모용 gpt-4o-mini를 대체하지 못함)        |
+| 채택               | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 gpt-4o-mini를 대체하지 못함)        |
 
 ![Local LoRA train_loss ladder](report/assets/metrics/lora_train_loss_ladder.png)
 
@@ -292,7 +292,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | Faithfulness (local / emb / **ragas**) | —        | 0.27 / 0.37 / **0.64** | —         | ragas py3.12 · **n=30**          |
 | Context Precision (local / **ragas**)  | —        | **0.40** / **0.75**    | —         | ragas LLM-judge · n=30           |
 
-골든 루트(카드→슬랙→네트워크→이대리 지목)는 **검색 Hit + 툴 교차검증**으로 성립하도록 설계되어 있으며, Faithfulness 절대값만으로 “모델이 우수하다”고 주장하지 않습니다.
+골든 루트(카드→슬랙→네트워크→이대리 지목)는 **검색 Hit + 툴 교차검증**으로 성립하도록 설계했다. Faithfulness는 n=30(ragas)·로컬 overlap 한계가 있어 Hit@k·Context Recall을 주 KPI로 둔다.
 
 ### 과적합·일반화 관점 (RAG)
 
@@ -329,17 +329,17 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ---
 
-## 6. 결론 · 한계 및 Next
+## 6. 결론 · 한계 · 후속 개선
 
-### 결론 (설득력 범위 명시)
+### 결론
 
 1. **데이터·전처리:** 6종 raw → **6665** 청크 파이프라인이 재현 가능하며, EDA상 노이즈 불균형·evidence 희소성이 Hybrid 선택의 근거가 된다.
 2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 4/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
 3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT/로컬 LoRA(Qwen)/Tool/Agent/Eval + 실패·개선 기록.
-4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=30(ragas)·로컬 overlap 한계.
-5. **비범위 준수:** 대규모 FT을 대신 해서 소량 SFT·로컬 LoRA으로 실행. AutoGen은 심문 ask 본선.
+4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy (n=30 ragas · 로컬 overlap 한계).
+5. **범위:** 대규모 FT 대신 소량 SFT·로컬 LoRA 실행. AutoGen은 심문 ask 본선.
 
-### Next (완료 요약)
+### 후속 개선 이력
 
 1. ~~더 큰 한국어 베이스 LoRA~~ → **완료** (SmolLM → 0.5B → **1.5B** → **3B**)
 2. ~~eval n 확대·재측정~~ → **완료** (로컬 eval n=18 · **ragas n=30**)
@@ -349,6 +349,10 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 6. ~~RAGAS 도입·n 확대~~ → **완료** — Python **3.12** `ragas.evaluate` n=30 (Faith≈0.64 · Prec≈0.75 · Recall≈0.77). py3.9는 실패·embedding proxy만.
 7. ~~Precision source 라우팅~~ → **완료** (`source_routing: soft`)
 8. ~~더 큰 Ko LLM LoRA~~ → **완료** (1.5B → **3B** 완주 · **7B**는 16GB에서 `memory_limit`)
+
+### 남은 작업
+
+1. Golden Route UI 연출 (카드→슬랙→네트워크→이대리 지목) — 시나리오·데이터는 준비됨 · Phase 3
 
 ---
 
