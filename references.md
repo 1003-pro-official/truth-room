@@ -11,7 +11,7 @@
 | ID | 기술 | 용도 | Phase | 공식 문서 / 참조 |
 | :--- | :--- | :--- | :--- | :--- |
 | S1 | **Hybrid RAG** (`lib/rag_core.py`) | 증거 검색 · Baseline/Advanced | **1b** | Gao et al. RAG Survey · Modular RAG |
-| S2 | **LangGraph-style** (`agent_graph.py`) | 심문·압박·상태 분기 (순수 Python) | **1c** | [LangGraph Docs](https://langchain-ai.github.io/langgraph/) |
+| S2 | **LangGraph** (`lib/langgraph_runtime.py` · `agent_graph.py`) | 심문·압박·상태 분기 (공식 StateGraph) | **1c** | [LangGraph Docs](https://langchain-ai.github.io/langgraph/) |
 | S2b | **AutoGen** (`lib/autogen_runtime.py`) | ask 턴 GroupChat (용의자·조수·심판) | **1c/2** | [microsoft/autogen](https://github.com/microsoft/autogen) · round_robin · max_round |
 | S3 | **Function Calling** (`lib/tools.py`) | CCTV·포렌식 툴 | **1c** | OpenAI / 로컬 툴 스키마 |
 | S4 | **FastAPI** | Session · ask · search · tool · accuse | **2** | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) |
@@ -43,7 +43,7 @@
 
 - **문서:** [LangGraph](https://langchain-ai.github.io/langgraph/)
 - **근거:** 일반 DAG(단방향)가 아닌 **순환(Cyclic) 그래프**를 지원해, 게임 내내 용의자 **스트레스(pressure)** · 플레이어 **증거 수집 상태**를 메모리에 유지하고 자백/부인 분기를 제어할 수 있는 기술적 근거가 된다.  
-  *(본 레포는 `langgraph` 패키지 없이도 동일 패턴을 `agent_graph.py` 순수 Python 노드로 구현.)*
+  *(구현: `lib/langgraph_runtime.py` 공식 StateGraph · 노드 로직 `agent_graph.py` · 미설치 시 순차 폴백. ask 본선은 AutoGen.)*
 
 #### Streamlit Conversational UI
 
@@ -77,7 +77,8 @@
 | :--- | :--- | :---: |
 | 조력 AI / 용의자 AI 분리 | `data/personas/` · `agent_graph.py` · GM 톤 | 🟡 |
 | 방탈출형 규칙 · win_condition | `data/scenarios/case_01.yaml` | 🟢 |
-| Stateful 압박 루프 | `agent_graph.py` · `configs/agent.yaml` | 🟢 스모크 |
+| Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `configs/agent.yaml` | 🟢 LangGraph smoke |
+
 | Modular / Hybrid RAG | `lib/rag_core.py` · `rag_pipeline.py` | 🟢 |
 | Streamlit 심문 UI | `app.py` → FastAPI only | 🟡 |
 | 리포트 · Notion | `update_report.py` · `update_notion.py` | 🟢 |

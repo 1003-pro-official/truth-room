@@ -226,12 +226,12 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 
 <!-- report:auto:agent -->
 
-- **상태:** `ok` · case `case_01` · 2026-07-31 20:05:12
+- **상태:** `ok` · backend **`langgraph`** · case `case_01`
 - **목표 입력:** 김팀장 알리바이 검증 + CCTV
-- **수집 evidence:** `ev_card_03`, `ev_log_07`, `ev_msg_12`, `ev_net_01`
-- **clue / pressure:** 4 / 0.75
-- **툴:** `request_cctv_log`(lobby) → status `unavailable` (폭우·정전으로 로비 CCTV 녹화 구간 결측 (23:00~24:00))
-- **노드:** `route → interrogate → retrieve_evidence → call_tool → update_pressure → confront → judge_ending`
+- **수집 evidence:** `ev_card_03` (+ RAG top-k)
+- **툴:** `request_cctv_log`(lobby) → status `unavailable`
+- **노드:** `START → route → interrogate → retrieve_evidence → call_tool → update_pressure → confront → judge_ending → END`
+- **재현:** `python3 agent_graph.py --smoke` · `runs/agent/smoke.json`
 <!-- /report:auto:agent -->
 
 ### Function Calling (탐정 특수기)
@@ -302,7 +302,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | RRF + rerank              |     ✅      | Smoking Gun 순위 안정화                                                                                                            |
 | eval 질문 분리            |     ✅      | 검색 코퍼스와 평가 질의 분리                                                                                                       |
 | OpenAI embedding / Chroma |   🧪 실험   | `text-embedding-3-small` · Hit@5 **0/4** → 본선 미채택                                                                             |
-| AutoGen                   | ✅ 본선 ask | GroupChat (용의자·조수·심판) · `lib/autogen_runtime.py` · `autogen.enabled` · 실패 시 스텁 폴백. 오프라인 smoke는 `agent_graph.py` |
+| AutoGen                   | ✅ 본선 ask | GroupChat · `lib/autogen_runtime.py`. 오프라인 상태머신 smoke는 **LangGraph** (`agent_graph.py`) |
 | 대규모 LLM FT             |    ❌→🧪    | 대규모는 비범위. **소량 78쌍 제출 시도** → OpenAI FT 차단 · **로컬 LoRA로 대체 완주**                                              |
 
 ### 오류 패턴 (검색)

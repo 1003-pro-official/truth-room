@@ -10,7 +10,7 @@
 | 레이어 | 현재 선택 | 비고 |
 | :--- | :--- | :--- |
 | LLM | OpenAI / 대체 가능 (env) | `.env` 키만 · UI에서 직결 금지 |
-| Orchestration | **LangGraph-style 상태머신** (`agent_graph.py`) + **AutoGen GroupChat** 심문 턴 | 오프라인 smoke=`agent_graph` · 온라인 ask=`lib/autogen_runtime` |
+| Orchestration | **LangGraph** StateGraph (`lib/langgraph_runtime.py` · `agent_graph.py`) + **AutoGen GroupChat** 심문 턴 | 오프라인 smoke=`agent_graph --smoke` (langgraph) · 온라인 ask=`lib/autogen_runtime` |
 | Multi-Agent | 용의자 · 포렌식 조수 · 심판 (pyautogen) | `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백 |
 | RAG | **로컬 Hybrid** (`lib/rag_core.py`) | Baseline=dense · Advanced=sparse+dense **RRF+rerank** · 인덱스 `runs/rag/index/` |
 | Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
@@ -108,7 +108,7 @@ UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `ac
 
 ---
 
-## 5. Agent 상태 (LangGraph-style)
+## 5. Agent 상태 (LangGraph)
 
 ```
 State:
@@ -127,7 +127,12 @@ State:
   phase: interrogate | retrieve | tool | confront | ending
 ```
 
-노드: `route` → `interrogate` | `retrieve_evidence` | `call_tool` → `update_pressure` → `confront` → `judge_ending`
+노드 (공식 `langgraph` StateGraph · `lib/langgraph_runtime.py`):  
+`START → route` → (conditional) `interrogate | retrieve_evidence | call_tool | judge_ending`  
+→ `update_pressure → confront → judge_ending → END`  
+(retrieve 목표는 smoke 내러티브상 `interrogate` 선행)
+
+설정: `configs/agent.yaml` → `langgraph.enabled` (false 시 순수 Python 폴백)
 
 **게임 룰 정본:** [docs/GAME_RULES.md](docs/GAME_RULES.md) (3-Out · 멘탈 붕괴 · 20초 · 수사 권한 · 조합 지목)
 

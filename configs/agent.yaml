@@ -61,6 +61,11 @@ graph:
   max_turns: 20
   pressure_step: 0.15
 
+# 공식 LangGraph StateGraph (`lib/langgraph_runtime.py`)
+# false면 순수 Python 순차 폴백
+langgraph:
+  enabled: true
+
 # docs/GAME_RULES.md — 3-Out · 타임어택
 game:
   break_threshold: 3

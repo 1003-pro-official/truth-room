@@ -1,8 +1,12 @@
 #!/usr/bin/env python3
-"""agent_graph.py — LangGraph-style 심문 상태머신 + ReAct 툴 연쇄
+"""agent_graph.py — LangGraph 심문 상태머신 + ReAct 툴 연쇄
 
-실패키지 langgraph 없이도 동일 노드명으로 동작.
+본선 그래프: 공식 `langgraph` StateGraph (`lib/langgraph_runtime.py`).
+langgraph 미설치 시에만 순수 Python 순차 폴백.
 `--smoke` 는 알리바이 검증 1턴 완주 게이트.
+
+노드: route → interrogate → retrieve_evidence → call_tool
+    → update_pressure → confront → judge_ending
 """
 
 from __future__ import annotations
@@ -122,6 +126,8 @@ def node_retrieve_evidence(state: AgentState, cfg: dict[str, Any], rag_cfg: dict
         top_k=int(retrieval.get("top_k", 5)),
         rrf_k=int(retrieval.get("rrf_k", 60)),
         rerank=bool(retrieval.get("rerank", True)),
+        expand=bool(retrieval.get("expand", True)),
+        source_routing=str(retrieval.get("source_routing") or "off"),
     )
     state.last_retrieval = [
         {
@@ -162,7 +168,6 @@ def node_call_tool(state: AgentState, cfg: dict[str, Any]) -> AgentState:
     }
     suspect_name = name_map.get(state.suspect_id, state.suspect_id)
 
-    # 조수 템플릿 Function Calling — 의도 키워드 라우팅
     if tools_cfg.get("check_card_history", True) and any(
         k in goal for k in ("카드", "결제", "룸살롱", "법인")
     ):
@@ -295,7 +300,6 @@ def node_judge_ending(state: AgentState, cfg: dict[str, Any], scenario: dict[str
     culprit = str(scenario.get("culprit_id", ""))
     min_eids = list((scenario.get("win_condition") or {}).get("min_evidence_ids") or [])
     has_min = all(e in state.evidence_ids for e in min_eids) if min_eids else False
-    # smoke turn does not force ending clear
     state.ended = False
     state.trace.append(
         {
@@ -309,12 +313,7 @@ def node_judge_ending(state: AgentState, cfg: dict[str, Any], scenario: dict[str
     return state
 
 
-def run_graph(
-    cfg: dict[str, Any],
-    *,
-    user_goal: str,
-    suspect_id: str = "suspect_a",
-) -> dict[str, Any]:
+def _load_context(cfg: dict[str, Any]) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
     scenario_path = ROOT / cfg.get("scenario", "data/scenarios/case_01.yaml")
     personas_dir = ROOT / cfg.get("personas_dir", "data/personas")
     scenario = load_yaml(scenario_path) if scenario_path.exists() else {}
@@ -323,35 +322,67 @@ def run_graph(
         for path in sorted(personas_dir.glob("suspect_*.yaml")):
             p = load_yaml(path)
             personas[str(p.get("id") or path.stem)] = p
-
     rag_cfg_path = ROOT / "configs" / "rag.yaml"
     rag_cfg = load_yaml(rag_cfg_path) if rag_cfg_path.exists() else {}
+    return scenario, personas, rag_cfg
 
+
+def _run_graph_fallback(
+    cfg: dict[str, Any],
+    *,
+    user_goal: str,
+    suspect_id: str,
+    scenario: dict[str, Any],
+    personas: dict[str, Any],
+    rag_cfg: dict[str, Any],
+) -> dict[str, Any]:
+    """langgraph 미설치 시 동일 노드 순차 실행."""
     suspects = list(scenario.get("suspects") or personas.keys())
+    suspect_ids: list[str] = []
+    for s in suspects:
+        if isinstance(s, dict):
+            suspect_ids.append(str(s.get("id") or ""))
+        else:
+            suspect_ids.append(str(s))
+    suspect_ids = [s for s in suspect_ids if s] or list(personas.keys())
+
     state = AgentState(
         suspect_id=suspect_id,
         user_goal=user_goal,
-        pressure={s: 0.0 for s in suspects},
-        break_count={s: 0 for s in suspects},
+        pressure={s: 0.0 for s in suspect_ids},
+        break_count={s: 0 for s in suspect_ids},
     )
-
     state = node_route(state, cfg)
-    if state.phase == "interrogate":
+    if state.phase == "ending":
+        state = node_judge_ending(state, cfg, scenario)
+    elif state.phase == "tool":
+        state = node_call_tool(state, cfg)
+        state = node_update_pressure(state, cfg, personas)
+        state = node_confront(state, cfg, personas)
+        state = node_judge_ending(state, cfg, scenario)
+    else:
         state = node_interrogate(state, cfg, personas)
-    if state.phase in {"retrieve", "tool"} or state.last_retrieval == []:
-        # ReAct chain for alibi verification
-        state = node_interrogate(state, cfg, personas) if not state.messages else state
         state = node_retrieve_evidence(state, cfg, rag_cfg)
         state = node_call_tool(state, cfg)
-    state = node_update_pressure(state, cfg, personas)
-    state = node_confront(state, cfg, personas)
-    state = node_judge_ending(state, cfg, scenario)
+        state = node_update_pressure(state, cfg, personas)
+        state = node_confront(state, cfg, personas)
+        state = node_judge_ending(state, cfg, scenario)
     state.turn = 1
+    return _result_payload(cfg, scenario, state, backend="pure_python_fallback")
 
+
+def _result_payload(
+    cfg: dict[str, Any],
+    scenario: dict[str, Any],
+    state: AgentState,
+    *,
+    backend: str,
+) -> dict[str, Any]:
     return {
         "status": "ok",
         "case_id": scenario.get("case_id"),
         "gm_tone": bool(cfg.get("gm_system_prompt")),
+        "backend": backend,
         "state": {
             "session_id": state.session_id,
             "turn": state.turn,
@@ -370,8 +401,85 @@ def run_graph(
         },
         "trace": state.trace,
         "created_at": datetime.now(timezone.utc).isoformat(),
-        "note": "pure-Python LangGraph-compatible nodes · ReAct retrieve+tool",
+        "note": (
+            "LangGraph StateGraph · ReAct retrieve+tool"
+            if backend.startswith("langgraph")
+            else "pure-Python fallback · same nodes"
+        ),
     }
+
+
+def run_graph(
+    cfg: dict[str, Any],
+    *,
+    user_goal: str,
+    suspect_id: str = "suspect_a",
+) -> dict[str, Any]:
+    scenario, personas, rag_cfg = _load_context(cfg)
+    suspects = list(scenario.get("suspects") or personas.keys())
+    suspect_ids: list[str] = []
+    for s in suspects:
+        if isinstance(s, dict):
+            suspect_ids.append(str(s.get("id") or ""))
+        else:
+            suspect_ids.append(str(s))
+    suspect_ids = [s for s in suspect_ids if s] or list(personas.keys())
+
+    use_lg = bool((cfg.get("langgraph") or {}).get("enabled", True))
+    from lib.langgraph_runtime import invoke_langgraph, langgraph_available
+
+    if use_lg and langgraph_available():
+        initial = {
+            "session_id": "smoke",
+            "turn": 0,
+            "suspect_id": suspect_id,
+            "user_goal": user_goal,
+            "messages": [],
+            "evidence_ids": [],
+            "pressure": {s: 0.0 for s in suspect_ids},
+            "break_count": {s: 0 for s in suspect_ids},
+            "last_retrieval": [],
+            "tool_results": [],
+            "phase": "interrogate",
+            "clue_count": 0,
+            "ended": False,
+            "trace": [],
+        }
+        final = invoke_langgraph(
+            cfg,
+            personas=personas,
+            rag_cfg=rag_cfg,
+            scenario=scenario,
+            initial=initial,  # type: ignore[arg-type]
+        )
+        state = AgentState(
+            session_id=str(final.get("session_id") or "smoke"),
+            turn=int(final.get("turn") or 1),
+            suspect_id=str(final.get("suspect_id") or suspect_id),
+            user_goal=str(final.get("user_goal") or user_goal),
+            messages=list(final.get("messages") or []),
+            evidence_ids=list(final.get("evidence_ids") or []),
+            pressure=dict(final.get("pressure") or {}),
+            break_count=dict(final.get("break_count") or {}),
+            last_retrieval=list(final.get("last_retrieval") or []),
+            tool_results=list(final.get("tool_results") or []),
+            phase=final.get("phase") or "ending",  # type: ignore[arg-type]
+            clue_count=int(final.get("clue_count") or 0),
+            ended=bool(final.get("ended")),
+            trace=list(final.get("trace") or []),
+        )
+        if state.turn < 1:
+            state.turn = 1
+        return _result_payload(cfg, scenario, state, backend="langgraph")
+
+    return _run_graph_fallback(
+        cfg,
+        user_goal=user_goal,
+        suspect_id=suspect_id,
+        scenario=scenario,
+        personas=personas,
+        rag_cfg=rag_cfg,
+    )
 
 
 def smoke_run(cfg: dict[str, Any]) -> dict[str, Any]:
