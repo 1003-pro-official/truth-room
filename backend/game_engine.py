@@ -549,6 +549,12 @@ class GameEngine:
                 top_k=top_k,
                 rrf_k=rrf_k,
                 rerank=bool(retrieval.get("rerank", True)),
+                expand=bool(retrieval.get("expand_query", True)),
+                source_types=[str(s) for s in (retrieval.get("source_types") or []) if s]
+                or None,
+                boost_evidence=float(retrieval.get("boost_evidence", 0.20)),
+                boost_canonical=float(retrieval.get("boost_canonical", 0.25)),
+                boost_keyword=float(retrieval.get("boost_keyword", 0.05)),
             )
             hits = [
                 {

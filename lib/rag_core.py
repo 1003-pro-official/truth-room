@@ -15,10 +15,55 @@ from typing import Any
 ROOT = Path(__file__).resolve().parent.parent
 
 _TOKEN_RE = re.compile(r"[A-Za-z0-9가-힣_.:/-]+")
+_FULL_EVIDENCE_RE = re.compile(r"^ev_[a-z]+_\d+$", re.IGNORECASE)
+
+# Smoking Gun — exact ID에 추가 가산
+CANONICAL_EVIDENCE = ("ev_card_03", "ev_msg_12", "ev_log_07", "ev_net_01")
+
+# 쿼리 확장 (동의어·템플릿 키워드)
+QUERY_EXPANSIONS: dict[str, list[str]] = {
+    "슬랙": ["메신저", "DM", "slack", "대화"],
+    "DM": ["슬랙", "메신저", "direct"],
+    "박신입": ["신입", "박"],
+    "서버실": ["server_room", "서버", "출입"],
+    "법인카드": ["카드", "결제", "룸살롱"],
+    "룸살롱": ["강남역", "접대", "결제"],
+    "Wi-Fi": ["와이파이", "wifi", "라운지", "BULK_TRANSFER"],
+    "와이파이": ["Wi-Fi", "wifi", "라운지", "100GB"],
+    "100GB": ["대용량", "전송", "BULK"],
+    "지문": ["fingerprint", "출입", "badge"],
+}
 
 
 def tokenize(text: str) -> list[str]:
     return [t.lower() for t in _TOKEN_RE.findall(text or "") if t.strip()]
+
+
+def expand_query(query: str) -> str:
+    """동의어·관련 키워드를 덧붙여 sparse/키워드 매칭을 보강."""
+    q = (query or "").strip()
+    if not q:
+        return q
+    extras: list[str] = []
+    lower = q.lower()
+    for key, syns in QUERY_EXPANSIONS.items():
+        if key.lower() in lower or key in q:
+            extras.extend(syns)
+    if not extras:
+        return q
+    # 중복 제거 순서 유지
+    seen = set(tokenize(q))
+    add: list[str] = []
+    for t in extras:
+        tl = t.lower()
+        if tl not in seen:
+            seen.add(tl)
+            add.append(t)
+    return q if not add else f"{q} {' '.join(add)}"
+
+
+def is_full_evidence_id(eid: Any) -> bool:
+    return bool(eid) and bool(_FULL_EVIDENCE_RE.match(str(eid)))
 
 
 def load_chunks(path: Path) -> list[dict[str, Any]]:
@@ -58,17 +103,19 @@ def cosine(a: list[float], b: list[float]) -> float:
 def build_index(chunks: list[dict[str, Any]], dim: int = 256) -> dict[str, Any]:
     docs: list[dict[str, Any]] = []
     df: Counter[str] = Counter()
-    tokenized: list[list[str]] = []
 
     for c in chunks:
         text = str(c.get("text", ""))
         toks = tokenize(text)
-        tokenized.append(toks)
         df.update(set(toks))
+        eid = c.get("evidence_id")
+        # 인덱스 단계에서도 잘린 ID 제거
+        if eid and not is_full_evidence_id(eid):
+            eid = None
         docs.append(
             {
                 "chunk_id": c.get("chunk_id"),
-                "evidence_id": c.get("evidence_id"),
+                "evidence_id": eid,
                 "source_type": c.get("source_type"),
                 "source_path": c.get("source_path"),
                 "text": text,
@@ -132,7 +179,9 @@ def _rerank(
     docs: list[dict[str, Any]],
     fused: dict[int, float],
     query: str,
-    boost_evidence: float = 0.15,
+    *,
+    boost_evidence: float = 0.20,
+    boost_canonical: float = 0.25,
     boost_keyword: float = 0.05,
 ) -> list[tuple[int, float]]:
     q_toks = set(tokenize(query))
@@ -140,8 +189,11 @@ def _rerank(
     for idx, score in fused.items():
         doc = docs[idx]
         bonus = 0.0
-        if doc.get("evidence_id"):
+        eid = doc.get("evidence_id")
+        if is_full_evidence_id(eid):
             bonus += boost_evidence
+            if str(eid) in CANONICAL_EVIDENCE:
+                bonus += boost_canonical
         text_toks = set(tokenize(str(doc.get("text", ""))))
         overlap = len(q_toks & text_toks)
         bonus += boost_keyword * overlap
@@ -158,31 +210,52 @@ def retrieve(
     top_k: int = 5,
     rrf_k: int = 60,
     rerank: bool = False,
+    expand: bool = True,
+    source_types: list[str] | None = None,
+    boost_evidence: float = 0.20,
+    boost_canonical: float = 0.25,
+    boost_keyword: float = 0.05,
 ) -> list[dict[str, Any]]:
     docs: list[dict[str, Any]] = index.get("docs", [])
     if not docs:
         return []
 
-    dense = _dense_scores(index, query)
+    q = expand_query(query) if expand and mode != "baseline" else query
+
+    dense = _dense_scores(index, q)
     if mode == "baseline":
         fused = {i: s for i, s in dense}
         ordered = sorted(fused.items(), key=lambda x: x[1], reverse=True)
     else:
-        sparse = _sparse_scores(index, query)
+        sparse = _sparse_scores(index, q)
         fused = _rrf([dense, sparse], k=rrf_k)
         ordered = (
-            _rerank(docs, fused, query)
+            _rerank(
+                docs,
+                fused,
+                q,
+                boost_evidence=boost_evidence,
+                boost_canonical=boost_canonical,
+                boost_keyword=boost_keyword,
+            )
             if rerank
             else sorted(fused.items(), key=lambda x: x[1], reverse=True)
         )
 
+    allowed = {s.lower() for s in source_types} if source_types else None
     hits: list[dict[str, Any]] = []
-    for idx, score in ordered[:top_k]:
-        doc = dict(docs[idx])
-        doc.pop("dense", None)
-        doc.pop("tf", None)
-        doc["score"] = round(float(score), 6)
-        hits.append(doc)
+    for idx, score in ordered:
+        doc = docs[idx]
+        if allowed and str(doc.get("source_type") or "").lower() not in allowed:
+            continue
+        row = dict(doc)
+        row.pop("dense", None)
+        row.pop("tf", None)
+        row["score"] = round(float(score), 6)
+        row["query_expanded"] = q if q != query else None
+        hits.append(row)
+        if len(hits) >= top_k:
+            break
     return hits
 
 

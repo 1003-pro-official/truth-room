@@ -16,3 +16,4 @@ output:
 chunking:
   max_chars: 500
   overlap: 50
+  # messenger/jsonl 은 줄 경계 청킹(ingest.py)으로 evidence_id 절단 방지

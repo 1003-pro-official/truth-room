@@ -74,9 +74,9 @@ game:
 autogen:
   enabled: true
   model: gpt-4o-mini
-  max_round: 4
-  temperature: 0.2
-  timeout_sec: 50
+  max_round: 5
+  temperature: 0.15
+  timeout_sec: 60
 
 tools:
   retrieve: true

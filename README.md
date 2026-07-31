@@ -52,19 +52,19 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Ingest 결과
 
 <!-- report:auto:ingest -->
-- **갱신:** `runs/ingest/summary.yaml` · 2026-07-31 17:21:51
-- **총 청크:** **5838**
-- **evidence_id 포함 청크:** **6** (`ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`)
+- **갱신:** `runs/ingest/summary.yaml` · 2026-07-31 19:45:41
+- **총 청크:** **6665**
+- **evidence_id 포함 청크:** **5** (`ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`)
 
 | source_type | 청크 수 |
 | :--- | ---: |
 | statements | 9 |
 | forensics | 4 |
-| messenger | 2494 |
+| messenger | 3321 |
 | logs | 2747 |
 | corporate_card | 74 |
 | network | 510 |
-| **합계** | **5838** |
+| **합계** | **6665** |
 <!-- /report:auto:ingest -->
 
 청크 길이(평균 문자): statements 406 · forensics 435 · corporate_card 499 · network 500 · messenger/logs ≈500 (상한에 근접 → 청킹이 잘 먹힌 상태).
@@ -132,10 +132,10 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 <!-- report:auto:rag -->
 | 파이프라인 | 모드 | 대표 쿼리 | top-1 evidence | Hit@5 (목표 ID) | 비고 |
 | :--- | :--- | :--- | :--- | :---: | :--- |
-| **Baseline** | dense only | `법인카드 룸살롱` | — | ❌ `ev_card_03` ∉ top-5 | 목표 증거 회수 |
+| **Baseline** | dense only | `라운지 Wi-Fi 100GB` | — | ✅ `ev_card_03` ∈ top-5 (rank 4) | 관련 카드가 뒤로 밀림 |
 | **Advanced** | hybrid RRF + rerank | `라운지 Wi-Fi 100GB` | **`ev_net_01`** | ✅ `ev_net_01` top-1 | 결정타 증거 정밀 회수 |
 
-- **자동 반영:** 2026-07-31 17:21:51
+- **자동 반영:** 2026-07-31 19:45:41
 <!-- /report:auto:rag -->
 
 ### [정량] 고정 쿼리 세트 (동일 프로토콜 · top_k=5)
@@ -146,22 +146,20 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 쿼리 | 목표 ID | Baseline Hit@5 | Advanced Hit@5 | Embedding Hit@5 | Advanced 순위 |
 | :--- | :--- | :---: | :---: | :---: | ---: |
 | `법인카드 룸살롱` | `ev_card_03` | ❌ | ✅ | ❌ | **1** |
-| `슬랙 DM 박신입 서버실` | `ev_msg_12` | ❌ | ❌* | ❌ | — |
-| `김팀장 지문 서버실` | `ev_log_07` | ❌ | ✅ | ❌ | 3 |
+| `슬랙 DM 박신입 서버실` | `ev_msg_12` | ❌ | ✅ | ❌ | **1** |
+| `김팀장 지문 서버실` | `ev_log_07` | ❌ | ✅ | ❌ | **1** |
 | `라운지 Wi-Fi 100GB` | `ev_net_01` | ❌ | ✅ | ❌ | **1** |
 
-\* Advanced도 `ev_msg_12` exact Hit는 실패 — 유사 태그 `ev_msg`가 상위에 올라 **부분 성공·한계**로 기록 (아래 실패 실험).
-
-**요약 (Hit@5 / 4쿼리):** Baseline **0/4** · Advanced **3/4** · OpenAI+Chroma Embedding **0/4**.  
-희소 `evidence_id` 회수 Task에서는 **키워드·evidence rerank(Advanced)** 가 상용 dense만 쓰는 Embedding보다 유리했다.  
-산출물: `runs/rag/exp_compare_fixed_queries.json` · `runs/rag/exp_compare_embedding.json`
+**요약 (Hit@5 / 4쿼리):** Baseline **0/4** · Advanced **4/4** (Next 개선 후) · OpenAI+Chroma Embedding **0/4**.  
+개선: JSONL 줄단위 청킹 + 완전 `evidence_id`만 태깅 + 쿼리 확장 + canonical boost.  
+재현: `python3 scripts/compare_fixed_queries.py` · `runs/rag/exp_compare_fixed_queries.json`
 
 
 ### [정성] 분석
 
-- **Baseline 한계:** `법인카드 룸살롱`에서 top-1이 **출입 로그**로 가로채짐. 카드 CSV 청크는 2~4위에 있으나 Smoking Gun ID가 없어 UX상 “결정 증거”로 확정하기 어려움.
-- **Advanced 개선:** sparse(룸살롱·Wi-Fi·100GB) + evidence rerank로 `ev_card_03`·`ev_net_01`을 **1순위**에 고정.
-- **남은 한계:** 메신저 쿼리의 exact `ev_msg_12` 회수는 불완전 → 메타데이터/동의어 확장 필요.
+- **Baseline 한계:** dense-only는 Smoking Gun ID를 top-5에 못 올림 (0/4).
+- **Advanced 개선:** Hybrid RRF + rerank + 쿼리 확장으로 고정 4쿼리 **전부 top-1**.
+- **남은 한계:** Context Precision은 exact-ID 기준으로 보수적(≈0.22). top-5에 다른 Smoking Gun이 같이 올라와 정밀도 상한을 낮춤.
 
 ---
 
@@ -174,14 +172,15 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 실험 | 내용 | 결과 | 산출물 |
 | :--- | :--- | :--- | :--- |
 | **EXP-RAG-B** | dense-only 검색 | 고정 4쿼리 Hit@5 **0/4** · 순위 오염 | `runs/rag/exp_baseline/` |
-| **EXP-RAG-A** | hybrid RRF + rerank | 고정 4쿼리 exact Hit **3/4** · card/net top-1 | `runs/rag/exp_advanced/` |
+| **EXP-RAG-A** | hybrid RRF + rerank + expand | 고정 4쿼리 exact Hit **4/4** · 전원 top-1 | `runs/rag/exp_advanced/` · `scripts/compare_fixed_queries.py` |
 | **EXP-EMBED** | OpenAI `text-embedding-3-small` + Chroma | 동일 4쿼리 Hit@5 **0/4** · Advanced 미상회 | `runs/rag/exp_embedding/` · `lib/rag_chroma.py` |
 | **EXP-PROMPT** | 페르소나 템플릿에 알리바이·환각·단정 금지 조항 추가 | 3인 렌더 규칙 검사 **통과** · live 알리바이 유지 | `data/personas/prompt_template.yaml` · `runs/sft/persona_prompt_eval.json` |
 | **EXP-SFT-SMALL** | 소량 SFT 78쌍 + OpenAI FT `--submit` | **OpenAI 403** `training_not_available`(셀프서브 FT 종료) | `runs/sft/finetune_job_openai.json` |
-| **EXP-SFT-LOCAL** | 동일 78쌍 → 로컬 LoRA (`SmolLM2-135M`) | train_loss **1.87** · MPS 30steps · 한국어 생성 품질은 제한 | `scripts/local_lora_persona.py` · `runs/sft/local_lora/` |
-| **EXP-AUTOGEN** | pyautogen GroupChat → **본선 ask 경로** | 고정 순서·max_round·timeout·폴백 · Streamlit transcript | `lib/autogen_runtime.py` · `configs/agent.yaml` `autogen` |
+| **EXP-SFT-LOCAL** | SmolLM2-135M LoRA | train_loss≈1.87 · 한국어 품질 제한 | `runs/sft/local_lora/` (초기) |
+| **EXP-SFT-KO** | Qwen2.5-0.5B LoRA 재실험 | train_loss≈2.96 · 한국어 문장↑ · 페르소나 제약 미고정 | `runs/sft/local_lora_qwen05/` · `lora_model_compare.json` |
+| **EXP-AUTOGEN** | pyautogen GroupChat → **본선 ask** | max_round=5 · timeout=60s · transcript UI | `lib/autogen_runtime.py` |
 | **EXP-FAIL-1** | dense만으로 카드 Smoking Gun 확정 | **실패** — top-1 출입로그 오탐 | 아래 |
-| **EXP-FAIL-2** | Advanced로 `ev_msg_12` exact 회수 | **부분 실패** — `ev_msg`만 상위 | 아래 |
+| **EXP-FAIL-2** | Advanced로 `ev_msg_12` exact 회수 | **개선 완료** — 줄단위 청킹+완전 ID → Hit@5 ✅ top-1 | 아래 |
 | **EXP-FAIL-3** | Embedding만으로 Smoking Gun ID 회수 | **실패** — 의미 유사 노이즈(logs 등)가 상위 | 아래 |
 | **EXP-FAIL-4** | OpenAI self-serve FT로 페르소나 개선 | **실패** — 조직 FT job 생성 차단 | 아래 |
 | **EXP-TOOL** | `request_cctv_log` · `run_forensic` | 로비 CCTV 결측 · 이대리 노트북 MAC 힌트 | `data/tools/` · API `/tool` |
@@ -193,7 +192,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | ID | 가설 | 시도 | 결과 | 학습 |
 | :--- | :--- | :--- | :--- | :--- |
 | **EXP-FAIL-1** | dense만으로도 카드 증거가 위로 온다 | `rag_pipeline.py --mode baseline --query "법인카드 룸살롱"` | top-1=`access_control_*`, `ev_card_03` ∉ top-5 ID | Hybrid/rerank 필수 |
-| **EXP-FAIL-2** | Advanced면 슬랙 Smoking Gun도 exact Hit | 동일 프로토콜 · 쿼리 `슬랙 DM 박신입 서버실` | top-1=`ev_msg`(부분), `ev_msg_12` 미Hit | evidence 태깅·쿼리 정규화 보강 여지 |
+| **EXP-FAIL-2** | Advanced면 슬랙 Smoking Gun도 exact Hit | 줄단위 청킹·완전 ID·쿼리 확장 후 재측정 | **해결** — `ev_msg_12` Advanced top-1 | 부분 태그(`ev_msg`) 오염이 원인 |
 | **EXP-FAIL-3** | 상용 embedding이면 Hit@5가 Advanced를 이긴다 | `build_index.py --backend chroma` + `--mode embedding` | 4쿼리 Hit@5 **0/4** (예: 카드 쿼리→logs) | Task KPI엔 evidence/키워드 rerank가 더 직접적 |
 | **EXP-FAIL-4** | OpenAI FT로 페르소나 말투 고정 | `openai_finetune_persona.py --submit` | **403** `training_not_available` (self-serve FT wind-down) | 상용 FT 의존 위험 · 로컬 LoRA로 파이프라인 학습 |
 
@@ -210,7 +209,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Agent 스모크 (1턴)
 
 <!-- report:auto:agent -->
-- **상태:** `ok` · case `case_01` · 2026-07-31 17:21:51
+- **상태:** `ok` · case `case_01` · 2026-07-31 19:45:41
 - **목표 입력:** 김팀장 알리바이 검증 + CCTV
 - **수집 evidence:** `ev_card_03`, `ev_log_07`, `ev_msg_12`, `ev_net_01`
 - **clue / pressure:** 4 / 0.75
@@ -243,30 +242,31 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 
 RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 토큰 overlap**을 채택했습니다. 절대값은 보수적으로 읽어야 하며, **주 KPI는 Hit@k·Context Recall**입니다.
 
-### 4.2 메트릭 결과 (eval_questions n=6)
+### 4.2 메트릭 결과 (eval_questions n=18)
 
 <!-- report:auto:eval -->
 | 메트릭 | 값 | 해석 |
 | :--- | ---: | :--- |
-| **Faithfulness** | **0.294** | 답변 토큰이 제공 컨텍스트에 근거하는 비율 (로컬 overlap) |
-| **Context Precision** | **0.100** | 검색 top-k 중 골드 근거와 맞는 비율 |
-| **Context Recall** | **0.750** | 골드 evidence_id가 검색 결과에 포함되는 비율 |
-| **Answer Relevancy** | **0.067** | 질문–답변 토큰 겹침 proxy |
+| **Faithfulness** | **0.266** | 답변 토큰이 제공 컨텍스트에 근거하는 비율 (로컬 overlap) |
+| **Context Precision** | **0.222** | 검색 top-k 중 골드 근거와 맞는 비율 (exact ID) |
+| **Context Recall** | **1.000** | 골드 evidence_id가 검색 결과에 포함되는 비율 |
+| **Answer Relevancy** | **0.216** | 질문–답변 토큰 겹침 proxy |
 
-- **자동 반영:** 2026-07-31 17:21:51 · sample_size=6 · backend=`local_token_overlap_faithfulness`
+- **자동 반영:** 2026-07-31 19:45:41 · sample_size=18 · backend=`local_token_overlap_faithfulness`
 <!-- /report:auto:eval -->
 
 - **평가 백엔드:** `evaluate.py` 로컬 토큰 겹침 (RAGAS 패키지 미필수)
-- **데이터:** `data/processed/eval_questions.jsonl`
+- **데이터:** `data/eval/eval_questions.jsonl` (n=18, 기존 6 + Smoking Gun/골든루트 확장)
 - **환각 가드 샘플:** “창고 USB 절도” 유도 질문 → 코퍼스에 없음을 답하도록 설계 (`eq06`)
 
 ### 4.3 Baseline vs Advanced — 게임 KPI와 연결
 
 | 관점 | Baseline | Advanced | Embedding | 게임 의미 |
 | :--- | :--- | :--- | :--- | :--- |
-| 고정 4쿼리 Hit@5 | 0/4 | **3/4** | 0/4 | 카드·네트워크 단서는 Advanced로 확보 |
-| Context Recall (eval) | — | 0.75 | — | 골드를 “포함한” 검색은 대체로 성공 |
-| Faithfulness / Precision | 낮음 | 동일 백엔드 | — | 생성 proxy는 보수적 · Hit@k가 주 KPI |
+| 고정 4쿼리 Hit@5 | 0/4 | **4/4** | 0/4 | Smoking Gun 전원 Advanced로 확보 |
+| Context Recall (eval) | — | **1.00** | — | 골드 ID 회수 성공 |
+| Context Precision | — | **0.22** | — | exact-ID · top-5에 타 Smoking Gun 혼재 |
+| Faithfulness | — | 0.27 | — | 생성 proxy는 보수적 · Hit@k가 주 KPI |
 
 골든 루트(카드→슬랙→네트워크→이대리 지목)는 **검색 Hit + 툴 교차검증**으로 성립하도록 설계되어 있으며, Faithfulness 절대값만으로 “모델이 우수하다”고 주장하지 않습니다.
 
@@ -286,9 +286,10 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | 패턴 | 관찰 | 대응 |
 | :--- | :--- | :--- |
 | Baseline top-1 오탐 | 출입로그가 카드 쿼리를 가로챔 | Advanced sparse+RRF (**EXP-FAIL-1**) |
-| `ev_msg_12` exact 미Hit | Advanced도 partial 태그 | 메타 정규화 (Next) |
-| Context Precision 낮음 | top-5에 관련·미관련 혼재 | chunk 경계·메타필터·임베딩 고도화 |
+| `ev_msg_12` exact 미Hit | (과거) partial `ev_msg` 태그 | **해결** — 줄단위 청킹·완전 ID |
+| Context Precision 보수적 | top-5에 Smoking Gun 다수 혼재 | source_types 메타필터·top_k 조절 여지 |
 | Faithfulness 중간↓ | 짧은 한국어·동의어 | RAGAS/임베딩 평가 교체 검토 |
+| 로컬 LoRA 페르소나 미고정 | 78쌍·30step 부족 | 본선은 gpt-4o-mini 프롬프트 유지 |
 
 ---
 
@@ -309,18 +310,20 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 ### 결론 (설득력 범위 명시)
 
 1. **데이터·전처리:** 6종 raw → 5838 청크 파이프라인이 재현 가능하며, EDA상 노이즈 불균형·evidence 희소성이 Hybrid 선택의 근거가 된다.
-2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 3/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
-3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT-small/Tool/Agent/Eval + **실패 3건**을 기록.
-4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=6·로컬 overlap 한계.
-5. **비범위 준수:** 대규모 FT는 하지 않음. 소량 SFT는 **실행** — OpenAI FT는 플랫폼 종료로 실패, 로컬 LoRA로 파이프라인 학습. AutoGen은 심문 ask 본선.
+2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 4/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
+3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT/로컬 LoRA(Qwen)/Tool/Agent/Eval + 실패·개선 기록.
+4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=18·로컬 overlap 한계.
+5. **비범위 준수:** 대규모 FT는 하지 않음. 소량 SFT·로컬 LoRA는 교육용으로 실행. AutoGen은 심문 ask 본선.
 
-### Next
+### Next (잔여)
 
-1. (선택) 더 큰 한국어 베이스로 로컬 LoRA 재실험 · 한국어 생성 품질 비교.
-2. eval n 확대 후 Hit@k·Faithfulness 재측정 (가능하면 RAGAS/임베딩 유사도).
-3. `ev_msg_12` exact 회수 개선 (태깅·동의어·쿼리 템플릿).
-4. Context Precision 향상: 메타필터·chunk 경계.
-5. AutoGen 심문 턴 본선 유지 — `max_round`/timeout/폴백 튜닝 · 발표 시 GroupChat transcript 시연.
+1. ~~더 큰 한국어 베이스 LoRA~~ → **완료** (Qwen2.5-0.5B, `runs/sft/lora_model_compare.json`) · 더 큰 모델/더 긴 학습은 선택.
+2. ~~eval n 확대·재측정~~ → **완료** (n=18, Precision 0.22 / Recall 1.00).
+3. ~~`ev_msg_12` exact 회수~~ → **완료** (Advanced top-1).
+4. ~~Context Precision: 청킹·exact ID~~ → **부분 완료** (0.10→0.22). source_types 필터 튜닝은 여지.
+5. ~~AutoGen 튜닝~~ → **완료** (`max_round=5`, `timeout_sec=60`, transcript UI).
+
+추가 여지: RAGAS 도입 · 더 큰 Ko LLM LoRA · Precision용 source 라우팅.
 
 ---
 

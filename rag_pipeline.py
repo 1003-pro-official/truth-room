@@ -85,10 +85,18 @@ def main() -> None:
             top_k=top_k,
             rrf_k=rrf_k,
             rerank=do_rerank,
+            expand=bool(retrieval.get("expand_query", True)),
+            source_types=[str(s) for s in (retrieval.get("source_types") or []) if s] or None,
+            boost_evidence=float(retrieval.get("boost_evidence", 0.20)),
+            boost_canonical=float(retrieval.get("boost_canonical", 0.25)),
+            boost_keyword=float(retrieval.get("boost_keyword", 0.05)),
         )
         out_dir = ROOT / "runs" / "rag" / f"exp_{args.mode}"
-        note = "baseline=dense · advanced=hybrid_rrf+rerank (local)"
-        extra = {}
+        note = "baseline=dense · advanced=hybrid_rrf+rerank+expand (local)"
+        extra = {
+            "expand_query": bool(retrieval.get("expand_query", True)),
+            "query_expanded": (hits[0].get("query_expanded") if hits else None),
+        }
 
     out_dir.mkdir(parents=True, exist_ok=True)
     result = {

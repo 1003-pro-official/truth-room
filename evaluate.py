@@ -65,14 +65,27 @@ def faithfulness_score(answer: str, contexts: list[str]) -> float:
 
 
 def context_precision_at_k(retrieved_eids: list[str | None], gold_hints: list[str]) -> float:
+    """Exact evidence_id 집합 교집합 비율 (부분문자열 false positive 방지)."""
     if not retrieved_eids:
         return 0.0
-    gold = " ".join(gold_hints).lower()
+    gold_text = " ".join(gold_hints)
+    gold_ids = {m.lower() for m in re.findall(r"ev_[a-z]+_\d+", gold_text, flags=re.I)}
+    # ground_truth에 ID가 없으면 토큰 힌트로 soft — 그래도 retrieved는 full ID만 인정
     hits = 0
+    counted = 0
     for eid in retrieved_eids:
-        if eid and eid.lower() in gold:
+        if not eid:
+            continue
+        counted += 1
+        el = str(eid).lower()
+        if not re.fullmatch(r"ev_[a-z]+_\d+", el):
+            continue
+        if el in gold_ids or el in gold_text.lower():
             hits += 1
-    return round(hits / len(retrieved_eids), 4)
+            continue
+        # ID가 gold에 없어도 본문 키워드가 겹치면 관련으로 약하게 인정하지 않음 — exact 유지
+    denom = counted or len(retrieved_eids)
+    return round(hits / denom, 4)
 
 
 def main() -> None:
@@ -147,11 +160,12 @@ def main() -> None:
     recall_scores: list[float] = []
     for row, item in zip(rows[:sample_size], per_item):
         gold_ctx = " ".join(str(c) for c in (row.get("contexts") or []))
-        m = re.findall(r"ev_[\w]+", gold_ctx)
+        m = re.findall(r"ev_[a-z]+_\d+", gold_ctx, flags=re.I)
         if not m:
             continue
-        retrieved = set(filter(None, item.get("retrieved_evidence_ids") or []))
-        recall_scores.append(round(len(set(m) & retrieved) / len(set(m)), 4))
+        retrieved = {str(x).lower() for x in (item.get("retrieved_evidence_ids") or []) if x}
+        gold_set = {x.lower() for x in m}
+        recall_scores.append(round(len(gold_set & retrieved) / len(gold_set), 4))
 
     metrics = {
         "faithfulness": _avg(faith_scores),
