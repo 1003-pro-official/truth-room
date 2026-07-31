@@ -20,7 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements.txt requirements-llm.txt ./
 RUN pip install --upgrade pip \
  && pip install -r requirements.txt -r requirements-llm.txt \
- && pip install "streamlit>=1.40.0"
+ && pip install "streamlit>=1.50.0,<1.51"
 
 COPY . .
 COPY docker/entrypoint.sh /entrypoint.sh

@@ -735,22 +735,24 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         [data-testid="stDialog"] .dossier-value {{ color: #e8eaef !important; }}
         /*
           Streamlit stDialog = Modal Root(오버레이).
-          기본이 align-items:start + padding-top 이라 위로 붙음 → 정중앙으로 강제.
+          배포(baseUrlPath=/game)에서 large 다이얼로그가 전체폭·좌측 정렬로
+          깨지는 경우가 있어, 로컬과 같이 중앙 카드형으로 강제.
         */
         div[data-testid="stDialog"] {{
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          padding: 0 !important;
+          padding: 1rem !important;
+          inset: 0 !important;
         }}
         div[data-testid="stDialog"] > div {{
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          padding-top: 0 !important;
-          padding-bottom: 0 !important;
-          margin: 0 !important;
+          padding: 0 !important;
+          margin: 0 auto !important;
           width: 100% !important;
+          max-width: 100% !important;
           min-height: 100vh !important;
           min-height: 100dvh !important;
           box-sizing: border-box !important;
@@ -759,8 +761,28 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding-bottom: 0.75rem !important;
         }}
         div[data-testid="stDialog"] [role="dialog"] {{
-          margin-top: 0 !important;
-          margin-bottom: 0 !important;
+          position: relative !important;
+          inset: auto !important;
+          left: auto !important;
+          right: auto !important;
+          top: auto !important;
+          bottom: auto !important;
+          margin: 0 auto !important;
+          transform: none !important;
+          align-self: center !important;
+          justify-self: center !important;
+          width: min(56rem, calc(100vw - 2rem)) !important;
+          max-width: min(56rem, calc(100vw - 2rem)) !important;
+          box-sizing: border-box !important;
+        }}
+        /* Streamlit 버전에 따라 dialog가 section/div로 감싸일 때 */
+        div[data-testid="stDialog"] div:has(> [role="dialog"]),
+        div[data-testid="stDialog"] section:has(> [role="dialog"]) {{
+          display: flex !important;
+          justify-content: center !important;
+          align-items: center !important;
+          width: 100% !important;
+          margin: 0 auto !important;
         }}
         .dossier-foot-pad {{
           display: block !important;
