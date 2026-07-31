@@ -87,8 +87,9 @@ python3 agent_graph.py --smoke
 python3 evaluate.py
 python3 update_report.py          # runs/ → README.md
 python3 update_notion.py          # .env NOTION_* 필수
-python3 -m uvicorn backend.main:app --port 8000
-python3 -m streamlit run app.py
+python3 -m uvicorn backend.main:app --port 8000   # `/` 스크롤 인트로 · `/api` · `/assets`
+python3 -m streamlit run app.py --server.port 8501
+# Docker 원페이지: `/` 인트로 스크롤 → `/game` Streamlit
 python3 -m pytest tests/smoke -q
 ```
 

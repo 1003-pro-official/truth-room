@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>진실의 방 — 수사 브리핑</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/intro/styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">진실의 방</div>
+    <p class="topbar-hint" id="scrollHint">스크롤하여 브리핑을 진행하세요</p>
+  </header>
+
+  <main id="pinRoot" class="pin-root" aria-live="polite">
+    <!-- scenes injected by app.js -->
+  </main>
+
+  <section class="game-section" id="gameSection" aria-label="수사 화면">
+    <div class="game-curtain" id="gameCurtain">
+      <p class="game-curtain-kicker">BRIEFING COMPLETE</p>
+      <h2 class="game-curtain-title">수사를 개시합니다</h2>
+      <p class="game-curtain-sub">세션을 준비하는 중…</p>
+      <button type="button" class="game-enter-btn" id="enterGameBtn" hidden>
+        수사 화면으로
+      </button>
+    </div>
+    <iframe
+      id="gameFrame"
+      class="game-frame"
+      title="진실의 방 수사 UI"
+      loading="lazy"
+      referrerpolicy="same-origin"
+    ></iframe>
+  </section>
+
+  <script src="/intro/app.js"></script>
+</body>
+</html>

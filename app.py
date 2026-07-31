@@ -77,11 +77,13 @@ PROFILE_INTERROGATION_FIELDS = [
 ]
 PROFILE_FIELD_ORDER = PROFILE_IDENTITY_FIELDS + PROFILE_INTERROGATION_FIELDS
 
+_qp = st.query_params
+_embed = str(_qp.get("embed") or "") in ("1", "true", "yes")
 st.set_page_config(
     page_title="진실의 방으로",
     page_icon="🚪",
     layout="wide",
-    initial_sidebar_state="expanded",
+    initial_sidebar_state="collapsed" if _embed else "expanded",
 )
 
 # Streamlit 기본 primary(빨강) flash 방지 — 어떤 위젯보다 먼저 주입
@@ -503,12 +505,25 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         [data-testid="stColumn"] [data-testid="stVerticalBlock"] {{
           gap: 0.45rem !important;
         }}
+        .suspect-pick-frame {{
+          position: relative;
+          width: 100%;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
         .suspect-pick-wrap {{
           line-height: 0;
           margin: 0 !important;
+          position: relative;
+          width: 100%;
+          aspect-ratio: 1 / 1;
+          overflow: hidden;
+          background: #1a1e26;
         }}
         .suspect-pick-wrap img {{
           width: 100%;
+          height: 100%;
+          object-fit: cover;
           display: block;
           margin: 0;
           padding: 0;
@@ -519,9 +534,68 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-height: 8px;
           line-height: 8px;
         }}
-        div[data-testid="stMarkdownContainer"]:has(.suspect-pick-wrap) {{
+        /* 카드 열: 프로필 뱃지 absolute 기준 */
+        div[data-testid="column"]:has(.suspect-pick-frame),
+        div[data-testid="stColumn"]:has(.suspect-pick-frame) {{
+          position: relative !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame),
+        div[data-testid="stMarkdownContainer"]:has(.suspect-pick-frame) {{
           margin-bottom: 0 !important;
           padding-bottom: 0 !important;
+        }}
+        /*
+          프로필 st.button = 이미지 바로 다음 요소.
+          문서 흐름에서 분리(absolute) → 라디오(이름)와 묶이지 않음.
+          이미지 안 우측 하단에 필 뱃지로 고정.
+        */
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+          + div[data-testid="stElementContainer"] {{
+          position: absolute !important;
+          right: 12px !important;
+          /* 이름 버튼 위 + 이미지 하단에서 안쪽으로 여백 */
+          bottom: calc(3.55rem + 12px) !important;
+          left: auto !important;
+          top: auto !important;
+          width: auto !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          z-index: 60 !important;
+          background: transparent !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+          + div[data-testid="stElementContainer"] .stButton {{
+          margin: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+          + div[data-testid="stElementContainer"]
+          .stButton > button[data-testid="baseButton-secondary"] {{
+          min-height: 1.55rem !important;
+          height: 1.55rem !important;
+          max-height: 1.55rem !important;
+          width: auto !important;
+          min-width: 0 !important;
+          padding: 0 0.72rem !important;
+          font-size: 0.72rem !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.02em !important;
+          line-height: 1 !important;
+          border-radius: 999px !important;
+          white-space: nowrap !important;
+          color: #f2f4f7 !important;
+          background-color: rgba(12, 14, 18, 0.82) !important;
+          background-image: none !important;
+          border: 1px solid rgba(255, 255, 255, 0.95) !important;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45) !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+          + div[data-testid="stElementContainer"] .stButton > button:hover {{
+          color: #f2f4f7 !important;
+          background-color: rgba(40, 52, 68, 0.95) !important;
+          border-color: #ffffff !important;
         }}
         [data-testid="stColumn"] .stButton {{
           margin-top: 0 !important;
@@ -531,6 +605,17 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-height: 2.4rem !important;
           padding-top: 0.45rem !important;
           padding-bottom: 0.45rem !important;
+        }}
+        /* 이름(라디오) 버튼 — 프로필과 분리된 일반 전체폭 버튼 */
+        div[data-testid="stElementContainer"]:has(.suspect-pick-gap)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          min-height: 2.4rem !important;
+          height: auto !important;
+          max-height: none !important;
+          width: 100% !important;
+          padding: 0.45rem 0.75rem !important;
+          font-size: inherit !important;
+          border-radius: 0.5rem !important;
         }}
 
         .dossier-shell {{
@@ -596,12 +681,34 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         [data-testid="stDialog"] .dossier-label {{ color: #9aa3b0 !important; }}
         [data-testid="stDialog"] .dossier-value {{ color: #e8eaef !important; }}
-        /* 수사 파일 dialog — 상단과 맞춘 하단 여백 */
+        /*
+          Streamlit stDialog = Modal Root(오버레이).
+          기본이 align-items:start + padding-top 이라 위로 붙음 → 정중앙으로 강제.
+        */
+        div[data-testid="stDialog"] {{
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 !important;
+        }}
         div[data-testid="stDialog"] > div {{
-          padding-bottom: 1.5rem !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+          margin: 0 !important;
+          width: 100% !important;
+          min-height: 100vh !important;
+          min-height: 100dvh !important;
+          box-sizing: border-box !important;
         }}
         div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{
           padding-bottom: 0.75rem !important;
+        }}
+        div[data-testid="stDialog"] [role="dialog"] {{
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
         }}
         .dossier-foot-pad {{
           display: block !important;
@@ -1244,6 +1351,11 @@ def _pick_suspect(
     if st.session_state.get("suspect_id") not in ids:
         st.session_state["suspect_id"] = ids[0]
 
+    # 버튼 클릭 → 다음 런에서 dialog (같은 런에서 열면 놓치는 경우 방지)
+    pending = st.session_state.pop("pending_dossier_id", None)
+    if pending and str(pending) in ids:
+        _request_dossier(str(pending))
+
     if show_title:
         st.markdown(
             '<p class="suspect-grid-hint">대상 용의자</p>'
@@ -1278,12 +1390,25 @@ def _pick_suspect(
                     f"font-size:1.2rem;line-height:1.2;'>{html.escape(name[:1])}</div>"
                 )
 
-            # 이미지+여백을 한 블록으로 — st.image/버튼 사이 기본 gap 회피
+            # 이미지 → 프로필(absolute 뱃지) → 이름(라디오) 분리
             st.markdown(
+                f'<div class="suspect-pick-frame">'
                 f'<div class="suspect-pick-wrap" style="border:{border};'
-                f'border-radius:6px;overflow:hidden;background:#1a1e26;'
-                f'margin:0;padding:0;">{img_html}</div>'
-                f'<div class="suspect-pick-gap" aria-hidden="true">&nbsp;</div>',
+                f'border-radius:6px;">'
+                f"{img_html}"
+                f"</div></div>",
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                "프로필",
+                key=f"suspect_profile_{sid}",
+                type="secondary",
+                help=f"{name} 수사 파일",
+            ):
+                st.session_state["pending_dossier_id"] = sid
+                st.rerun()
+            st.markdown(
+                '<div class="suspect-pick-gap" aria-hidden="true">&nbsp;</div>',
                 unsafe_allow_html=True,
             )
             mark = "●" if selected else "○"
@@ -1296,13 +1421,6 @@ def _pick_suspect(
             ):
                 st.session_state["suspect_id"] = sid
                 st.rerun()
-            if st.button(
-                "프로필",
-                key=f"suspect_profile_{sid}",
-                type="secondary",
-                use_container_width=True,
-            ):
-                _request_dossier(sid)
 
     suspect_id = str(st.session_state["suspect_id"])
     if suspect_id in broken:
@@ -1362,11 +1480,44 @@ def _handle_timeout(sid: str) -> None:
 # 사이드바·본문 위젯보다 먼저 테마 적용 (기본 빨강 primary flash 방지)
 _inject_theme()
 
+# 스크롤 인트로 핸드오프: ?intro_done=1&session_id=...
+if not st.session_state.get("game"):
+    _handoff_sid = _qp.get("session_id")
+    _intro_done = str(_qp.get("intro_done") or "") in ("1", "true", "yes")
+    if isinstance(_handoff_sid, (list, tuple)):
+        _handoff_sid = _handoff_sid[0] if _handoff_sid else None
+    if _intro_done and _handoff_sid:
+        try:
+            _hr = requests.get(
+                f"{_api()}/api/v1/session/{_handoff_sid}",
+                timeout=10,
+            )
+            if _hr.status_code == 200:
+                st.session_state["game"] = _hr.json()
+                st.session_state["log"] = []
+                st.session_state["hits"] = []
+                st.session_state["pending_clues"] = []
+                st.session_state["last_ending"] = None
+                st.session_state["show_intro"] = False
+                st.session_state["intro_scene_idx"] = 0
+                if st.session_state.get("turn_deadline") is None:
+                    _reset_timer()
+                # 쿼리 정리 (재실행 루프 방지)
+                for _k in ("intro_done", "session_id", "embed"):
+                    try:
+                        if _k in st.query_params:
+                            del st.query_params[_k]
+                    except Exception:
+                        pass
+        except requests.RequestException:
+            pass
+
 with st.sidebar:
     st.markdown("### 콘솔")
     api_input = st.text_input("API URL", value=API_URL)
     st.session_state["api_url"] = api_input
     timer_ui = st.checkbox("20초 타임어택", value=True)
+    st.caption("스크롤 인트로: API 루트 `/` 또는 `/intro/`")
     if st.button("새 수사 개시", type="primary", use_container_width=True):
         try:
             r = requests.post(f"{_api()}/api/v1/session", timeout=10)
@@ -1376,6 +1527,7 @@ with st.sidebar:
             st.session_state["hits"] = []
             st.session_state["pending_clues"] = []
             st.session_state["last_ending"] = None
+            # 사이드바 개시 = 기존 탭 인트로 (스크롤 인트로는 / 진입)
             st.session_state["show_intro"] = True
             st.session_state["intro_scene_idx"] = 0
             # 타이머는 브리핑(마지막 장면) 확인 후 시작
@@ -1402,11 +1554,19 @@ if not game:
           <div>
             <div class="brand-title">진실의 방</div>
             <div class="brand-gap" style="height:28px;min-height:28px;" aria-hidden="true">&nbsp;</div>
-            <div class="brand-sub">사이드바에서 새 수사를 개시하세요.</div>
+            <div class="brand-sub">사이드바에서 새 수사를 개시하거나, 스크롤 인트로로 진입하세요.</div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
+    )
+    # Docker/nginx: `/` · 로컬: API(8000) 인트로
+    _intro_url = os.environ.get("INTRO_URL", "http://127.0.0.1:8000/")
+    st.link_button(
+        "스크롤 브리핑으로 시작",
+        url=_intro_url,
+        type="primary",
+        use_container_width=True,
     )
     st.stop()
 

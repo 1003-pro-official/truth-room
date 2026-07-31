@@ -15,12 +15,16 @@ from typing import Any
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 from backend.game_engine import engine, load_api_config
 
 ROOT = Path(__file__).resolve().parent.parent
 API_CONFIG = ROOT / "configs" / "api.yaml"
+INTRO_DIR = ROOT / "web" / "intro"
+ASSETS_DIR = ROOT / "assets"
 
 
 def _cors_origins() -> list[str]:
@@ -81,6 +85,12 @@ class ToolBody(BaseModel):
 @app.get("/health")
 def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/api/v1/case/public")
+def get_public_case() -> dict[str, Any]:
+    """세션 없이 공개 사건개요·인트로 씬 (culprit 미포함). 스크롤 인트로용."""
+    return engine.public_case_overview()
 
 
 @app.post("/api/v1/session")
@@ -175,3 +185,19 @@ def pass_turn(session_id: str) -> dict[str, Any]:
     if result.get("error") == "session_ended":
         raise HTTPException(status_code=409, detail="session already ended")
     return {**result, "state": engine.public_state(session)}
+
+
+# 로컬(uvicorn only)에서도 스크롤 인트로·에셋 서빙
+if INTRO_DIR.is_dir():
+    @app.get("/")
+    def intro_home() -> FileResponse:
+        return FileResponse(INTRO_DIR / "index.html")
+
+    app.mount(
+        "/intro",
+        StaticFiles(directory=str(INTRO_DIR), html=True),
+        name="intro_static",
+    )
+
+if ASSETS_DIR.is_dir():
+    app.mount("/assets", StaticFiles(directory=str(ASSETS_DIR)), name="assets")

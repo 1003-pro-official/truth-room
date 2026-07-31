@@ -80,3 +80,15 @@ def test_session_flow(api_available: str) -> None:
     case = requests.get(f"{api_available}/api/v1/session/{sid}/case", timeout=10)
     assert case.status_code == 200
     assert "culprit_id" not in case.json()
+
+
+def test_public_case_intro(api_available: str) -> None:
+    r = requests.get(f"{api_available}/api/v1/case/public", timeout=10)
+    assert r.status_code == 200
+    data = r.json()
+    assert data.get("case_id")
+    assert "culprit_id" not in data
+    scenes = data.get("intro_scenes") or []
+    assert isinstance(scenes, list)
+    assert len(scenes) >= 1
+    assert scenes[0].get("text")

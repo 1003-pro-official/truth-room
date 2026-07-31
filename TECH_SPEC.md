@@ -99,6 +99,7 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 | `POST` | `/api/v1/session/{id}/pass_turn` | 타임아웃 턴 패스 (pressure/break 미증가) |
 | `POST` | `/api/v1/session/{id}/accuse` | 조합 지목 `{suspect_id, evidence_ids[2]}` |
 | `POST` | `/api/v1/session/{id}/search` 응답 | `new_clues[]` · `useless_search` · `stamina` |
+| `GET` | `/api/v1/case/public` | 세션 없이 공개 개요·`intro_scenes` (스크롤 인트로) |
 | `GET` | `/api/v1/session/{id}/case` | 공개 사건개요 (`public_overview`, `culprit_id` 미포함) |
 | `GET` | `/api/v1/session/{id}/suspects/{sid}/profile` | 공개 프로필 + `case_overview` (`secrets`/`role` 미포함) |
 
