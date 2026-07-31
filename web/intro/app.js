@@ -38,17 +38,13 @@
     if (fromQuery) return fromQuery.replace(/\/$/, "");
     // 로컬 uvicorn(8000)만 쓸 때 → Streamlit 기본 포트
     if (location.port === "8000") return "http://127.0.0.1:8501";
-    // docker/nginx 원페이지
+    // docker/nginx
     return "/game";
   }
   const GAME_BASE = defaultGameBase();
 
   const pinRoot = document.getElementById("pinRoot");
   const scrollHint = document.getElementById("scrollHint");
-  const gameCurtain = document.getElementById("gameCurtain");
-  const gameFrame = document.getElementById("gameFrame");
-  const enterGameBtn = document.getElementById("enterGameBtn");
-  const gameSection = document.getElementById("gameSection");
   const introBgm = document.getElementById("introBgm");
   const gameBgm = document.getElementById("gameBgm");
   const bgmToggle = document.getElementById("bgmToggle");
@@ -56,19 +52,22 @@
   let scenes = FALLBACK_SCENES;
   let caseMeta = { case_id: "case_01", title: "진실의 방" };
   let sessionId = null;
-  let gameReady = false;
+  let startingGame = false;
   let bgmUserMuted = false;
   let bgmStarted = false;
   let bgmFading = false;
-  let inGameZone = false;
   const BGM_VOL = 0.45;
   let fadeToken = 0;
-  /** 씬당 체류 후 자동 스크롤 (7~8초) */
+  /** 씬당 체류 후 자동 스크롤 (7~8초) — 마지막 씬은 제외 */
   const AUTO_SCENE_MS = 7500;
   const AUTO_SCROLL_MS = 1100;
   let autoTimer = null;
   let autoSceneIndex = -1;
   let autoScrolling = false;
+  let ctaRevealTimer = null;
+  /** 마지막 씬 카드가 뜬 뒤 CTA 페이드인까지 */
+  const CTA_REVEAL_MS = 2800;
+  const CTA_REVEAL_REDUCED_MS = 400;
 
   if (introBgm) introBgm.volume = BGM_VOL;
   if (gameBgm) gameBgm.volume = BGM_VOL;
@@ -86,7 +85,7 @@
   }
 
   async function tryStartTrack(el) {
-    if (!el || bgmUserMuted || bgmFading || inGameZone) return false;
+    if (!el || bgmUserMuted || bgmFading || startingGame) return false;
     try {
       el.muted = false;
       el.volume = BGM_VOL;
@@ -102,7 +101,7 @@
   }
 
   async function tryStartBgm() {
-    if (inGameZone) return false;
+    if (startingGame) return false;
     return tryStartTrack(introBgm);
   }
 
@@ -137,64 +136,9 @@
     });
   }
 
-  function fadeInEl(el, ms = 800) {
-    if (!el || bgmUserMuted) return Promise.resolve(false);
-    const token = ++fadeToken;
-    bgmFading = true;
-    el.volume = 0;
-    return el
-      .play()
-      .then(
-        () =>
-          new Promise((resolve) => {
-            bgmStarted = true;
-            setBgmUi(true);
-            const t0 = performance.now();
-            function step(now) {
-              if (token !== fadeToken) {
-                resolve(false);
-                return;
-              }
-              const t = Math.min(1, (now - t0) / ms);
-              el.volume = BGM_VOL * t;
-              if (t < 1) {
-                requestAnimationFrame(step);
-                return;
-              }
-              bgmFading = false;
-              el.volume = BGM_VOL;
-              resolve(true);
-            }
-            requestAnimationFrame(step);
-          })
-      )
-      .catch(() => {
-        bgmFading = false;
-        bgmStarted = false;
-        setBgmUi(false);
-        return false;
-      });
-  }
-
-  async function crossfadeToGame() {
-    // 게임 화면 BGM 비활성 — 인트로만 페이드아웃
-    await fadeOutEl(introBgm, 900);
-    pauseEl(gameBgm);
-    setBgmUi(false);
-  }
-
-  async function crossfadeToIntro() {
-    pauseEl(gameBgm);
-    if (inGameZone || bgmUserMuted) {
-      setBgmUi(false);
-      return;
-    }
-    await fadeInEl(introBgm, 800);
-  }
-
   function bindBgmGestures() {
     const unlock = () => {
-      if (!bgmUserMuted && !inGameZone && introBgm && (introBgm.paused || !bgmStarted)) {
+      if (!bgmUserMuted && !startingGame && introBgm && (introBgm.paused || !bgmStarted)) {
         tryStartBgm();
       }
     };
@@ -205,16 +149,6 @@
       bgmToggle.addEventListener("click", async (e) => {
         e.stopPropagation();
         if (!introBgm) return;
-        if (inGameZone) {
-          // 게임 구간에서는 BGM 없음
-          bgmUserMuted = true;
-          fadeToken += 1;
-          bgmFading = false;
-          pauseEl(introBgm);
-          pauseEl(gameBgm);
-          setBgmUi(false);
-          return;
-        }
         if (!introBgm.paused && !bgmUserMuted) {
           bgmUserMuted = true;
           fadeToken += 1;
@@ -264,16 +198,26 @@
   }
 
   function renderScenes(list) {
+    const last = list.length - 1;
     pinRoot.innerHTML = list
       .map((scene, i) => {
         const img = assetUrl(scene.image);
         const caption = escapeHtml(scene.caption || "");
         const text = escapeHtml(scene.text || "");
+        const isFinal = i === last;
         const src = img
           ? `<img src="${escapeHtml(img)}" alt="${caption || `scene ${i + 1}`}" />`
           : "";
+        const cta = isFinal
+          ? `<div class="scene-cta">
+               <button type="button" class="scene-start-btn" data-start-game>
+                 수사 시작
+               </button>
+               <p class="scene-start-hint" data-start-status></p>
+             </div>`
+          : "";
         return `
-        <section class="scene" data-index="${i}">
+        <section class="scene${isFinal ? " scene--final" : ""}" data-index="${i}">
           <div class="scene-sticky">
             <div class="scene-visual" data-visual>
               ${src}
@@ -286,6 +230,7 @@
               ${caption ? `<h2 class="scene-caption">${caption}</h2>` : ""}
               <p class="scene-text">${text}</p>
             </div>
+            ${cta}
             <div class="scene-progress">${i + 1} / ${list.length}</div>
           </div>
         </section>`;
@@ -307,7 +252,6 @@
       if (scene.classList.contains("is-active")) best = i;
     });
     if (best >= 0) return best;
-    // 활성 판정 전이/직후 폴백
     for (let i = 0; i < nodes.length; i += 1) {
       const mid = nodes[i].getBoundingClientRect();
       if (mid.top < window.innerHeight * 0.55 && mid.bottom > window.innerHeight * 0.35) {
@@ -336,9 +280,10 @@
 
   function advanceFromScene(idx) {
     const nodes = [...document.querySelectorAll(".scene")];
-    if (!nodes.length || inGameZone) return;
+    if (!nodes.length || startingGame) return;
+    // 마지막 씬: 자동으로 게임 진입하지 않음 — 「수사 시작」 클릭만
     if (idx >= nodes.length - 1) {
-      scrollToY(gameSection.offsetTop);
+      clearAutoAdvance();
       return;
     }
     scrollToY(nodes[idx + 1].offsetTop);
@@ -346,19 +291,47 @@
 
   function scheduleAutoAdvance(idx) {
     clearAutoAdvance();
-    if (inGameZone || autoScrolling) return;
+    if (startingGame || autoScrolling) return;
     if (idx < 0) return;
+    const nodes = document.querySelectorAll(".scene");
+    if (idx >= nodes.length - 1) return;
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     autoTimer = window.setTimeout(() => {
       autoTimer = null;
-      if (inGameZone || autoScrolling) return;
+      if (startingGame || autoScrolling) return;
       advanceFromScene(idx);
     }, AUTO_SCENE_MS);
   }
 
+  function clearCtaReveal() {
+    if (ctaRevealTimer) {
+      clearTimeout(ctaRevealTimer);
+      ctaRevealTimer = null;
+    }
+    document.querySelectorAll(".scene-cta.is-ready").forEach((el) => {
+      el.classList.remove("is-ready");
+    });
+  }
+
+  function scheduleCtaReveal(finalScene) {
+    const cta = finalScene && finalScene.querySelector(".scene-cta");
+    if (!cta || cta.classList.contains("is-ready")) return;
+    if (ctaRevealTimer) return;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const delay = reduced ? CTA_REVEAL_REDUCED_MS : CTA_REVEAL_MS;
+    ctaRevealTimer = window.setTimeout(() => {
+      ctaRevealTimer = null;
+      if (!finalScene.classList.contains("is-active") || startingGame) return;
+      cta.classList.add("is-ready");
+      if (scrollHint) {
+        scrollHint.textContent = "「수사 시작」을 눌러 심문으로 이동";
+        scrollHint.classList.remove("is-hide");
+      }
+    }, delay);
+  }
+
   function onScroll() {
     const nodes = [...document.querySelectorAll(".scene")];
-    let anyActive = false;
     nodes.forEach((scene) => {
       const p = sceneProgress(scene);
       const visual = scene.querySelector("[data-visual]");
@@ -372,30 +345,33 @@
       const active =
         mid.top < window.innerHeight * 0.55 && mid.bottom > window.innerHeight * 0.35;
       scene.classList.toggle("is-active", active);
-      if (active) anyActive = true;
     });
 
     if (window.scrollY > 40) scrollHint.classList.add("is-hide");
     else scrollHint.classList.remove("is-hide");
 
-    const gameTop = gameSection.getBoundingClientRect().top;
-    const nowInGame = gameTop < window.innerHeight * 0.75;
-    if (nowInGame && !inGameZone) {
-      inGameZone = true;
-      clearAutoAdvance();
-      autoSceneIndex = -1;
-      crossfadeToGame();
-      ensureGameSession();
-    } else if (!nowInGame && inGameZone) {
-      inGameZone = false;
-      crossfadeToIntro();
-    }
-
-    if (!inGameZone && !autoScrolling) {
+    if (!startingGame && !autoScrolling) {
       const idx = activeSceneIndex(nodes);
+      const last = nodes.length - 1;
       if (idx !== autoSceneIndex) {
         autoSceneIndex = idx;
         scheduleAutoAdvance(idx);
+        if (idx === last && last >= 0) {
+          scheduleCtaReveal(nodes[last]);
+        } else {
+          clearCtaReveal();
+        }
+      } else if (idx === last && last >= 0) {
+        scheduleCtaReveal(nodes[last]);
+      }
+      if (scrollHint && idx === last && last >= 0) {
+        const ctaReady = nodes[last].querySelector(".scene-cta.is-ready");
+        if (!ctaReady) {
+          scrollHint.textContent = "브리핑을 읽어 주세요";
+          scrollHint.classList.remove("is-hide");
+        }
+      } else if (scrollHint && idx >= 0) {
+        scrollHint.textContent = "잠시 후 자동 진행 · 스크롤로도 이동";
       }
     }
   }
@@ -417,11 +393,30 @@
     }
   }
 
-  async function ensureGameSession() {
-    if (gameReady) return;
-    gameReady = true;
-    const sub = gameCurtain.querySelector(".game-curtain-sub");
+  function gameUrl(sid) {
+    const q = new URLSearchParams({
+      intro_done: "1",
+      session_id: sid,
+    });
+    return `${GAME_BASE}/?${q.toString()}`;
+  }
+
+  async function startInvestigation(btn) {
+    if (startingGame) return;
+    startingGame = true;
+    clearAutoAdvance();
+    const status = document.querySelector("[data-start-status]");
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "세션 준비 중…";
+    }
+    if (status) status.textContent = "";
+
     try {
+      await fadeOutEl(introBgm, 700);
+      pauseEl(gameBgm);
+      setBgmUi(false);
+
       if (!sessionId) {
         const res = await fetch(`${API_BASE}/v1/session`, {
           method: "POST",
@@ -431,28 +426,31 @@
         const data = await res.json();
         sessionId = data.session_id;
       }
-      const url =
-        `${GAME_BASE}/?intro_done=1&session_id=${encodeURIComponent(sessionId)}` +
-        `&embed=1`;
-      gameFrame.src = url;
-      gameFrame.addEventListener(
-        "load",
-        () => {
-          gameCurtain.classList.add("is-gone");
-        },
-        { once: true }
-      );
-      // iframe load 이벤트가 막히는 환경 대비
-      setTimeout(() => gameCurtain.classList.add("is-gone"), 2500);
-      if (sub) sub.textContent = "심문 UI를 불러오는 중…";
+
+      // iframe embed 없이 Streamlit 전체 페이지로 이동
+      window.location.href = gameUrl(sessionId);
     } catch (err) {
       console.error(err);
-      if (sub) sub.textContent = "세션 생성에 실패했습니다. 아래 버튼으로 이동하세요.";
-      enterGameBtn.hidden = false;
-      enterGameBtn.onclick = () => {
-        window.location.href = `${GAME_BASE}/`;
-      };
+      startingGame = false;
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "수사 시작";
+      }
+      if (status) {
+        status.textContent =
+          "세션 생성에 실패했습니다. 다시 시도하거나 /game 으로 이동하세요.";
+      }
     }
+  }
+
+  function bindStartButton() {
+    if (!pinRoot) return;
+    pinRoot.addEventListener("click", (e) => {
+      const btn = e.target.closest("[data-start-game]");
+      if (!btn) return;
+      e.preventDefault();
+      startInvestigation(btn);
+    });
   }
 
   async function boot() {
@@ -461,6 +459,7 @@
     autoplayBgm();
     await fetchPublicCase();
     renderScenes(scenes);
+    bindStartButton();
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);

@@ -126,10 +126,17 @@ body {
   opacity: 0;
 }
 
+.pin-root {
+  width: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 /* 각 씬: 스크롤 구간(핀 길이) */
 .scene {
   position: relative;
   height: 220vh;
+  width: 100%;
 }
 
 .scene-sticky {
@@ -220,75 +227,101 @@ body {
   color: var(--muted);
 }
 
-/* 게임 핸드오프 섹션 */
-.game-section {
-  position: relative;
-  min-height: 100vh;
-  background: #0b0e14;
-  border-top: 1px solid rgba(200, 210, 220, 0.12);
+/* 마지막 씬: 스크롤 핀 없이 버튼으로 게임 전환 */
+.scene--final {
+  height: 100vh;
 }
 
-.game-curtain {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  display: grid;
-  place-content: center;
-  gap: 0.55rem;
+.scene--final .scene-sticky {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1.35rem;
+  width: 100%;
+  padding: 5rem 1.25rem 4.5rem;
+  place-items: center;
+  box-sizing: border-box;
+}
+
+.scene--final .scene-copy {
+  margin-left: auto;
+  margin-right: auto;
+  align-self: center;
   text-align: center;
-  padding: 2rem;
-  background: radial-gradient(ellipse at center, #121821 0%, #07090d 70%);
-  transition: opacity 0.6s ease, visibility 0.6s ease;
 }
 
-.game-curtain.is-gone {
+.scene--final .scene-kicker,
+.scene--final .scene-caption,
+.scene--final .scene-text {
+  text-align: center;
+}
+
+/* 설명 카드와 분리된 CTA (카드 밖) — 마지막 씬 진입 후 지연 페이드인 */
+.scene-cta {
+  position: relative;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  align-self: center;
+  margin-left: auto;
+  margin-right: auto;
+  width: min(20rem, calc(100% - 2.5rem));
   opacity: 0;
-  visibility: hidden;
+  transform: translateY(14px);
   pointer-events: none;
+  transition:
+    opacity 0.85s ease,
+    transform 0.85s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
-.game-curtain-kicker {
+.scene-cta.is-ready {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-cta {
+    transition-duration: 0.2s;
+  }
+}
+
+.scene-start-btn {
+  display: block;
   margin: 0;
-  font-size: 0.72rem;
-  letter-spacing: 0.18em;
-  color: var(--accent);
-}
-
-.game-curtain-title {
-  margin: 0;
-  font-family: var(--font-display);
-  font-size: clamp(1.6rem, 4vw, 2.4rem);
-}
-
-.game-curtain-sub {
-  margin: 0.2rem 0 0;
-  color: var(--muted);
-  font-size: 0.95rem;
-}
-
-.game-enter-btn {
-  margin: 1rem auto 0;
-  padding: 0.7rem 1.25rem;
-  border-radius: 999px;
-  border: 1px solid rgba(255, 255, 255, 0.35);
-  background: rgba(18, 22, 30, 0.9);
+  padding: 0.85rem 1.75rem;
+  width: 100%;
+  border-radius: 0.55rem;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  background: rgba(14, 18, 26, 0.88);
   color: var(--ink);
   font: inherit;
   font-weight: 600;
+  letter-spacing: 0.06em;
   cursor: pointer;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(8px);
+  transition: border-color 0.2s ease, background 0.2s ease;
 }
 
-.game-enter-btn:hover {
+.scene-start-btn:hover:not(:disabled) {
   border-color: #fff;
-  background: rgba(40, 52, 68, 0.95);
+  background: rgba(40, 54, 72, 0.95);
 }
 
-.game-frame {
-  width: 100%;
-  height: 100vh;
-  border: 0;
-  display: block;
-  background: #0b0e14;
+.scene-start-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.scene-start-hint {
+  margin: 0.55rem 0 0;
+  min-height: 1.2em;
+  font-size: 0.85rem;
+  color: #c08080;
+  text-align: center;
 }
 
 @media (max-width: 720px) {
