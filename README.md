@@ -3,6 +3,7 @@
 > **기술 리포트 (GitHub 메인)** — 데이터·RAG·Agent·평가 결과 분석  
 > **실행·온보딩:** [GETTING_STARTED.md](GETTING_STARTED.md)  
 > **리포트 동기화:** `python3 update_report.py` · Notion: `python3 update_notion.py`  
+> **메트릭 그래프:** `python3 scripts/plot_metrics.py` → `report/assets/{eda,metrics}/`  
 > **AIFFEL Peer Review(PRT):** [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md)  
 > **계획·스펙:** [MASTER_PLAN.md](MASTER_PLAN.md) · [TECH_SPEC.md](TECH_SPEC.md)
 
@@ -66,6 +67,8 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | corporate_card |       74 |
 | network        |      510 |
 | **합계**       | **6665** |
+
+![Ingest chunks by source](report/assets/eda/chunk_source_distribution.png)
 
 <!-- /report:auto:ingest -->
 
@@ -157,6 +160,10 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 개선: JSONL 줄단위 청킹 + 완전 `evidence_id`만 태깅 + 쿼리 확장 + canonical boost.  
 재현: `python3 scripts/compare_fixed_queries.py` · `runs/rag/exp_compare_fixed_queries.json`
 
+![Hit@5 by mode · per-query](report/assets/metrics/hit5_by_mode.png)
+
+![Advanced rank (all top-1)](report/assets/metrics/advanced_rank_top1.png)
+
 ### [정성] 분석
 
 - **Baseline 한계:** dense-only는 Smoking Gun ID를 top-5에 못 올림 (0/4).
@@ -213,6 +220,8 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 로컬 LoRA 대체     | `SmolLM2-135M-Instruct` · trainable **0.34%** · 30 steps · `train_loss≈1.87` · adapter `runs/sft/local_lora/`                                                        |
 | 학습               | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 데모용 gpt-4o-mini를 대체하지 못함)        |
 
+![Local LoRA train_loss ladder](report/assets/metrics/lora_train_loss_ladder.png)
+
 ### Agent 스모크 (1턴)
 
 <!-- report:auto:agent -->
@@ -267,6 +276,12 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 - **평가 백엔드:** `evaluate.py` 로컬 토큰 겹침 (RAGAS 패키지 미필수)
 - **데이터:** `data/eval/eval_questions.jsonl` (n=**30**, Smoking Gun/골든루트 + CCTV·임장 확장) · ragas는 동일 세트 전체
 - **환각 가드 샘플:** “창고 USB 절도” 유도 질문 → 코퍼스에 없음을 답하도록 설계 (`eq06`)
+
+![Eval suite · local vs RAGAS](report/assets/metrics/eval_metrics_suite.png)
+
+![RAGAS n=6 vs n=30](report/assets/metrics/ragas_n6_vs_n30.png)
+
+![Context Precision soft routing](report/assets/metrics/context_precision_routing.png)
 
 ### 4.3 Baseline vs Advanced — 게임 KPI와 연결
 
