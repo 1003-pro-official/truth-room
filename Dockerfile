@@ -29,7 +29,6 @@ RUN chmod +x /entrypoint.sh \
 # Railway는 $PORT 주입 · 로컬 기본 8080
 EXPOSE 8080
 
-HEALTHCHECK --interval=30s --timeout=5s --start-period=90s --retries=3 \
-  CMD-SHELL curl -fsS "http://127.0.0.1:${PORT:-8080}/_stcore/health" || exit 1
+# HEALTHCHECK는 railway.toml healthcheckPath 사용 (Railway 빌더 호환)
 
 CMD ["/entrypoint.sh"]
