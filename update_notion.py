@@ -336,6 +336,39 @@ def _nest_bullet_blocks(items: list[tuple[int, str]]) -> list[dict]:
     return roots
 
 
+def _ends_with_hard_break(raw_line: str) -> bool:
+    """GFM hard line break: 행 끝 공백 2칸 이상, 또는 trailing backslash."""
+    if raw_line.endswith("\\"):
+        return True
+    return len(raw_line) - len(raw_line.rstrip(" ")) >= 2
+
+
+def _join_markdown_lines(parts: list[tuple[str, bool]]) -> str:
+    """(text, hard_break_after) 목록을 README 렌더와 같게 이어 붙인다.
+
+    - hard break → 줄바꿈(\\n)
+    - soft wrap → 공백 한 칸
+    """
+    if not parts:
+        return ""
+    out = parts[0][0]
+    for idx in range(1, len(parts)):
+        prev_hard = parts[idx - 1][1]
+        out += ("\n" if prev_hard else " ") + parts[idx][0]
+    return out
+
+
+def _quote_line_body(raw_line: str) -> str:
+    """'> text' / '>text' 에서 본문만 추출 (trailing hard-break 공백 제거)."""
+    stripped = raw_line.lstrip()
+    if not stripped.startswith(">"):
+        return raw_line.strip()
+    body = stripped[1:]
+    if body.startswith(" "):
+        body = body[1:]
+    return body.rstrip()
+
+
 def markdown_to_notion_blocks(markdown: str) -> list[dict]:
     lines = markdown.splitlines()
     blocks: list[dict] = []
@@ -370,11 +403,12 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
             continue
 
         if stripped.startswith(">"):
-            quote_lines = []
+            # 연속 blockquote 줄은 README처럼 줄바꿈 유지 (공백 join 금지)
+            quote_parts: list[str] = []
             while i < len(lines) and lines[i].strip().startswith(">"):
-                quote_lines.append(lines[i].strip().lstrip(">").strip())
+                quote_parts.append(_quote_line_body(lines[i]))
                 i += 1
-            blocks.append(_block("quote", parse_inline_rich_text(" ".join(quote_lines))))
+            blocks.append(_block("quote", parse_inline_rich_text("\n".join(quote_parts))))
             continue
 
         if stripped.startswith("|"):
@@ -425,10 +459,12 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
             )
             continue
 
-        paragraph_lines = [stripped]
+        # 본문: GFM soft wrap(공백) / hard break(\\n) 구분
+        para_parts: list[tuple[str, bool]] = [(stripped, _ends_with_hard_break(line))]
         i += 1
         while i < len(lines):
-            nxt = lines[i].strip()
+            nxt_raw = lines[i]
+            nxt = nxt_raw.strip()
             if (
                 not nxt
                 or nxt.startswith("#")
@@ -436,12 +472,13 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
                 or nxt.startswith(">")
                 or nxt.startswith("|")
                 or nxt.startswith("```")
+                or IMAGE_MD_PATTERN.match(nxt)
                 or _is_bullet_line(lines[i])
             ):
                 break
-            paragraph_lines.append(nxt)
+            para_parts.append((nxt, _ends_with_hard_break(nxt_raw)))
             i += 1
-        blocks.append(_block("paragraph", parse_inline_rich_text(" ".join(paragraph_lines))))
+        blocks.append(_block("paragraph", parse_inline_rich_text(_join_markdown_lines(para_parts))))
 
     return blocks
 
