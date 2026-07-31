@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
 from datetime import datetime, timezone
@@ -73,7 +74,7 @@ def format_example(tokenizer: Any, messages: list[dict[str, str]], max_len: int)
     return enc
 
 
-def generate_once(model: Any, tokenizer: Any, system: str, user: str, max_new: int = 64) -> str:
+def generate_once(model: Any, tokenizer: Any, system: str, user: str, max_new: int = 48) -> str:
     import torch
 
     messages = [
@@ -84,7 +85,7 @@ def generate_once(model: Any, tokenizer: Any, system: str, user: str, max_new: i
         prompt = tokenizer.apply_chat_template(messages, tokenize=False, add_generation_prompt=True)
     else:
         prompt = f"SYSTEM: {system[:800]}\nUSER: {user}\nASSISTANT:"
-    inputs = tokenizer(prompt, return_tensors="pt")
+    inputs = tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     device = next(model.parameters()).device
     inputs = {k: v.to(device) for k, v in inputs.items()}
     with torch.no_grad():
@@ -93,9 +94,13 @@ def generate_once(model: Any, tokenizer: Any, system: str, user: str, max_new: i
             max_new_tokens=max_new,
             do_sample=False,
             pad_token_id=tokenizer.eos_token_id,
+            use_cache=True,
         )
     gen = out[0][inputs["input_ids"].shape[-1] :]
-    return tokenizer.decode(gen, skip_special_tokens=True).strip()
+    text = tokenizer.decode(gen, skip_special_tokens=True).strip()
+    if device.type == "mps" and hasattr(torch, "mps"):
+        torch.mps.empty_cache()
+    return text
 
 
 def main() -> int:
@@ -108,12 +113,30 @@ def main() -> int:
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--out-dir", default="runs/sft/local_lora")
+    parser.add_argument(
+        "--gradient-checkpointing",
+        action="store_true",
+        help="7B급 메모리 절약 (MPS/16GB 권장)",
+    )
+    parser.add_argument("--lora-r", type=int, default=8)
+    parser.add_argument(
+        "--skip-before",
+        action="store_true",
+        help="학습 전 프로브 생략 (16GB에서 7B generate OOM/스왑 회피)",
+    )
+    parser.add_argument("--probe-max-new", type=int, default=48)
+    parser.add_argument(
+        "--device",
+        default="auto",
+        choices=("auto", "mps", "cpu"),
+        help="auto=MPS 우선. 7B/16GB는 cpu 권장",
+    )
     args = parser.parse_args()
     _require_deps()
 
     import torch
     from datasets import Dataset
-    from peft import LoraConfig, PeftModel, get_peft_model
+    from peft import LoraConfig, get_peft_model
     from transformers import (
         AutoModelForCausalLM,
         AutoTokenizer,
@@ -121,6 +144,9 @@ def main() -> int:
         Trainer,
         TrainingArguments,
     )
+
+    # MPS 고수위 제한 완화 (통일 메모리 16GB에서 스왑 완화)
+    os.environ.setdefault("PYTORCH_MPS_HIGH_WATERMARK_RATIO", "0.0")
 
     random.seed(args.seed)
     torch.manual_seed(args.seed)
@@ -133,32 +159,64 @@ def main() -> int:
     out_dir = ROOT / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    device = "mps" if torch.backends.mps.is_available() else "cpu"
-    print(json.dumps({"device": device, "model": args.model, "n": len(rows)}, ensure_ascii=False))
+    if args.device == "auto":
+        device = "mps" if torch.backends.mps.is_available() else "cpu"
+    else:
+        device = args.device
+        if device == "mps" and not torch.backends.mps.is_available():
+            raise SystemExit("MPS unavailable")
+
+    print(
+        json.dumps(
+            {
+                "device": device,
+                "model": args.model,
+                "n": len(rows),
+                "gradient_checkpointing": args.gradient_checkpointing,
+                "skip_before": args.skip_before,
+                "max_len": args.max_len,
+            },
+            ensure_ascii=False,
+        ),
+        flush=True,
+    )
 
     tokenizer = AutoTokenizer.from_pretrained(args.model, trust_remote_code=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
+    dtype = torch.float16 if device in ("mps", "cpu") else None
     model = AutoModelForCausalLM.from_pretrained(
         args.model,
         trust_remote_code=True,
-        torch_dtype=torch.float16 if device == "mps" else None,
+        torch_dtype=dtype,
+        low_cpu_mem_usage=True,
     )
     model.to(device)
+    if args.gradient_checkpointing:
+        model.gradient_checkpointing_enable()
+        if hasattr(model, "config"):
+            model.config.use_cache = False
 
     # 짧은 시스템 프롬프트로 전후 샘플 (학습 전)
     sys_short = (
         "당신은 심문 받는 용의자입니다. 한국어로 짧게 답하세요. "
         "알리바이: 야근하며 정산 서류를 검토 중이었다. AI라고 말하지 마세요."
     )
-    before = [
-        {"q": q, "a": generate_once(model, tokenizer, sys_short, q)} for q, _ in PROBES
-    ]
+    if args.skip_before:
+        before = [{"q": q, "a": "(skipped: --skip-before)"} for q, _ in PROBES]
+    else:
+        before = [
+            {
+                "q": q,
+                "a": generate_once(model, tokenizer, sys_short, q, max_new=args.probe_max_new),
+            }
+            for q, _ in PROBES
+        ]
 
     lora = LoraConfig(
-        r=8,
-        lora_alpha=16,
+        r=args.lora_r,
+        lora_alpha=max(16, args.lora_r * 2),
         lora_dropout=0.05,
         bias="none",
         task_type="CAUSAL_LM",
@@ -176,15 +234,18 @@ def main() -> int:
         num_train_epochs=args.epochs,
         max_steps=args.max_steps,
         per_device_train_batch_size=1,
-        gradient_accumulation_steps=4,
+        gradient_accumulation_steps=1 if device == "cpu" else 4,
         learning_rate=args.lr,
-        logging_steps=5,
+        logging_steps=1,
         save_steps=1000,
         report_to=[],
         remove_unused_columns=False,
         fp16=False,
         bf16=False,
         dataloader_pin_memory=False,
+        gradient_checkpointing=args.gradient_checkpointing,
+        optim="adamw_torch",
+        use_cpu=(device == "cpu"),
     )
     trainer = Trainer(
         model=model,
@@ -192,16 +253,28 @@ def main() -> int:
         train_dataset=ds,
         data_collator=collator,
     )
+    print(json.dumps({"phase": "train_start"}, ensure_ascii=False), flush=True)
     train_result = trainer.train()
     metrics = dict(train_result.metrics)
+    print(json.dumps({"phase": "train_done", "train_loss": metrics.get("train_loss")}, ensure_ascii=False), flush=True)
 
     adapter_dir = out_dir / "adapter"
     model.save_pretrained(adapter_dir)
     tokenizer.save_pretrained(adapter_dir)
 
-    after = [
-        {"q": q, "a": generate_once(model, tokenizer, sys_short, q)} for q, _ in PROBES
-    ]
+    after: list[dict[str, str]] = []
+    try:
+        if hasattr(model, "config"):
+            model.config.use_cache = True
+        after = [
+            {
+                "q": q,
+                "a": generate_once(model, tokenizer, sys_short, q, max_new=args.probe_max_new),
+            }
+            for q, _ in PROBES
+        ]
+    except Exception as exc:  # noqa: BLE001
+        after = [{"q": q, "a": f"(probe_fail: {exc})"} for q, _ in PROBES]
 
     report = {
         "created_at": datetime.now(timezone.utc).isoformat(),
@@ -210,13 +283,18 @@ def main() -> int:
         "device": device,
         "n_examples": len(rows),
         "max_steps": args.max_steps,
+        "max_len": args.max_len,
+        "gradient_checkpointing": args.gradient_checkpointing,
+        "lora_r": args.lora_r,
+        "skip_before": args.skip_before,
         "train_metrics": metrics,
         "adapter_dir": str(adapter_dir.relative_to(ROOT)),
         "before": before,
         "after": after,
         "note": (
-            "교육용 소형 모델 LoRA. 한국어 품질은 제한적일 수 있음. "
-            "OpenAI FT 불가(training_not_available) 대체 실험."
+            "교육용 소형/중형 모델 LoRA. 한국어 품질은 제한적일 수 있음. "
+            "OpenAI FT 불가(training_not_available) 대체 실험. "
+            "7B는 16GB MPS에서 --skip-before · gradient checkpointing · max_len 축소 권장."
         ),
         "status": "ok",
     }
@@ -228,11 +306,11 @@ def main() -> int:
             "train_loss": metrics.get("train_loss"),
             "report": str(report_path),
             "before0": before[0]["a"][:120],
-            "after0": after[0]["a"][:120],
+            "after0": after[0]["a"][:120] if after else "",
         },
         ensure_ascii=False,
         indent=2,
-    ))
+    ), flush=True)
     return 0
 
 

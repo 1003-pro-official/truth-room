@@ -5,7 +5,7 @@
 Python ≥3.10 권장 (3.12 검증). macOS 예:
   /opt/homebrew/bin/python3.12 -m venv .venv310 && source .venv310/bin/activate
   pip install ragas datasets langchain-community langchain-openai openai pyyaml python-dotenv
-  python scripts/eval_ragas.py --limit 6
+  python scripts/eval_ragas.py --limit 0   # 0 = 전체
 """
 
 from __future__ import annotations
@@ -117,12 +117,18 @@ def try_ragas(rows: list[dict[str, Any]], retrieved_map: dict[str, list[str]]) -
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset", default="data/eval/eval_questions.jsonl")
-    parser.add_argument("--limit", type=int, default=12)
+    parser.add_argument("--limit", type=int, default=0, help="0이면 전체 문항")
+    parser.add_argument(
+        "--out",
+        default="",
+        help="산출 JSON 경로 (기본: runs/eval/ragas_report.json, py≥3.10이면 ragas_py312_report.json도 기록)",
+    )
     args = parser.parse_args()
 
     cfg = load_yaml(ROOT / "configs" / "rag.yaml") if (ROOT / "configs" / "rag.yaml").exists() else {}
     retrieval = cfg.get("retrieval") or {}
-    rows = load_jsonl(ROOT / args.dataset)[: max(1, args.limit)]
+    all_rows = load_jsonl(ROOT / args.dataset)
+    rows = all_rows if args.limit <= 0 else all_rows[: max(1, args.limit)]
     index = get_or_build_index(
         ROOT / "data/processed/chunks.jsonl",
         ROOT / "runs/rag/index/vectors.json",
@@ -187,9 +193,15 @@ def main() -> int:
         },
         "status": "ok",
     }
-    path = ROOT / "runs" / "eval" / "ragas_report.json"
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(out, ensure_ascii=False, indent=2), encoding="utf-8")
+    out_dir = ROOT / "runs" / "eval"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = ROOT / args.out if args.out else out_dir / "ragas_report.json"
+    text = json.dumps(out, ensure_ascii=False, indent=2)
+    path.write_text(text, encoding="utf-8")
+    # Python ≥3.10에서 ragas.evaluate 성공본은 py312 리포트로도 보관
+    py_major, py_minor = sys.version_info[:2]
+    if py_major > 3 or (py_major == 3 and py_minor >= 10):
+        (out_dir / "ragas_py312_report.json").write_text(text, encoding="utf-8")
     print(json.dumps(out, ensure_ascii=False, indent=2))
     return 0
 
