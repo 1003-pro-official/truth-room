@@ -61,7 +61,7 @@
   let bgmAudible = false;
   let bgmFading = false;
   let bgmUnlockBound = false;
-  const BGM_VOL = 0.45;
+  const BGM_VOL = 0.12;
   const BGM_FADE_IN_MS = 900;
   let fadeToken = 0;
   /** 씬당 체류 후 자동 스크롤 (7~8초) — 마지막 씬은 제외 */
@@ -303,7 +303,7 @@
         const cta = isFinal
           ? `<div class="scene-cta">
                <button type="button" class="scene-start-btn" data-start-game>
-                 수사 시작
+                 입장하기
                </button>
                <p class="scene-start-hint" data-start-status></p>
              </div>`
@@ -373,7 +373,7 @@
   function advanceFromScene(idx) {
     const nodes = [...document.querySelectorAll(".scene")];
     if (!nodes.length || startingGame) return;
-    // 마지막 씬: 자동으로 게임 진입하지 않음 — 「수사 시작」 클릭만
+    // 마지막 씬: 자동으로 게임 진입하지 않음 — 「입장하기」 클릭만
     if (idx >= nodes.length - 1) {
       clearAutoAdvance();
       return;
@@ -416,7 +416,7 @@
       if (!finalScene.classList.contains("is-active") || startingGame) return;
       cta.classList.add("is-ready");
       if (scrollHint) {
-        scrollHint.textContent = "「수사 시작」을 눌러 심문으로 이동";
+        scrollHint.textContent = "「입장하기」를 눌러 심문으로 이동";
         scrollHint.classList.remove("is-hide");
       }
     }, delay);
@@ -501,7 +501,7 @@
     const status = document.querySelector("[data-start-status]");
     if (btn) {
       btn.disabled = true;
-      btn.textContent = "세션 준비 중…";
+      btn.textContent = "입장하는 중…";
     }
     if (status) status.textContent = "";
 
@@ -527,7 +527,7 @@
       startingGame = false;
       if (btn) {
         btn.disabled = false;
-        btn.textContent = "수사 시작";
+        btn.textContent = "입장하기";
       }
       if (status) {
         status.textContent =

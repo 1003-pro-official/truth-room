@@ -152,6 +152,8 @@ def _start_new_investigation(*, with_tab_intro: bool = False) -> None:
     st.session_state["show_intro"] = bool(with_tab_intro)
     st.session_state["intro_scene_idx"] = 0
     st.session_state["turn_deadline"] = None
+    st.session_state["game_started"] = False
+    st.session_state.pop("bgm_should_play", None)
     st.rerun()
 
 
@@ -166,40 +168,103 @@ def _browser_asset_url(rel: str) -> str:
     return f"{base}/{rel.lstrip('/')}"
 
 
-def _inject_game_bgm(*, muted: bool = False) -> None:
-    """Streamlit 단독 진입 시 game.mp3 (UI 없음)."""
+def _inject_game_bgm(*, muted: bool = False, force_play: bool = False) -> None:
+    """Streamlit 게임 화면 BGM + 인트로와 동일한 EQ 토글 버튼."""
     if st.session_state.get("from_intro_shell"):
         return
     src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
     muted_js = "true" if muted else "false"
-    # height=0 · 버튼 없음 — Streamlit components 이중 마운트로 버튼이 두 개 보이던 문제 방지
+    force_js = "true" if force_play else "false"
+    # 마커 → 다음 iframe 컨테이너를 우상단 고정
+    st.markdown(
+        '<div class="game-bgm-dock-mark" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
     components.html(
         f"""<!DOCTYPE html>
-<html><body style="margin:0">
+<html><head><meta charset="utf-8" />
+<style>
+  html,body{{margin:0;padding:0;background:transparent;overflow:hidden;}}
+  .bgm-toggle{{
+    margin:0;width:2.5rem;height:2rem;padding:0;
+    display:inline-grid;place-items:center;
+    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.35);
+    background:rgba(18,22,30,0.9);color:#e8e4dc;cursor:pointer;
+  }}
+  .bgm-toggle:hover{{border-color:#fff;}}
+  .bgm-toggle[aria-pressed="true"]{{border-color:#7A9BB8;}}
+  .eq{{display:flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:12px;}}
+  .eq i{{display:block;width:2px;height:40%;border-radius:1px;background:#c5ccd6;transform-origin:bottom center;}}
+  .bgm-toggle[aria-pressed="true"] .eq i{{
+    background:#7A9BB8;animation:eq-bounce .9s ease-in-out infinite;
+  }}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(1){{animation-delay:0s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(2){{animation-delay:.15s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(3){{animation-delay:.35s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(4){{animation-delay:.22s;}}
+  .bgm-toggle[aria-pressed="false"] .eq i{{height:35%;opacity:.55;}}
+  @keyframes eq-bounce{{0%,100%{{height:30%;}}50%{{height:100%;}}}}
+</style></head>
+<body>
+<button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="BGM OFF">
+  <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
+</button>
 <audio id="a" src="{src}" loop preload="auto" playsinline></audio>
 <script>
 (function(){{
   const a=document.getElementById("a");
-  const VOL=0.45;
-  const muted={muted_js};
+  const btn=document.getElementById("bgmToggle");
+  const VOL=0.12;
+  let userMuted={muted_js};
+  let audible=false;
   a.volume=VOL;
-  async function play(){{
-    if(muted){{a.pause();return;}}
-    try{{await a.play();}}catch(e){{}}
+  function setUi(on){{
+    btn.setAttribute("aria-pressed", on ? "true" : "false");
+    btn.setAttribute("aria-label", on ? "배경음악 끄기" : "배경음악 켜기");
+    btn.title = on ? "BGM ON" : "BGM OFF";
   }}
-  if(muted){{a.pause();}}
-  else{{
+  async function play(){{
+    if(userMuted){{a.pause();setUi(false);return false;}}
+    a.volume=VOL;
+    try{{
+      await a.play();
+      a.volume=VOL;
+      audible=true;
+      setUi(true);
+      return true;
+    }}catch(e){{
+      audible=false;
+      setUi(false);
+      return false;
+    }}
+  }}
+  function stop(){{
+    a.pause();
+    audible=false;
+    setUi(false);
+  }}
+  btn.addEventListener("click", async function(e){{
+    e.preventDefault();
+    e.stopPropagation();
+    if(audible && !a.paused && !userMuted){{
+      userMuted=true;
+      stop();
+      return;
+    }}
+    userMuted=false;
+    await play();
+  }});
+  if({force_js} && !userMuted){{ play(); }}
+  else if(!userMuted){{
     ["pointerdown","keydown","touchstart"].forEach(function(ev){{
-      try{{window.parent.addEventListener(ev,function(){{play();}},{{once:true,passive:true}});}}catch(e){{}}
-      window.addEventListener(ev,function(){{play();}},{{once:true,passive:true}});
+      try{{window.parent.addEventListener(ev,function(){{if(!userMuted&&!audible)play();}},{{once:true,passive:true}});}}catch(err){{}}
     }});
-    play();
   }}
 }})();
 </script>
 </body></html>""",
-        height=0,
-        width=0,
+        height=36,
+        width=44,
     )
 
 
@@ -346,6 +411,39 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           width: 0 !important;
           opacity: 0 !important;
           pointer-events: none !important;
+        }}
+        /* BGM 토글 — 인트로와 동일 EQ 버튼을 우상단 고정 (Streamlit Deploy 버튼 왼쪽) */
+        div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark) {{
+          position: absolute !important;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark)
+          + div[data-testid="stElementContainer"],
+        div[data-testid="stElementContainer"]:has(iframe[height="36"]) {{
+          position: fixed !important;
+          top: 3.35rem !important;
+          right: 1.15rem !important;
+          z-index: 1000010 !important;
+          width: 2.75rem !important;
+          height: 2.25rem !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          background: transparent !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark)
+          + div[data-testid="stElementContainer"] iframe,
+        div[data-testid="stElementContainer"]:has(iframe[height="36"]) iframe {{
+          width: 44px !important;
+          height: 36px !important;
+          border: 0 !important;
+          background: transparent !important;
         }}
         /* 좌·우 메인: 한 덩어리로 붙이고 가운데 정렬 — 좌우 패딩 제거 */
         div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker),
@@ -1252,27 +1350,42 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         [data-testid="stDialog"] .dossier-value {{ color: #e8eaef !important; }}
         /*
           Streamlit stDialog = Modal Root(오버레이).
-          배포(baseUrlPath=/game)에서 large 다이얼로그가 전체폭·좌측 정렬로
-          깨지는 경우가 있어, 로컬과 같이 중앙 카드형으로 강제.
+          오버레이는 뷰포트 풀사이즈, 카드만 내용 높이.
         */
         div[data-testid="stDialog"] {{
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          bottom: 0 !important;
+          inset: 0 !important;
+          width: 100vw !important;
+          height: 100dvh !important;
+          max-width: none !important;
+          max-height: none !important;
+          margin: 0 !important;
+          padding: 1rem !important;
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
-          padding: 1rem !important;
-          inset: 0 !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch;
+          z-index: 1000000 !important;
+          background: rgba(5, 7, 10, 0.72) !important;
+          box-sizing: border-box !important;
         }}
         div[data-testid="stDialog"] > div {{
           display: flex !important;
           align-items: center !important;
           justify-content: center !important;
           padding: 0 !important;
-          margin: 0 auto !important;
+          margin: 0 !important;
           width: 100% !important;
-          max-width: 100% !important;
-          min-height: 100vh !important;
-          min-height: 100dvh !important;
+          max-width: none !important;
+          min-height: 100% !important;
+          height: 100% !important;
           box-sizing: border-box !important;
+          background: transparent !important;
         }}
         div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{
           padding-bottom: 0.75rem !important;
@@ -1288,9 +1401,21 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           transform: none !important;
           align-self: center !important;
           justify-self: center !important;
+          width: min(42rem, calc(100vw - 2rem)) !important;
+          max-width: min(42rem, calc(100vw - 2rem)) !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: min(90dvh, calc(100dvh - 2rem)) !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          -webkit-overflow-scrolling: touch;
+          box-sizing: border-box !important;
+          flex: 0 1 auto !important;
+        }}
+        /* 수사파일(전신 이미지)만 조금 더 넓게 */
+        div[data-testid="stDialog"]:has(.dossier-fullbody) [role="dialog"] {{
           width: min(56rem, calc(100vw - 2rem)) !important;
           max-width: min(56rem, calc(100vw - 2rem)) !important;
-          box-sizing: border-box !important;
         }}
         /* Streamlit 버전에 따라 dialog가 section/div로 감싸일 때 */
         div[data-testid="stDialog"] div:has(> [role="dialog"]),
@@ -1299,7 +1424,43 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           justify-content: center !important;
           align-items: center !important;
           width: 100% !important;
-          margin: 0 auto !important;
+          height: 100% !important;
+          min-height: 100% !important;
+          margin: 0 !important;
+          background: transparent !important;
+        }}
+        /* 진입 브리핑: X 닫기 숨김 — 스타트로만 진행 */
+        div[data-testid="stDialog"]:has(.case-briefing-lock)
+          button[aria-label="Close"],
+        div[data-testid="stDialog"]:has(.case-briefing-lock)
+          button[aria-label="close"],
+        div[data-testid="stDialog"]:has(.case-briefing-lock)
+          [data-testid="stBaseButton-headerNoPadding"],
+        div[data-testid="stDialog"]:has(.case-briefing-lock)
+          button[kind="headerNoPadding"] {{
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }}
+        div[data-testid="stDialog"]:has(.case-briefing-lock) .stButton {{
+          width: auto !important;
+          max-width: 12rem !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+          display: flex !important;
+          justify-content: center !important;
+        }}
+        div[data-testid="stDialog"]:has(.case-briefing-lock)
+          div[data-testid="stElementContainer"]:has(.stButton) {{
+          display: flex !important;
+          justify-content: center !important;
+          width: 100% !important;
+        }}
+        div[data-testid="stDialog"]:has(.case-briefing-lock) .stButton > button {{
+          width: auto !important;
+          min-width: 8.5rem !important;
+          padding-left: 1.6rem !important;
+          padding-right: 1.6rem !important;
         }}
         .dossier-foot-pad {{
           display: block !important;
@@ -1313,11 +1474,20 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           overflow: hidden;
           background: #141820;
           line-height: 0;
+          max-height: min(52vh, 28rem);
         }}
         .dossier-fullbody img {{
           width: 100%;
+          max-height: min(52vh, 28rem);
           display: block;
           object-fit: contain;
+          object-position: top center;
+        }}
+        @media (max-height: 900px) {{
+          .dossier-fullbody,
+          .dossier-fullbody img {{
+            max-height: min(38vh, 18rem);
+          }}
         }}
         .dossier-case-block {{ margin: 0.35rem 0 0.75rem; }}
         .dossier-case-block p {{
@@ -1950,9 +2120,13 @@ def _open_dossier(suspect_id: str, data: dict) -> None:
     )
 
 
-@st.dialog("사건개요", width="large", on_dismiss=_resume_timer)
-def _open_case_info(case: dict, *, title_fallback: str = "사건개요") -> None:
-    """메인 HUD에서 여는 CASE INFO — 프로필과 분리."""
+def _on_case_dialog_dismiss() -> None:
+    """사건개요 닫힘 — 게임 시작 후에만 타이머 재개."""
+    if st.session_state.get("game_started"):
+        _resume_timer()
+
+
+def _render_case_info_body(case: dict, *, title_fallback: str = "사건개요") -> None:
     case_no = str(case.get("case_id") or "case_01")
     st.markdown(
         f'<p style="margin:0 0 0.45rem;font-size:0.72rem;letter-spacing:0.14em;'
@@ -1977,10 +2151,38 @@ def _open_case_info(case: dict, *, title_fallback: str = "사건개요") -> None
         st.markdown(_dossier_rows_html(case_rows), unsafe_allow_html=True)
     else:
         st.caption("공개된 사건 정보가 없습니다.")
+
+
+@st.dialog("사건개요", width="large", on_dismiss=_on_case_dialog_dismiss)
+def _open_case_info(case: dict, *, title_fallback: str = "사건개요") -> None:
+    """메인 HUD CASE INFO."""
+    _render_case_info_body(case, title_fallback=title_fallback)
     st.markdown(
         '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
         unsafe_allow_html=True,
     )
+
+
+@st.dialog("사건개요", width="large", dismissible=False)
+def _open_case_briefing(case: dict, *, title_fallback: str = "사건개요") -> None:
+    """진입 브리핑 — 닫기(X) 없음, 스타트로만 진행."""
+    st.markdown(
+        '<div class="case-briefing-lock" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
+    _render_case_info_body(case, title_fallback=title_fallback)
+    st.markdown(
+        '<p style="margin:1rem 0 0.65rem;color:#9aa8b8;font-size:0.85rem;">'
+        "브리핑을 확인한 뒤 START를 누르면 수사가 시작됩니다.</p>",
+        unsafe_allow_html=True,
+    )
+    if st.button("START", type="primary", use_container_width=False, key="btn_case_briefing_start"):
+        st.session_state["game_started"] = True
+        st.session_state["bgm_should_play"] = True
+        st.session_state["timer_paused"] = False
+        st.session_state.pop("timer_remaining", None)
+        _reset_timer()
+        st.rerun()
 
 
 def _request_dossier(suspect_id: str) -> None:
@@ -1994,12 +2196,23 @@ def _request_dossier(suspect_id: str) -> None:
     _open_dossier(suspect_id, data)
 
 
-def _request_case_info(session_id: str, *, title_fallback: str = "사건개요") -> None:
+def _request_case_info(
+    session_id: str,
+    *,
+    title_fallback: str = "사건개요",
+    show_start: bool = False,
+) -> None:
     case = _fetch_case_overview(session_id)
     if not case:
-        st.session_state["dossier_error"] = "사건개요를 불러오지 못했습니다."
-        return
+        if show_start:
+            case = {"title": title_fallback, "case_id": "case_01"}
+        else:
+            st.session_state["dossier_error"] = "사건개요를 불러오지 못했습니다."
+            return
     st.session_state.pop("dossier_error", None)
+    if show_start:
+        _open_case_briefing(case, title_fallback=title_fallback)
+        return
     _pause_timer()
     _open_case_info(case, title_fallback=title_fallback)
 
@@ -2168,8 +2381,9 @@ if not st.session_state.get("game"):
                 st.session_state["last_ending"] = None
                 st.session_state["show_intro"] = False
                 st.session_state["intro_scene_idx"] = 0
-                if st.session_state.get("turn_deadline") is None:
-                    _reset_timer()
+                st.session_state["game_started"] = False
+                st.session_state.pop("bgm_should_play", None)
+                st.session_state["turn_deadline"] = None
                 # 쿼리 정리 (재실행 루프 방지)
                 for _k in ("intro_done", "session_id", "embed"):
                     try:
@@ -2208,8 +2422,15 @@ stamina = int(game.get("stamina") or 0)
 
 _inject_theme(mental=mental, revoked=revoked)
 
-# 인트로/시작 화면 생략 — 바로 본편
+# 인트로/시작 화면 생략 — 사건개요 브리핑 후 스타트로 본편
 st.session_state["show_intro"] = False
+if "game_started" not in st.session_state:
+    st.session_state["game_started"] = False
+
+# 스타트 클릭 이후 BGM (인트로 셸 iframe은 부모에서 재생)
+if st.session_state.get("game_started"):
+    _force_bgm = bool(st.session_state.pop("bgm_should_play", False))
+    _inject_game_bgm(muted=False, force_play=_force_bgm)
 
 _render_hud(game)
 _case_btn, _ = st.columns([1, 4])
@@ -2217,6 +2438,18 @@ with _case_btn:
     if st.button("CASE FILE · 사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
         _request_case_info(sid, title_fallback=str(game.get("title") or "사건개요"))
 _render_clue_banner()
+
+# 진입 시 사건개요 팝업 + 스타트 (닫아도 미시작이면 다시 염)
+if (
+    not st.session_state.get("game_started")
+    and not game.get("ended")
+    and not revoked
+):
+    _request_case_info(
+        sid,
+        title_fallback=str(game.get("title") or "사건개요"),
+        show_start=True,
+    )
 
 if st.session_state.get("dossier_error"):
     st.error(st.session_state.pop("dossier_error"))
@@ -2231,6 +2464,7 @@ timer_on = (
     and not game.get("ended")
     and game.get("status") not in ("turn_out", "authority_revoked")
     and not st.session_state.get("show_intro")
+    and bool(st.session_state.get("game_started"))
 )
 total_sec = int(game.get("turn_seconds") or 20)
 turn_out_now = game.get("status") == "turn_out" or (
