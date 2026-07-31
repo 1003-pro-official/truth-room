@@ -132,6 +132,13 @@ def main() -> None:
             top_k=int(retrieval.get("top_k", 5)),
             rrf_k=int(retrieval.get("rrf_k", 60)),
             rerank=bool(retrieval.get("rerank", True)),
+            expand=bool(retrieval.get("expand_query", True)),
+            source_types=[str(s) for s in (retrieval.get("source_types") or []) if s] or None,
+            source_routing=str(retrieval.get("source_routing") or "soft"),
+            boost_evidence=float(retrieval.get("boost_evidence", 0.20)),
+            boost_canonical=float(retrieval.get("boost_canonical", 0.25)),
+            boost_keyword=float(retrieval.get("boost_keyword", 0.05)),
+            boost_source=float(retrieval.get("boost_source", 0.18)),
         )
         eids = [h.get("evidence_id") for h in hits]
         prec = context_precision_at_k(eids, contexts + [str(row.get("ground_truth", ""))])

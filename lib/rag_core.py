@@ -20,6 +20,16 @@ _FULL_EVIDENCE_RE = re.compile(r"^ev_[a-z]+_\d+$", re.IGNORECASE)
 # Smoking Gun — exact ID에 추가 가산
 CANONICAL_EVIDENCE = ("ev_card_03", "ev_msg_12", "ev_log_07", "ev_net_01")
 
+# 쿼리 → 우선 source_type (Precision용 라우팅)
+SOURCE_ROUTE_RULES: list[tuple[tuple[str, ...], list[str]]] = [
+    (("법인카드", "룸살롱", "결제", "카드"), ["corporate_card"]),
+    (("슬랙", "메신저", "dm", "박신입"), ["messenger"]),
+    (("지문", "출입", "서버실", "badge", "fingerprint"), ["logs"]),
+    (("wi-fi", "와이파이", "wifi", "100gb", "라운지", "전송", "mac"), ["network"]),
+    (("cctv", "포렌식", "현장"), ["forensics"]),
+    (("알리바이", "진술"), ["statements"]),
+]
+
 # 쿼리 확장 (동의어·템플릿 키워드)
 QUERY_EXPANSIONS: dict[str, list[str]] = {
     "슬랙": ["메신저", "DM", "slack", "대화"],
@@ -60,6 +70,18 @@ def expand_query(query: str) -> str:
             seen.add(tl)
             add.append(t)
     return q if not add else f"{q} {' '.join(add)}"
+
+
+def infer_source_types(query: str) -> list[str]:
+    """쿼리 키워드로 우선 검색할 source_type 추론."""
+    q = (query or "").lower()
+    matched: list[str] = []
+    for keys, sources in SOURCE_ROUTE_RULES:
+        if any(k.lower() in q for k in keys):
+            for s in sources:
+                if s not in matched:
+                    matched.append(s)
+    return matched
 
 
 def is_full_evidence_id(eid: Any) -> bool:
@@ -183,6 +205,8 @@ def _rerank(
     boost_evidence: float = 0.20,
     boost_canonical: float = 0.25,
     boost_keyword: float = 0.05,
+    preferred_sources: set[str] | None = None,
+    boost_source: float = 0.18,
 ) -> list[tuple[int, float]]:
     q_toks = set(tokenize(query))
     out: list[tuple[int, float]] = []
@@ -190,10 +214,17 @@ def _rerank(
         doc = docs[idx]
         bonus = 0.0
         eid = doc.get("evidence_id")
+        src = str(doc.get("source_type") or "").lower()
         if is_full_evidence_id(eid):
             bonus += boost_evidence
             if str(eid) in CANONICAL_EVIDENCE:
-                bonus += boost_canonical
+                if preferred_sources is None or src in preferred_sources:
+                    bonus += boost_canonical
+                else:
+                    # 라우팅 밖 Smoking Gun은 약하게만 (Precision 오염 완화)
+                    bonus += boost_canonical * 0.15
+        if preferred_sources and src in preferred_sources:
+            bonus += boost_source
         text_toks = set(tokenize(str(doc.get("text", ""))))
         overlap = len(q_toks & text_toks)
         bonus += boost_keyword * overlap
@@ -212,15 +243,20 @@ def retrieve(
     rerank: bool = False,
     expand: bool = True,
     source_types: list[str] | None = None,
+    source_routing: str = "soft",  # off | soft | hard
     boost_evidence: float = 0.20,
     boost_canonical: float = 0.25,
     boost_keyword: float = 0.05,
+    boost_source: float = 0.18,
 ) -> list[dict[str, Any]]:
     docs: list[dict[str, Any]] = index.get("docs", [])
     if not docs:
         return []
 
     q = expand_query(query) if expand and mode != "baseline" else query
+    routing = (source_routing or "off").lower()
+    inferred = infer_source_types(query) if routing in ("soft", "hard") else []
+    preferred = {s.lower() for s in (source_types or inferred)}
 
     dense = _dense_scores(index, q)
     if mode == "baseline":
@@ -237,25 +273,47 @@ def retrieve(
                 boost_evidence=boost_evidence,
                 boost_canonical=boost_canonical,
                 boost_keyword=boost_keyword,
+                preferred_sources=preferred if routing == "soft" else None,
+                boost_source=boost_source,
             )
             if rerank
             else sorted(fused.items(), key=lambda x: x[1], reverse=True)
         )
 
-    allowed = {s.lower() for s in source_types} if source_types else None
+    hard_filter = preferred if routing == "hard" and preferred else (
+        {s.lower() for s in source_types} if source_types else None
+    )
     hits: list[dict[str, Any]] = []
     for idx, score in ordered:
         doc = docs[idx]
-        if allowed and str(doc.get("source_type") or "").lower() not in allowed:
+        if hard_filter and str(doc.get("source_type") or "").lower() not in hard_filter:
             continue
         row = dict(doc)
         row.pop("dense", None)
         row.pop("tf", None)
         row["score"] = round(float(score), 6)
         row["query_expanded"] = q if q != query else None
+        row["routed_sources"] = sorted(preferred) if preferred else None
         hits.append(row)
         if len(hits) >= top_k:
             break
+    # hard 라우팅이 너무 빡세면 soft로 한 번 완화
+    if not hits and hard_filter and routing == "hard":
+        return retrieve(
+            index,
+            query,
+            mode=mode,
+            top_k=top_k,
+            rrf_k=rrf_k,
+            rerank=rerank,
+            expand=expand,
+            source_types=None,
+            source_routing="soft",
+            boost_evidence=boost_evidence,
+            boost_canonical=boost_canonical,
+            boost_keyword=boost_keyword,
+            boost_source=boost_source,
+        )
     return hits
 
 

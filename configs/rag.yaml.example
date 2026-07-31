@@ -17,9 +17,11 @@ retrieval:
   rrf_k: 60
   rerank: true
   expand_query: true
+  source_routing: soft
   boost_evidence: 0.20
   boost_canonical: 0.25
   boost_keyword: 0.05
+  boost_source: 0.18
   source_types: []
   modes:
     baseline: dense

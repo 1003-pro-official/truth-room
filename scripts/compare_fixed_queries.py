@@ -37,7 +37,16 @@ def main() -> int:
     rows = []
     for q, target in QUERIES:
         base = retrieve(index, q, mode="baseline", top_k=5, expand=False)
-        adv = retrieve(index, q, mode="advanced", top_k=5, rrf_k=60, rerank=True, expand=True)
+        adv = retrieve(
+            index,
+            q,
+            mode="advanced",
+            top_k=5,
+            rrf_k=60,
+            rerank=True,
+            expand=True,
+            source_routing="soft",
+        )
         br = hit_rank(base, target)
         ar = hit_rank(adv, target)
         rows.append(

@@ -18,10 +18,12 @@ retrieval:
   rrf_k: 60
   rerank: true
   expand_query: true
+  source_routing: soft   # off | soft(가산) | hard(필터, 실패 시 soft 폴백)
   boost_evidence: 0.20
   boost_canonical: 0.25
   boost_keyword: 0.05
-  # 비우면 전체 소스. 예: [messenger, corporate_card]
+  boost_source: 0.18
+  # 비우면 쿼리 기반 자동 라우팅. 예: [messenger, corporate_card]
   source_types: []
   modes:
     baseline: dense

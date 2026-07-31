@@ -11,6 +11,11 @@ python3 scripts/openai_finetune_persona.py --submit --wait
 # OpenAI FT 불가 시 교육용 로컬 LoRA
 pip install torch transformers peft datasets accelerate
 python3 scripts/local_lora_persona.py --max-steps 30
+python3 scripts/local_lora_persona.py --model Qwen/Qwen2.5-1.5B-Instruct --max-steps 20 --out-dir runs/sft/local_lora_qwen15
+
+# RAGAS / embedding faithfulness
+pip install 'ragas>=0.2.0'
+python3 scripts/eval_ragas.py
 ```
 
 - `persona_sft.jsonl` — OpenAI fine-tuning `messages` 형식 (78쌍)

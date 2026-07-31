@@ -107,6 +107,7 @@ def main() -> int:
     parser.add_argument("--max-len", type=int, default=512)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--out-dir", default="runs/sft/local_lora")
     args = parser.parse_args()
     _require_deps()
 
@@ -129,7 +130,7 @@ def main() -> int:
     if not rows:
         raise SystemExit(f"empty dataset: {data_path}")
 
-    out_dir = ROOT / "runs" / "sft" / "local_lora"
+    out_dir = ROOT / args.out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
 
     device = "mps" if torch.backends.mps.is_available() else "cpu"
@@ -139,7 +140,11 @@ def main() -> int:
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    model = AutoModelForCausalLM.from_pretrained(args.model, trust_remote_code=True)
+    model = AutoModelForCausalLM.from_pretrained(
+        args.model,
+        trust_remote_code=True,
+        torch_dtype=torch.float16 if device == "mps" else None,
+    )
     model.to(device)
 
     # 짧은 시스템 프롬프트로 전후 샘플 (학습 전)

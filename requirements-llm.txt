@@ -8,5 +8,5 @@ langchain-community>=0.2.0
 langgraph>=0.2.0
 chromadb>=0.5.0   # 선택 실험 — OpenAI embedding + Chroma (build_index --backend chroma)
 pyautogen>=0.2.0,<0.3   # 심문 턴 Multi-Agent (lib/autogen_runtime.py)
-# ragas>=0.2.0
+# ragas>=0.2.0            # 선택 — scripts/eval_ragas.py (미설치 시 embedding proxy)
 # streamlit>=1.40.0

@@ -552,9 +552,11 @@ class GameEngine:
                 expand=bool(retrieval.get("expand_query", True)),
                 source_types=[str(s) for s in (retrieval.get("source_types") or []) if s]
                 or None,
+                source_routing=str(retrieval.get("source_routing") or "soft"),
                 boost_evidence=float(retrieval.get("boost_evidence", 0.20)),
                 boost_canonical=float(retrieval.get("boost_canonical", 0.25)),
                 boost_keyword=float(retrieval.get("boost_keyword", 0.05)),
+                boost_source=float(retrieval.get("boost_source", 0.18)),
             )
             hits = [
                 {
