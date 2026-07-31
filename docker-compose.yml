@@ -6,8 +6,7 @@ services:
   truth-room:
     build:
       context: .
-      platforms:
-        - linux/amd64
+      # 로컬은 호스트 아키텍처(arm64) 네이티브 — amd64 강제 시 에뮬레이션으로 매우 느림
     image: truth-room:local
     ports:
       - "8080:8080"

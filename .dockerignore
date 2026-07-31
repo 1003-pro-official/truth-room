@@ -13,6 +13,9 @@ __pycache__
 runs
 data/processed
 *.pt
+# 원본 PNG는 무거움 — 웹용 JPEG만 이미지에 포함
+assets/suspects/*.png
+assets/suspects/*_full.png
 node_modules
 deploy/cloudflare/node_modules
 deploy/cloudflare/.wrangler

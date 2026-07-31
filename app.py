@@ -25,15 +25,15 @@ import streamlit as st
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 ROOT = Path(__file__).resolve().parent
 SUSPECT_PORTRAITS = {
-    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a.png",
-    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b.png",
-    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c.png",
+    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a.jpg",
+    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b.jpg",
+    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c.jpg",
 }
-# 수사 파일(프로필) 전신 — 선택 그리드는 bust 유지
+# 수사 파일(프로필) 전신 — 웹용 JPEG (선택 그리드는 bust PNG)
 SUSPECT_FULLBODY = {
-    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a_full.png",
-    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b_full.png",
-    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c_full.png",
+    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a_full.jpg",
+    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b_full.jpg",
+    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c_full.jpg",
 }
 
 CLUE_LABELS = {
@@ -145,6 +145,16 @@ def _timer_seconds_left() -> float:
 
 def _evidence_label(eid: str) -> str:
     return CLUE_LABELS.get(eid, eid)
+
+
+@st.cache_data(show_spinner=False)
+def _file_data_uri(path_str: str) -> str:
+    """초상 base64 캐시 — 매 rerun 디스크 읽기/인코딩 방지."""
+    path = Path(path_str)
+    raw = path.read_bytes()
+    suffix = path.suffix.lower()
+    mime = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
+    return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
@@ -939,10 +949,10 @@ def _pick_suspect(
                 border = "1px solid rgba(200,210,220,0.14)"
 
             if portrait and portrait.exists():
-                b64 = base64.b64encode(portrait.read_bytes()).decode("ascii")
+                data_uri = _file_data_uri(str(portrait))
                 img_html = (
                     f'<img alt="{html.escape(name)}" '
-                    f'src="data:image/png;base64,{b64}" />'
+                    f'src="{data_uri}" />'
                 )
             else:
                 img_html = (
