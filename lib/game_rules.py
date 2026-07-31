@@ -101,16 +101,21 @@ def judge_alibi_broken(
     suspect_id: str,
     question: str,
     evidence_ids: list[str],
+    *,
+    prompt_vars: dict[str, Any] | None = None,
+    npc_response: str = "",
 ) -> bool:
-    """규칙 기반 스텁. 프롬프트 도입 후 GM `is_alibi_broken`으로 대체."""
-    rule = ALIBI_BREAK_RULES.get(suspect_id)
-    if not rule:
-        return False
-    q = question or ""
-    has_kw = any(k in q for k in rule["keywords"])
-    has_ev = any(eid in evidence_ids for eid in rule["evidence_ids"])
-    # 증거 없이 키워드만이면 붕괴로 치지 않음 (난이도)
-    return bool(has_kw and has_ev)
+    """GM 심판 판정 — lie_broken 여부. 상세 JSON은 lib.gm_judge.local_judge_lie."""
+    from lib.gm_judge import is_lie_broken, local_judge_lie
+
+    verdict = local_judge_lie(
+        suspect_id=suspect_id,
+        user_input=question,
+        evidence_ids=evidence_ids,
+        prompt_vars=prompt_vars,
+        npc_response=npc_response,
+    )
+    return is_lie_broken(verdict)
 
 
 def apply_break_count(

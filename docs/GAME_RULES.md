@@ -191,7 +191,7 @@ game:
 | G7 | 수사 권한 stamina · 헛수색/오심 패널티 | Agent/API | ✅ |
 | G8 | 조합 지목 (용의자+증거 2) | API/Front | ✅ |
 | G9 | 단서 획득 `new_clues` UI · 인벤토리 · HUD | Front | ✅ |
-| G5 | GM LLM `is_alibi_broken` JSON | Prompt+Agent | ⏳ 프롬프트 후 |
+| G5 | GM LLM `is_alibi_broken` JSON | Prompt+Agent | ✅ `lib/gm_judge.py` (로컬 스텁+스키마, LLM 훅 준비) |
 | G6 | 용의자 초상 에셋 · 라디오 선택 UI | Front | ✅ (스텁 일러스트) |
 | G11 | 용의자 공개 프로필 · 수사 파일 dialog | API/Front | ✅ |
 | G10 | Judge LLM 조합 지목 JSON | Prompt+Agent | ⏳ 프롬프트 후 |

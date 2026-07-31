@@ -22,7 +22,6 @@ from lib.game_rules import (  # noqa: E402
     SMOKING_GUN_IDS,
     apply_break_count,
     clue_title,
-    judge_alibi_broken,
     judge_combo_accuse,
     load_game_cfg,
     mental_break_suspects,
@@ -179,7 +178,7 @@ class GameEngine:
         }
 
     def public_suspect_profile(self, suspect_id: str) -> dict[str, Any] | None:
-        """공개 프로필만. role/secrets/system_prompt/culprit 미노출."""
+        """공개 프로필만. role/secrets/system_prompt/culprit/실제_행적 미노출."""
         if suspect_id not in self._suspect_ids():
             return None
         persona = self.personas.get(suspect_id) or {}
@@ -187,6 +186,34 @@ class GameEngine:
         if not isinstance(raw_profile, dict):
             raw_profile = {}
         profile = {str(k): str(v) for k, v in raw_profile.items() if v is not None}
+
+        # 변수표(prompt_vars) 공개 가능 항목 → 프로필에 병합 (스포일러 키 제외)
+        vars_ = persona.get("prompt_vars") or {}
+        if isinstance(vars_, dict):
+            public_map = {
+                "나이대": "age_group",
+                "직급": "rank",
+                "성격_한줄": "personality",
+                "말투_특징": "speech_style",
+                "당황시_반응": "fluster_reaction",
+                "예시_대사": "sample_line",
+                "주장_알리바이": "claimed_alibi",
+            }
+            for src, dst in public_map.items():
+                val = str(vars_.get(src) or "").strip()
+                if val and not profile.get(dst):
+                    profile[dst] = val
+            # 유형(아키타입) — traits 첫 항 또는 profile.archetype
+            if not profile.get("archetype"):
+                traits0 = persona.get("traits") or []
+                if isinstance(traits0, list) and traits0:
+                    profile["archetype"] = str(traits0[0])
+
+        # alibi 필드도 주장 알리바이로 공개
+        alibi = str(persona.get("alibi") or "").strip()
+        if alibi and not profile.get("claimed_alibi"):
+            profile["claimed_alibi"] = alibi
+
         traits = persona.get("traits") or []
         if not isinstance(traits, list):
             traits = []
@@ -238,13 +265,31 @@ class GameEngine:
             "tool_calls": len(session.tool_log),
         }
 
-    def _compose_answer(self, persona: dict[str, Any], suspect_id: str, question: str, mental: bool) -> str:
+    def _compose_answer(
+        self,
+        persona: dict[str, Any],
+        suspect_id: str,
+        question: str,
+        mental: bool,
+        *,
+        pressure: float = 0.0,
+    ) -> str:
         name = persona.get("name", suspect_id)
         alibi = persona.get("alibi", "기억이 안 납니다.")
+        vars_ = persona.get("prompt_vars") or {}
+        example = str(vars_.get("예시_대사") or "").strip()
+        # pressure는 LLM 연동 시 render_suspect_prompt(..., pressure=)에 전달
+        _ = pressure
         if mental:
+            react = str(vars_.get("당황시_반응") or "흔들리는 목소리")
             return (
-                f"[{name} · 멘탈 붕괴] …{alibi} "
+                f"[{name} · 멘탈 붕괴] ({react}) …{alibi} "
                 f"더 이상 버티기 어렵습니다. (질문: {question[:60]})"
+            )
+        if example:
+            return (
+                f"[{name}] {example} "
+                f"알리바이로 말하면, {alibi} (질문 요약: {question[:60]})"
             )
         return f"[{name}] 알리바이 기준으로 말하면, {alibi} (질문 요약: {question[:80]})"
 
@@ -254,7 +299,26 @@ class GameEngine:
         persona = self.personas.get(suspect_id) or {"name": suspect_id, "alibi": "모릅니다."}
         threshold = int(self.game_cfg["break_threshold"])
 
-        is_broken = judge_alibi_broken(suspect_id, question, session.evidence_ids)
+        pressure = float(session.pressure.get(suspect_id, 0.0))
+        from lib.gm_judge import (
+            is_lie_broken,
+            local_judge_lie,
+            stress_delta_to_pressure,
+        )
+
+        vars_ = persona.get("prompt_vars") if isinstance(persona.get("prompt_vars"), dict) else {}
+        # 사전 스텁 답변으로 npc_response 자리 채움 (LLM 연동 시 실제 응답으로 교체)
+        draft_answer = self._compose_answer(
+            persona, suspect_id, question, mental=False, pressure=pressure
+        )
+        verdict = local_judge_lie(
+            suspect_id=suspect_id,
+            user_input=question,
+            evidence_ids=session.evidence_ids,
+            prompt_vars=vars_,
+            npc_response=draft_answer,
+        )
+        is_broken = is_lie_broken(verdict)
         session.break_count, incremented = apply_break_count(
             session.break_count,
             suspect_id,
@@ -272,9 +336,9 @@ class GameEngine:
             ended=session.ended,
         )
 
-        answer = self._compose_answer(persona, suspect_id, question, mental)
-
-        pressure = float(session.pressure.get(suspect_id, 0.0))
+        answer = self._compose_answer(
+            persona, suspect_id, question, mental, pressure=pressure
+        )
         if any(
             k in question
             for k in (
@@ -298,6 +362,7 @@ class GameEngine:
             )
         ):
             pressure = min(1.0, pressure + 0.15)
+        pressure = min(1.0, max(0.0, pressure + stress_delta_to_pressure(int(verdict.get("stress_delta") or 0))))
         if incremented:
             pressure = min(1.0, pressure + 0.2)
         if suspect_id == self.scenario.get("culprit_id") and "ev_net_01" in session.evidence_ids:
@@ -311,6 +376,12 @@ class GameEngine:
                 "question": question,
                 "answer": answer,
                 "is_alibi_broken": is_broken and incremented,
+                "gm_verdict": {
+                    "status": verdict.get("status"),
+                    "stress_delta": verdict.get("stress_delta"),
+                    "judge": verdict.get("judge"),
+                    # reason_internal은 서버 로그/트레이스용 — 클라 public 필드와 분리
+                },
             }
         )
         return {
@@ -320,6 +391,8 @@ class GameEngine:
             "is_alibi_broken": bool(is_broken and incremented),
             "break_count": int(session.break_count.get(suspect_id, 0)),
             "status": status,
+            "gm_status": verdict.get("status"),
+            "stress_delta": verdict.get("stress_delta"),
         }
 
     def pass_turn(self, session: Session, reason: str = "timeout") -> dict[str, Any]:

@@ -50,8 +50,12 @@ CLUE_FLAVOR = {
     "ev_log_07": "서버실 출입 로그가 프린터에서 나온다.",
 }
 
-# 공개 프로필 필드 표시 순서 (API profile.* — secrets/role 미사용)
-PROFILE_FIELD_ORDER = [
+# 수사 파일 · CHARACTER PROFILE (인적사항) — 명탐정S 상단 블록
+PROFILE_IDENTITY_FIELDS = [
+    ("archetype", "유형"),
+    ("age_group", "나이대"),
+    ("rank", "직급"),
+    ("personality", "성격"),
     ("gender", "성별"),
     ("birth_date", "생년월일"),
     ("height", "키"),
@@ -64,6 +68,14 @@ PROFILE_FIELD_ORDER = [
     ("criminal_record", "범죄이력"),
     ("notes", "특이사항"),
 ]
+# 수사 파일 · INTERROGATION NOTE (심문 노트) — 말투·알리바이 분리 블록
+PROFILE_INTERROGATION_FIELDS = [
+    ("speech_style", "말투"),
+    ("fluster_reaction", "당황 시 반응"),
+    ("sample_line", "예시 대사"),
+    ("claimed_alibi", "주장 알리바이"),
+]
+PROFILE_FIELD_ORDER = PROFILE_IDENTITY_FIELDS + PROFILE_INTERROGATION_FIELDS
 
 st.set_page_config(
     page_title="진실의 방으로",
@@ -1059,24 +1071,50 @@ def _fetch_suspect_profile(suspect_id: str) -> tuple[dict | None, str | None]:
     return data, None
 
 
-def _profile_field_rows(name: str, profile: dict) -> list[tuple[str, str]]:
-    rows: list[tuple[str, str]] = [("이름", name)]
-    known = {k for k, _ in PROFILE_FIELD_ORDER}
-    for key, label in PROFILE_FIELD_ORDER:
+def _profile_field_rows(
+    name: str,
+    profile: dict,
+    field_order: list[tuple[str, str]],
+    *,
+    include_name: bool = False,
+    include_unknown: bool = False,
+) -> list[tuple[str, str]]:
+    rows: list[tuple[str, str]] = []
+    if include_name:
+        rows.append(("이름", name))
+    known = {k for k, _ in field_order}
+    for key, label in field_order:
         val = profile.get(key)
         if val is None or str(val).strip() == "":
             continue
         rows.append((label, str(val)))
-    for key, val in profile.items():
-        if key in known or val is None or str(val).strip() == "":
-            continue
-        rows.append((str(key), str(val)))
+    if include_unknown:
+        all_known = {k for k, _ in PROFILE_FIELD_ORDER}
+        for key, val in profile.items():
+            if key in all_known or key in known or val is None or str(val).strip() == "":
+                continue
+            rows.append((str(key), str(val)))
     return rows
+
+
+def _dossier_rows_html(rows: list[tuple[str, str]]) -> str:
+    parts: list[str] = []
+    for label, val in rows:
+        parts.append(
+            '<div style="display:grid;grid-template-columns:6.2rem 1fr;'
+            "gap:0.55rem;align-items:start;font-size:0.95rem;line-height:1.55;"
+            'padding:0.45rem 0;border-bottom:1px solid rgba(200,210,220,0.16);">'
+            f'<span style="color:#9aa3b0;font-weight:500;">{html.escape(label)}</span>'
+            f'<span style="color:#e8eaef;font-weight:500;white-space:pre-wrap;">'
+            f"{html.escape(val)}</span>"
+            "</div>"
+        )
+    return "".join(parts)
 
 
 @st.dialog("수사 파일", width="large", on_dismiss=_resume_timer)
 def _open_dossier(suspect_id: str, data: dict) -> None:
-    """공개 프로필 · 사건개요 — 초상(st.image) + 페르소나 필드."""
+    """용의자 프로필만 — 인적사항 / 심문 노트 (사건개요는 별도 다이얼로그)."""
     name = str(data.get("name") or suspect_id)
     mbti = str(data.get("mbti") or "")
     traits = data.get("traits") or []
@@ -1092,64 +1130,84 @@ def _open_dossier(suspect_id: str, data: dict) -> None:
     case_no = str(case.get("case_id") or "case_01")
     trait_line = " · ".join(str(t) for t in traits) if traits else "—"
 
-    tab_profile, tab_case = st.tabs(["프로필", "사건개요"])
-    with tab_profile:
-        st.caption(f"CHARACTER PROFILE · CASE {case_no}")
-        # 전신 세로 비율에 맞춤 (명탐정S 도감형)
-        col_img, col_info = st.columns([1, 1.35], gap="medium")
-        with col_img:
-            full = SUSPECT_FULLBODY.get(suspect_id)
-            bust = SUSPECT_PORTRAITS.get(suspect_id)
-            img_path = full if full and full.exists() else bust
-            if img_path and img_path.exists():
-                st.markdown('<div class="dossier-fullbody">', unsafe_allow_html=True)
-                st.image(str(img_path), use_container_width=True)
-                st.markdown("</div>", unsafe_allow_html=True)
-            else:
-                st.info(name[:1])
-        with col_info:
-            st.markdown(f"### {name}")
-            st.caption(f"MBTI {mbti or '—'} · {trait_line}")
-            # inline style — dialog에서 전역 CSS가 덮여도 값이 보이도록
-            rows_html = []
-            for label, val in _profile_field_rows(name, profile):
-                rows_html.append(
-                    '<div style="display:grid;grid-template-columns:6.2rem 1fr;'
-                    'gap:0.55rem;align-items:start;font-size:0.95rem;line-height:1.55;'
-                    'padding:0.45rem 0;border-bottom:1px solid rgba(200,210,220,0.16);">'
-                    f'<span style="color:#9aa3b0;font-weight:500;">{html.escape(label)}</span>'
-                    f'<span style="color:#e8eaef;font-weight:500;white-space:pre-wrap;">'
-                    f"{html.escape(val)}</span>"
-                    "</div>"
-                )
-            st.markdown("".join(rows_html), unsafe_allow_html=True)
-            st.markdown(
-                '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
-                unsafe_allow_html=True,
-            )
+    identity_rows = _profile_field_rows(
+        name, profile, PROFILE_IDENTITY_FIELDS, include_name=True, include_unknown=True
+    )
+    interrog_rows = _profile_field_rows(
+        name, profile, PROFILE_INTERROGATION_FIELDS, include_name=False
+    )
 
-    with tab_case:
-        st.markdown(f"### {case.get('title') or '사건개요'}")
-        blocks = [
-            ("발견·발생 시각", case.get("discovered_at")),
-            ("장소", case.get("location")),
-            ("사건", case.get("incident")),
-            ("기타", case.get("notes") or case.get("synopsis")),
-        ]
-        shown = False
-        for label, val in blocks:
-            text = str(val or "").strip()
-            if not text:
-                continue
-            shown = True
-            st.markdown(f"**{label}**")
-            st.write(text)
-        if not shown:
-            st.caption("공개된 사건 정보가 없습니다.")
+    st.markdown(
+        f'<p style="margin:0 0 0.35rem;font-size:0.72rem;letter-spacing:0.14em;'
+        f'color:#7A9BB8;text-transform:uppercase;">CHARACTER PROFILE · CASE {html.escape(case_no)}</p>',
+        unsafe_allow_html=True,
+    )
+    col_img, col_info = st.columns([1, 1.35], gap="medium")
+    with col_img:
+        full = SUSPECT_FULLBODY.get(suspect_id)
+        bust = SUSPECT_PORTRAITS.get(suspect_id)
+        img_path = full if full and full.exists() else bust
+        if img_path and img_path.exists():
+            st.markdown('<div class="dossier-fullbody">', unsafe_allow_html=True)
+            st.image(str(img_path), use_container_width=True)
+            st.markdown("</div>", unsafe_allow_html=True)
+        else:
+            st.info(name[:1])
+    with col_info:
+        st.markdown(f"### {name}")
+        st.caption(f"MBTI {mbti or '—'} · {trait_line}")
+        st.markdown(_dossier_rows_html(identity_rows), unsafe_allow_html=True)
+
+    if interrog_rows:
         st.markdown(
-            '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
+            '<div style="margin:1.15rem 0 0.55rem;padding-top:0.85rem;'
+            'border-top:1px solid rgba(200,210,220,0.18);">'
+            '<p style="margin:0 0 0.45rem;font-size:0.72rem;letter-spacing:0.14em;'
+            'color:#7A9BB8;text-transform:uppercase;">INTERROGATION NOTE</p>'
+            '<p style="margin:0 0 0.55rem;font-size:0.9rem;color:#c5cbd4;">'
+            "말투 · 당황 반응 · 예시 대사 · 주장 알리바이</p>"
+            "</div>",
             unsafe_allow_html=True,
         )
+        st.markdown(_dossier_rows_html(interrog_rows), unsafe_allow_html=True)
+
+    st.markdown(
+        '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
+        unsafe_allow_html=True,
+    )
+
+
+@st.dialog("사건개요", width="large", on_dismiss=_resume_timer)
+def _open_case_info(case: dict, *, title_fallback: str = "사건개요") -> None:
+    """메인 HUD에서 여는 CASE INFO — 프로필과 분리."""
+    case_no = str(case.get("case_id") or "case_01")
+    st.markdown(
+        f'<p style="margin:0 0 0.45rem;font-size:0.72rem;letter-spacing:0.14em;'
+        f'color:#7A9BB8;text-transform:uppercase;">CASE INFO · {html.escape(case_no)}</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(f"### {case.get('title') or title_fallback}")
+    blocks = [
+        ("발견·발생 시각", case.get("discovered_at")),
+        ("장소", case.get("location")),
+        ("사건", case.get("incident")),
+        ("역할", case.get("player_role")),
+        ("목표", case.get("objective")),
+        ("기타", case.get("notes") or case.get("synopsis")),
+    ]
+    case_rows: list[tuple[str, str]] = []
+    for label, val in blocks:
+        text = str(val or "").strip()
+        if text:
+            case_rows.append((label, text))
+    if case_rows:
+        st.markdown(_dossier_rows_html(case_rows), unsafe_allow_html=True)
+    else:
+        st.caption("공개된 사건 정보가 없습니다.")
+    st.markdown(
+        '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
+        unsafe_allow_html=True,
+    )
 
 
 def _request_dossier(suspect_id: str) -> None:
@@ -1161,6 +1219,16 @@ def _request_dossier(suspect_id: str) -> None:
     st.session_state.pop("dossier_error", None)
     _pause_timer()
     _open_dossier(suspect_id, data)
+
+
+def _request_case_info(session_id: str, *, title_fallback: str = "사건개요") -> None:
+    case = _fetch_case_overview(session_id)
+    if not case:
+        st.session_state["dossier_error"] = "사건개요를 불러오지 못했습니다."
+        return
+    st.session_state.pop("dossier_error", None)
+    _pause_timer()
+    _open_case_info(case, title_fallback=title_fallback)
 
 
 def _pick_suspect(
@@ -1370,6 +1438,10 @@ if st.session_state.get("show_intro") and not game.get("ended"):
     st.stop()
 
 _render_hud(game)
+_case_btn, _ = st.columns([1, 4])
+with _case_btn:
+    if st.button("사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
+        _request_case_info(sid, title_fallback=str(game.get("title") or "사건개요"))
 _render_clue_banner()
 
 if st.session_state.get("dossier_error"):

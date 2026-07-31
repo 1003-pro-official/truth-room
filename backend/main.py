@@ -71,7 +71,10 @@ class AccuseBody(BaseModel):
 
 
 class ToolBody(BaseModel):
-    name: str = Field(min_length=1, description="request_cctv_log | run_forensic")
+    name: str = Field(
+        min_length=1,
+        description="check_card_history | run_forensic | search_messenger | request_cctv_log",
+    )
     args: dict[str, Any] = Field(default_factory=dict)
 
 

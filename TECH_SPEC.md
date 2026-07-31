@@ -13,7 +13,7 @@
 | Orchestration | **LangGraph-style 상태머신** (`agent_graph.py`) | 순수 Python 노드. `langgraph` 패키지 연동은 선택 고도화 |
 | Multi-Agent | 페르소나·GM·툴 역할 분리 | **AutoGen 미적용** (선택 실험·범위 밖) |
 | RAG | **로컬 Hybrid** (`lib/rag_core.py`) | Baseline=dense · Advanced=sparse+dense **RRF+rerank** · 인덱스 `runs/rag/index/` |
-| Tools | Function Calling | `request_cctv_log` · `run_forensic` (`lib/tools.py`) |
+| Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
 | Eval | 로컬 Faithfulness + 시나리오 루브릭 | `evaluate.py` · RAGAS는 선택 |
 | API | FastAPI | `backend/` |
 | UI | Streamlit | `app.py` — **API만** 호출 |
@@ -43,12 +43,18 @@ win_condition:
 id: suspect_b
 name: "이대리"
 role: "범인"                   # 내부용
-alibi: "라운지에서 넷플릭스…"
+alibi: "라운지에서…"
 secrets: ["지문 로그 위조", "라운지 Wi-Fi 100GB 전송", "동기 5억"]
 leak_threshold: 0.7
-system_prompt: |
-  … ev_net_01 제시 전 자백 금지 …
+prompt_vars:                   # 마스터 템플릿 치환값 (1템플릿·3인)
+  이름: "이대리"
+  is_culprit: "true"
+  결정적_증거: "ev_net_01 …"
+system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_prompt.py
+  …
 ```
+
+마스터 템플릿: `data/personas/prompt_template.yaml` · 렌더: `lib/persona_prompt.render_suspect_prompt(persona, pressure=…)`
 
 | id | 이름 | role |
 | :--- | :--- | :--- |
@@ -62,7 +68,9 @@ system_prompt: |
 
 메타데이터 권장: `source_type`, `timestamp`, `suspect_ids`, `evidence_id`
 
-툴 페이로드: `data/tools/cctv.yaml`, `data/tools/forensic.yaml`
+툴 페이로드: `data/tools/cctv.yaml`, `data/tools/forensic.yaml`, `data/tools/card.yaml`, `data/tools/messenger.yaml`  
+조수 프롬프트: `data/assistant/prompt_template.yaml` · `configs/agent.yaml` `gm_system_prompt` · `lib/assistant_prompt.py`  
+심판(GM) 프롬프트: `data/gm/prompt_template.yaml` · `judge_system_prompt` · `lib/gm_judge.py` (`lie_broken`|`no_effect` JSON, UI 미노출)
 
 ---
 

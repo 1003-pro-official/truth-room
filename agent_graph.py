@@ -20,7 +20,7 @@ import yaml
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 
-from lib.game_rules import apply_break_count, judge_alibi_broken, load_game_cfg, mental_break_suspects  # noqa: E402
+from lib.game_rules import apply_break_count, load_game_cfg, mental_break_suspects  # noqa: E402
 from lib.rag_core import get_or_build_index, retrieve  # noqa: E402
 from lib.tools import call_tool  # noqa: E402
 
@@ -73,12 +73,19 @@ def node_route(state: AgentState, cfg: dict[str, Any]) -> AgentState:
 
 
 def node_interrogate(state: AgentState, cfg: dict[str, Any], personas: dict[str, Any]) -> AgentState:
+    from lib.persona_prompt import render_suspect_prompt
+
     persona = personas.get(state.suspect_id, {})
     question = state.user_goal or "그날 밤 어디에 있었습니까?"
-    answer = (
-        f"[{persona.get('name', state.suspect_id)}] "
-        f"{persona.get('alibi', '기억이 나지 않습니다.')}"
-    )
+    pressure = float((state.pressure or {}).get(state.suspect_id, 0.0))
+    prompt = render_suspect_prompt(persona, pressure=pressure)
+    vars_ = persona.get("prompt_vars") or {}
+    example = str(vars_.get("예시_대사") or "").strip()
+    alibi = persona.get("alibi", "기억이 나지 않습니다.")
+    if example:
+        answer = f"[{persona.get('name', state.suspect_id)}] {example} — {alibi}"
+    else:
+        answer = f"[{persona.get('name', state.suspect_id)}] {alibi}"
     state.messages.append(
         {"role": "suspect", "suspect_id": state.suspect_id, "question": question, "answer": answer}
     )
@@ -88,6 +95,8 @@ def node_interrogate(state: AgentState, cfg: dict[str, Any], personas: dict[str,
             "suspect_id": state.suspect_id,
             "question": question,
             "answer": answer[:120],
+            "prompt_chars": len(prompt),
+            "stress_level": int(round(pressure * 100)),
         }
     )
     state.phase = "retrieve"
@@ -141,37 +150,78 @@ def node_retrieve_evidence(state: AgentState, cfg: dict[str, Any], rag_cfg: dict
 
 
 def node_call_tool(state: AgentState, cfg: dict[str, Any]) -> AgentState:
+    from lib.assistant_prompt import assistant_system_prompt
+
     tools_cfg = cfg.get("tools", {})
     results: list[dict[str, Any]] = []
+    goal = state.user_goal or ""
+    name_map = {
+        "suspect_a": "김팀장",
+        "suspect_b": "이대리",
+        "suspect_c": "박신입",
+    }
+    suspect_name = name_map.get(state.suspect_id, state.suspect_id)
 
-    # ReAct: alibi check → CCTV then (optional) forensic
-    if tools_cfg.get("request_cctv_log", True):
-        loc = "lounge" if state.suspect_id == "suspect_b" else "office_floor3"
-        if "CCTV" in state.user_goal or "알리바이" in state.user_goal or "검증" in state.user_goal:
-            if state.suspect_id == "suspect_a":
-                loc = "lobby"
-            results.append(call_tool("request_cctv_log", {"location": loc}))
+    # 조수 템플릿 Function Calling — 의도 키워드 라우팅
+    if tools_cfg.get("check_card_history", True) and any(
+        k in goal for k in ("카드", "결제", "룸살롱", "법인")
+    ):
+        results.append(call_tool("check_card_history", {"suspect_name": suspect_name}))
+
+    if tools_cfg.get("search_messenger", True) and any(
+        k in goal for k in ("메신저", "슬랙", "DM", "메시지", "채팅")
+    ):
+        results.append(
+            call_tool(
+                "search_messenger",
+                {"suspect_name": suspect_name, "keyword": "서버"},
+            )
+        )
 
     if tools_cfg.get("run_forensic", True) and (
-        "포렌식" in state.user_goal or state.suspect_id == "suspect_b" and "검증" in state.user_goal
+        "포렌식" in goal or ("검증" in goal and state.suspect_id == "suspect_b")
     ):
         device = {
             "suspect_a": "kim_pc",
             "suspect_b": "lee_laptop",
             "suspect_c": "park_phone",
         }.get(state.suspect_id, "lee_laptop")
-        results.append(call_tool("run_forensic", {"device": device}))
+        results.append(
+            call_tool(
+                "run_forensic",
+                {"device": device, "suspect_name": suspect_name},
+            )
+        )
 
-    if not results and tools_cfg.get("request_cctv_log", True):
+    if tools_cfg.get("request_cctv_log", True) and any(
+        k in goal for k in ("CCTV", "시시티비", "알리바이", "카메라")
+    ):
+        loc = "lounge" if state.suspect_id == "suspect_b" else "office_floor3"
+        if state.suspect_id == "suspect_a":
+            loc = "lobby"
+        results.append(call_tool("request_cctv_log", {"location": loc}))
+
+    if not results and tools_cfg.get("check_card_history", True) and state.suspect_id == "suspect_a":
+        results.append(call_tool("check_card_history", {"suspect_name": "김팀장"}))
+    elif not results and tools_cfg.get("request_cctv_log", True):
         results.append(call_tool("request_cctv_log", {"location": "lounge"}))
 
     state.tool_results.extend(results)
-    state.trace.append({"node": "call_tool", "n_tools": len(results), "tools": [r.get("tool") for r in results]})
+    state.trace.append(
+        {
+            "node": "call_tool",
+            "n_tools": len(results),
+            "tools": [r.get("tool") for r in results],
+            "assistant_prompt": bool(assistant_system_prompt() or cfg.get("gm_system_prompt")),
+        }
+    )
     state.phase = "confront"
     return state
 
 
 def node_update_pressure(state: AgentState, cfg: dict[str, Any], personas: dict[str, Any]) -> AgentState:
+    from lib.gm_judge import is_lie_broken, local_judge_lie, stress_delta_to_pressure
+
     step = _pressure_step(cfg)
     sid = state.suspect_id
     cur = float(state.pressure.get(sid, 0.0))
@@ -182,14 +232,30 @@ def node_update_pressure(state: AgentState, cfg: dict[str, Any], personas: dict[
     state.pressure[sid] = new_p
 
     game = load_game_cfg(cfg)
-    # 스모크: 수집 증거 + 목표 문구로 알리바이 붕괴 1회 반영
-    is_broken = judge_alibi_broken(sid, state.user_goal, state.evidence_ids)
+    persona = personas.get(sid) or {}
+    vars_ = persona.get("prompt_vars") if isinstance(persona.get("prompt_vars"), dict) else {}
+    npc = ""
+    if state.messages:
+        last = state.messages[-1]
+        npc = str(last.get("answer") or last.get("text") or "")
+    verdict = local_judge_lie(
+        suspect_id=sid,
+        user_input=state.user_goal,
+        evidence_ids=state.evidence_ids,
+        prompt_vars=vars_,
+        npc_response=npc,
+    )
+    is_broken = is_lie_broken(verdict)
     state.break_count, incremented = apply_break_count(
         state.break_count or {sid: 0},
         sid,
         is_broken=is_broken,
         threshold=int(game["break_threshold"]),
         max_per_turn=int(game["max_break_per_turn"]),
+    )
+    state.pressure[sid] = min(
+        1.0,
+        state.pressure[sid] + stress_delta_to_pressure(int(verdict.get("stress_delta") or 0)),
     )
     if incremented:
         state.pressure[sid] = min(1.0, state.pressure[sid] + step)
@@ -203,6 +269,8 @@ def node_update_pressure(state: AgentState, cfg: dict[str, Any], personas: dict[
             "pressure": state.pressure[sid],
             "break_count": int(state.break_count.get(sid, 0)),
             "is_alibi_broken": bool(incremented),
+            "gm_status": verdict.get("status"),
+            "stress_delta": verdict.get("stress_delta"),
             "mental_break": sid in broken,
             "leak_threshold": threshold,
             "stress_exceeded": state.pressure[sid] >= threshold,
