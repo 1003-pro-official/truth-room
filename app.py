@@ -153,8 +153,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
     st.markdown(
         f"""
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&family=IBM+Plex+Sans+KR:wght@400;500;600&display=swap');
-
+        /* 외부 폰트 CDN 제거 — 한국에서 첫 로딩 지연 완화 */
         :root {{
           --ink: #d5d8de;
           --muted: #8b919c;
@@ -162,6 +161,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           --accent-soft: rgba(122,155,184,0.22);
           --line: rgba(200,210,220,0.12);
           --surface: #1a1e26;
+          --font-ui: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
+          --font-display: "Apple SD Gothic Neo", "Malgun Gothic", "Black Han Sans", sans-serif;
         }}
 
         .stApp {{
@@ -169,7 +170,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: var(--ink);
         }}
         .stApp, .stApp p, .stApp label, .stMarkdown, .stCaption {{
-          font-family: "IBM Plex Sans KR", sans-serif !important;
+          font-family: var(--font-ui) !important;
         }}
         /* Material Icons는 폰트 덮어쓰기 금지 — 깨진 keyboard_* 텍스트 방지 */
         span[data-testid="stIconMaterial"],
@@ -189,7 +190,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           speak: never;
         }}
         h1, h2, h3, .brand-title {{
-          font-family: "Black Han Sans", sans-serif !important;
+          font-family: var(--font-display) !important;
           letter-spacing: 0.02em;
           color: #c8ced8 !important;
         }}
@@ -392,7 +393,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .hearts {{ letter-spacing: 0.1em; color: #8FA8C0; }}
 
         .panel-title {{
-          font-family: "Black Han Sans", sans-serif; font-size: 1rem;
+          font-family: var(--font-display); font-size: 1rem;
           margin: 0 0 0.5rem; color: #c8ced8;
         }}
         .inv-empty {{ color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0; }}
@@ -446,7 +447,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: var(--accent); margin-bottom: 0.25rem;
         }}
         .clue-title {{
-          font-family: "Black Han Sans", sans-serif; font-size: 1.2rem;
+          font-family: var(--font-display); font-size: 1.2rem;
           margin: 0 0 0.25rem; color: #d5d8de;
         }}
         .clue-snip {{ color: var(--muted); font-size: 0.85rem; margin: 0; }}
@@ -542,7 +543,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           display: block;
         }}
         .dossier-name {{
-          font-family: "Black Han Sans", sans-serif;
+          font-family: var(--font-display);
           font-size: 1.35rem;
           color: #d5d8de;
           margin: 0 0 0.35rem !important;
