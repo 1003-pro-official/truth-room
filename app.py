@@ -204,43 +204,8 @@ def _inject_game_bgm(*, muted: bool = False) -> None:
 
 
 def _sync_ops_rail_width() -> None:
-    """「새 수사 개시」버튼 폭을 재고 우측 패널(--ops-rail-width)만 맞춘다. 버튼·좌측 컬럼은 불변."""
-    components.html(
-        """<!DOCTYPE html>
-<html><body style="margin:0">
-<script>
-(function () {
-  var doc;
-  try { doc = window.parent.document; } catch (e) { return; }
-  function findBtn() {
-    var mark = doc.querySelector(".hud-restart-mark");
-    if (!mark) return null;
-    var wrap = mark.closest('[data-testid="stElementContainer"]');
-    if (!wrap || !wrap.nextElementSibling) return null;
-    return wrap.nextElementSibling.querySelector("button");
-  }
-  function sync() {
-    var btn = findBtn();
-    if (!btn) return;
-    var w = Math.round(btn.getBoundingClientRect().width);
-    if (w < 48) return;
-    doc.documentElement.style.setProperty("--ops-rail-width", w + "px");
-  }
-  sync();
-  setTimeout(sync, 50);
-  setTimeout(sync, 200);
-  try {
-    var btn = findBtn();
-    if (btn && window.parent.ResizeObserver) {
-      new window.parent.ResizeObserver(sync).observe(btn);
-    }
-  } catch (e) {}
-})();
-</script>
-</body></html>""",
-        height=0,
-        width=0,
-    )
+    """우측 패널 폭은 CSS --ops-rail-width 고정. (버튼 실측 연동은 패널을 과도하게 줄여 비활성)"""
+    return
 
 
 def _reset_timer() -> None:
@@ -309,8 +274,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           --surface: rgba(18, 22, 30, 0.72);
           --surface-solid: #1a1e26;
           --panel-glass: rgba(12, 16, 22, 0.62);
-          /* 우측 패널 전용 — 「새 수사 개시」 실측 폭으로 JS가 덮어씀. 버튼 자체는 변경하지 않음 */
-          --ops-rail-width: 14rem;
+          /* 우측 패널 폭 — 버튼 실측 연동 제거(패널이 과도하게 좁아지던 원인) */
+          --ops-rail-width: 22rem;
           --game-left-max: 78rem;
           /* 용의자 카드 간격 = 좌·우 스테이지 간격 */
           --suspect-gutter: 2.5rem;
@@ -333,23 +298,35 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         [data-testid="stAppViewContainer"],
         [data-testid="stAppViewContainer"] > .main,
+        [data-testid="stAppViewContainer"] > .stMain,
         [data-testid="stMain"],
         section.main,
+        section.stMain,
         .main .block-container,
+        [data-testid="stMainBlockContainer"],
+        .stMainBlockContainer,
         [data-testid="stHeader"] {{
           background: transparent !important;
         }}
+        /* Streamlit 1.50+: class가 .main → .stMain. 기본 padding-top은 6rem이라
+           옛 선택자(.main .block-container)는 무시되어 위로 안 올라감. */
+        [data-testid="stMainBlockContainer"],
+        .stMainBlockContainer,
+        .stMain .block-container,
         .main .block-container {{
-          padding-top: 1.35rem !important;
+          padding-top: 0 !important;
           padding-bottom: 2.25rem !important;
-          padding-left: 2rem !important;
-          padding-right: 2rem !important;
+          /* 맥북 등 좁은 화면: 좌우 최소 여백 / 광폭 모니터: max-width 가운데 정렬 */
+          padding-left: clamp(1.25rem, 3.5vw, 2.25rem) !important;
+          padding-right: clamp(1.25rem, 3.5vw, 2.25rem) !important;
           /* 좌·우 묶음이 화면 가운데에 오도록 스테이지 폭 제한 */
           max-width: calc(
             var(--game-left-max) + var(--game-stage-gap) + var(--ops-rail-width) + 4.5rem
           ) !important;
           margin-left: auto !important;
           margin-right: auto !important;
+          margin-top: 0 !important;
+          box-sizing: border-box !important;
         }}
         /* height=0 components.html 이 남기는 세로 틈 제거 */
         div[data-testid="stElementContainer"]:has(iframe[height="0"]),
@@ -370,14 +347,34 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           opacity: 0 !important;
           pointer-events: none !important;
         }}
-        /* 좌·우 메인: 한 덩어리로 붙이고 가운데 정렬 */
+        /* 좌·우 메인: 한 덩어리로 붙이고 가운데 정렬 — 좌우 패딩 제거 */
         div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker),
         div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint),
         div[data-testid="stHorizontalBlock"]:has(.right-panel-marker) {{
           justify-content: center !important;
+          align-items: flex-start !important;
           gap: var(--game-stage-gap) !important;
           column-gap: var(--game-stage-gap) !important;
           width: 100% !important;
+          max-width: 100% !important;
+          margin-top: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          padding-inline: 0 !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="column"],
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="stColumn"],
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="column"],
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="stColumn"] {{
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          padding-inline: 0 !important;
         }}
         div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
           > div[data-testid="column"]:first-child,
@@ -409,18 +406,29 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-width: var(--ops-rail-width) !important;
           max-width: var(--ops-rail-width) !important;
         }}
-        /* 용의자 카드(김/이/박) 가로 간격 = 좌·우 여백과 동일 */
+        /* 용의자 카드(김/이/박) 가로 간격 — 카드 열 좌우 패딩 제거 */
         div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame) {{
           gap: var(--suspect-gutter) !important;
           column-gap: var(--suspect-gutter) !important;
           flex-wrap: nowrap !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
         }}
         div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame)
           > div[data-testid="column"],
         div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame)
           > div[data-testid="stColumn"] {{
-          padding-left: 0.4rem !important;
-          padding-right: 0.4rem !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }}
+        div[data-testid="column"]:has(.suspect-pick-frame) > div,
+        div[data-testid="stColumn"]:has(.suspect-pick-frame) > div {{
+          padding-left: 0 !important;
+          padding-right: 0 !important;
         }}
         .panel-stack-gap {{
           display: block !important;
@@ -543,14 +551,14 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .stTabs [data-baseweb="tab-list"] {{
           gap: 0.4rem;
           border-bottom: none !important;
-          background: rgba(8, 12, 18, 0.72) !important;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          padding: 0.45rem;
+          background: transparent !important;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+          padding: 0.45rem 0 !important;
           border-radius: 8px;
-          border: 1px solid rgba(170,190,210,0.22);
+          border: 0 !important;
           margin-bottom: 0.45rem !important;
-          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 28px rgba(0,0,0,0.28);
+          box-shadow: none !important;
         }}
         .stTabs [data-baseweb="tab"] {{
           color: #8b969f !important;
@@ -585,23 +593,39 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .stTabs [data-baseweb="tab-panel"] {{
           padding: 1rem 1.05rem 1.1rem !important;
           margin-top: 0.25rem !important;
-          border: 1px solid rgba(170,190,210,0.16);
+          border: 1px solid rgba(170,190,210,0.16) !important;
           border-radius: 8px;
-          background: rgba(10, 14, 20, 0.58);
+          background: rgba(10, 14, 20, 0.58) !important;
           backdrop-filter: blur(10px);
           -webkit-backdrop-filter: blur(10px);
           box-shadow: 0 14px 34px rgba(0,0,0,0.22);
         }}
+        /* 탭 컨텐츠(입력·버튼)만 볼드 — 탭 메뉴 세그먼트와 분리 */
+        .stTabs [data-baseweb="tab-panel"] .stTextInput label,
+        .stTabs [data-baseweb="tab-panel"] .stMultiSelect label,
+        .stTabs [data-baseweb="tab-panel"] .stSelectbox label,
+        .stTabs [data-baseweb="tab-panel"] .stCaption,
+        .stTabs [data-baseweb="tab-panel"] label {{
+          font-weight: 700 !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"] .stButton > button {{
+          font-weight: 700 !important;
+        }}
         .ops-kicker {{
-          margin: 1.35rem 0 0.75rem !important;
-          font-size: 0.68rem !important;
+          margin: 1.35rem 0 0 !important;
+          font-size: 0.9rem !important;
           letter-spacing: 0.16em !important;
           text-transform: uppercase !important;
           color: var(--accent) !important;
         }}
+        /* Field Ops ↔ 탭 패널 = 대상 용의자↔초상과 동일 1.5rem
+           (좌측 컬럼 gap 1.35rem + 아래 0.15rem) */
+        div[data-testid="stElementContainer"]:has(.ops-kicker) {{
+          margin-bottom: 0.15rem !important;
+        }}
         .suspect-grid-hint {{
           margin: 0 0 0.45rem !important;
-          font-size: 0.72rem !important;
+          font-size: 0.9rem !important;
           letter-spacing: 0.14em !important;
           text-transform: uppercase !important;
           color: var(--accent) !important;
@@ -613,7 +637,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           height: 40px;
           min-height: 40px;
           max-height: 40px;
-          margin: 0.2rem 0 0.55rem 0 !important;
+          margin: 0 !important;
           padding: 0 0.85rem !important;
           display: flex !important;
           align-items: center !important;
@@ -623,6 +647,11 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           background: rgba(12, 18, 26, 0.7);
           backdrop-filter: blur(8px);
           overflow: hidden;
+        }}
+        /* 타임아웃 안내 ↔ 대상 용의자/초상 사이 여백 */
+        div[data-testid="stElementContainer"]:has(.status-banner) {{
+          margin-top: 0.2rem !important;
+          margin-bottom: 2.5rem !important;
         }}
         .status-banner--alert {{
           border-color: rgba(180,100,100,0.45);
@@ -652,40 +681,34 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
 
         .hud {{
-          display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
-          gap: 0.75rem; padding: 0.85rem 1rem 0.95rem;
-          border: 1px solid rgba(200,210,220,0.14);
+          display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between;
+          gap: 0.75rem; padding: 0.85rem 0 0.95rem;
+          border: 0 !important;
           border-radius: 10px;
-          background: var(--panel-glass);
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+          background: transparent !important;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+          box-shadow: none;
           margin-top: 0 !important;
           margin-bottom: 0.85rem;
         }}
-        /* 브랜드 | 스탯+새 수사 개시 가로 배치 */
-        div[data-testid="stElementContainer"]:has(.hud-top-mark) {{
-          display: none !important;
-        }}
-        div[data-testid="stElementContainer"]:has(.hud-top-mark)
-          + div[data-testid="stElementContainer"] {{
-          margin-top: 0 !important;
-          margin-bottom: 1.25rem !important;
-        }}
-        div[data-testid="stElementContainer"]:has(.hud-top-mark)
-          + div[data-testid="stElementContainer"]
-          > div[data-testid="stHorizontalBlock"] {{
+        /* 게임 HUD (컬럼) — 시작 화면 .hud 와 동일 패딩/정렬 */
+        div[data-testid="stHorizontalBlock"]:has(.hud-brand) {{
           gap: 0.85rem !important;
-          padding: 0.75rem 1rem !important;
-          border: 1px solid rgba(200,210,220,0.14) !important;
+          padding: 0.85rem 0 0.95rem !important;
+          border: 0 !important;
           border-radius: 10px !important;
-          background: var(--panel-glass) !important;
-          backdrop-filter: blur(10px);
-          -webkit-backdrop-filter: blur(10px);
-          box-shadow: 0 18px 40px rgba(0,0,0,0.28);
-          align-items: center !important;
+          background: transparent !important;
+          backdrop-filter: none;
+          -webkit-backdrop-filter: none;
+          box-shadow: none;
+          align-items: flex-start !important;
+          margin-top: 0 !important;
         }}
-        /* 우측 스탯 3열 세로 중앙 정렬 */
+        /* HUD만 올리면 아래 컨텐츠와 분리되므로 개별 리프트 금지 */
+        [class*="st-key-game_hud_lift"] {{
+          margin-top: 0 !important;
+        }}
         div[data-testid="stElementContainer"]:has(.hud-stats-mark)
           > div[data-testid="stHorizontalBlock"],
         div[data-testid="column"]:has(.hud-stats-mark)
@@ -694,11 +717,12 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           gap: 0.5rem !important;
         }}
         .hud-brand {{
-          padding: 0.15rem 0;
+          padding: 0 !important;
           display: flex;
           flex-direction: column;
-          justify-content: center;
-          min-height: 3.5rem;
+          justify-content: flex-start;
+          align-items: flex-start;
+          min-height: 0 !important;
         }}
         .hud-stat {{
           box-sizing: border-box;
@@ -730,16 +754,16 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         div[data-testid="column"]:has(.hud-restart-mark) {{
           display: flex !important;
           flex-direction: column !important;
-          justify-content: center !important;
+          justify-content: flex-start !important;
         }}
         div[data-testid="stElementContainer"]:has(.hud-restart-mark) {{
           display: none !important;
         }}
         div[data-testid="stElementContainer"]:has(.hud-restart-mark)
           + div[data-testid="stElementContainer"] {{
-          height: 100% !important;
+          height: auto !important;
           display: flex !important;
-          align-items: center !important;
+          align-items: flex-start !important;
         }}
         div[data-testid="stElementContainer"]:has(.hud-restart-mark)
           + div[data-testid="stElementContainer"]
@@ -847,12 +871,67 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .inv-id {{ font-size: 0.68rem; color: var(--muted); }}
         .inv-name {{ font-weight: 600; margin-top: 0.1rem; font-size: 0.9rem; }}
 
-        /* 용의자 이미지 행 ↔ 인벤토리 박스 상단 정렬용 (높이 강제 없음) */
-        .suspect-session-marker {{
-          display: block;
-          height: 0;
-          margin: 0;
-          padding: 0;
+        /* 마커 DOM은 선택자용 — 세로 간격에 끼지 않게 완전 제거 */
+        .suspect-session-marker,
+        .right-panel-marker {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-session-marker),
+        div[data-testid="stElementContainer"]:has(.right-panel-marker) {{
+          display: none !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          pointer-events: none !important;
+        }}
+        /*
+          「대상 용의자」는 흐름에서 빼서 초상 위에만 띄움.
+          → 좌 첫 콘텐츠=초상, 우 첫 콘텐츠=인벤토리 → 상단 정렬.
+          (우측 숨은 스페이서 + 컬럼 gap/padding 비대칭이 내려가 보이던 원인)
+        */
+        div[data-testid="column"]:has(.suspect-session-marker),
+        div[data-testid="stColumn"]:has(.suspect-session-marker),
+        div[data-testid="column"]:has(.right-panel-marker),
+        div[data-testid="stColumn"]:has(.right-panel-marker) {{
+          position: relative !important;
+          /* 라벨(~0.9rem) + 대상 용의자↔초상 간격 1.5rem — 좌우 동일 → 인벤토리 정렬 유지 */
+          padding-top: 3rem !important;
+          margin-top: 0 !important;
+        }}
+        div[data-testid="column"]:has(.suspect-session-marker) > div,
+        div[data-testid="stColumn"]:has(.suspect-session-marker) > div,
+        div[data-testid="column"]:has(.right-panel-marker) > div,
+        div[data-testid="stColumn"]:has(.right-panel-marker) > div,
+        div[data-testid="stVerticalBlock"]:has(.suspect-session-marker),
+        div[data-testid="stVerticalBlock"]:has(.right-panel-marker) {{
+          padding-top: 0 !important;
+          margin-top: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.suspect-heading) {{
+          position: absolute !important;
+          top: 0.15rem !important;
+          left: 0 !important;
+          right: 0 !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          z-index: 3;
+          pointer-events: none;
+        }}
+        .suspect-heading {{
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        .suspect-heading .suspect-grid-hint {{
+          margin: 0 !important;
+          padding: 0 !important;
         }}
         .inventory-session {{
           border: 1px solid rgba(200,210,220,0.14);
@@ -864,7 +943,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           box-sizing: border-box !important;
           display: flex;
           flex-direction: column;
-          margin-top: 0;
+          margin-top: 0 !important;
           margin-bottom: 0 !important;
           box-shadow: 0 14px 36px rgba(0,0,0,0.22);
           width: var(--ops-rail-width) !important;
@@ -903,7 +982,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .clue-snip {{ color: var(--muted); font-size: 0.85rem; margin: 0; }}
         .suspect-grid-hint {{
           color: var(--accent);
-          font-size: 0.72rem;
+          font-size: 0.9rem !important;
           letter-spacing: 0.14em;
           text-transform: uppercase;
           margin: 0 0 0.45rem !important;
@@ -921,7 +1000,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding-bottom: 0 !important;
         }}
         .stTabs {{
-          margin-top: 0.85rem !important;
+          margin-top: 0 !important;
         }}
         /* 용의자 초상 ↔ 선택 버튼: 살짝만 띄움 (완전 밀착/과대 간격 방지) */
         div[data-testid="column"]:has(.suspect-pick-frame) > div,
@@ -946,7 +1025,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           gap: 1.35rem !important;
           row-gap: 1.35rem !important;
         }}
-        /* 우측 패널: 좌측 컬럼 비율은 유지, 박스만 버튼 폭·우측 정렬 */
+        /* 우측 패널 스택 — 상단 패딩 0, 초상과 동일 시작선 */
         div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
           > div[data-testid="column"]:last-child > div,
         div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
@@ -958,10 +1037,16 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           > div[data-testid="stColumn"]:last-child
           > div[data-testid="stVerticalBlock"],
         div[data-testid="stVerticalBlock"]:has(.right-panel-marker) {{
-          gap: 2rem !important;
-          row-gap: 2rem !important;
+          gap: 1.35rem !important;
+          row-gap: 1.35rem !important;
           align-items: flex-end !important;
           width: 100% !important;
+          padding-top: 0 !important;
+          margin-top: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.inventory-session) {{
+          margin-top: 0 !important;
+          padding-top: 0 !important;
         }}
         div[data-testid="stElementContainer"]:has(.inventory-session),
         div[data-testid="stElementContainer"]:has(.pressure-block),
@@ -1654,57 +1739,62 @@ def _render_hud(game: dict) -> None:
     strikes = int(game.get("timeout_strikes") or 0)
     strike_max = int(game.get("timeout_strike_max") or 3)
     title = html.escape(str(game.get("title") or "진실의 방"))
-    st.markdown('<div class="hud-top-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
-    brand_col, stats_col = st.columns([1.4, 1.4], gap="small")
-    with brand_col:
-        st.markdown(
-            f"""
-            <div class="hud-brand">
-              <div class="brand-title">진실의 방</div>
-              <div class="brand-gap" style="height:10px;min-height:10px;" aria-hidden="true">&nbsp;</div>
-              <div class="brand-sub">{title}</div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
-    with stats_col:
-        st.markdown('<div class="hud-stats-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
-        s1, s2, s3 = st.columns([1, 1, 1.15], gap="small")
-        with s1:
+    # 시작 화면과 같이 '첫 콘텐츠 위젯'이 바로 HUD가 되도록 marker 없이 시작
+    try:
+        hud_wrap = st.container(key="game_hud_lift")
+    except TypeError:
+        hud_wrap = st.container()
+    with hud_wrap:
+        brand_col, stats_col = st.columns([1.4, 1.4], gap="small")
+        with brand_col:
             st.markdown(
                 f"""
-                <div class="hud-stat">
-                  <span class="stat-label">수사 권한</span>
-                  <div class="stat-value hearts">{hearts}</div>
+                <div class="hud-brand">
+                  <div class="brand-title">진실의 방</div>
+                  <div class="brand-gap" style="height:10px;min-height:10px;" aria-hidden="true">&nbsp;</div>
+                  <div class="brand-sub">{title}</div>
                 </div>
                 """,
                 unsafe_allow_html=True,
             )
-        with s2:
-            st.markdown(
-                f"""
-                <div class="hud-stat">
-                  <span class="stat-label">타임아웃</span>
-                  <div class="stat-value">{strikes}/{strike_max}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with s3:
-            st.markdown(
-                '<div class="hud-restart-mark" aria-hidden="true"></div>',
-                unsafe_allow_html=True,
-            )
-            if st.button(
-                "새 수사 개시",
-                type="primary",
-                key="btn_restart_hud",
-                use_container_width=True,
-            ):
-                try:
-                    _start_new_investigation(with_tab_intro=False)
-                except requests.RequestException as exc:
-                    st.error(f"세션 생성 실패: {exc}")
+        with stats_col:
+            st.markdown('<div class="hud-stats-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+            s1, s2, s3 = st.columns([1, 1, 1.15], gap="small")
+            with s1:
+                st.markdown(
+                    f"""
+                    <div class="hud-stat">
+                      <span class="stat-label">수사 권한</span>
+                      <div class="stat-value hearts">{hearts}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with s2:
+                st.markdown(
+                    f"""
+                    <div class="hud-stat">
+                      <span class="stat-label">타임아웃</span>
+                      <div class="stat-value">{strikes}/{strike_max}</div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            with s3:
+                st.markdown(
+                    '<div class="hud-restart-mark" aria-hidden="true"></div>',
+                    unsafe_allow_html=True,
+                )
+                if st.button(
+                    "새 수사 개시",
+                    type="primary",
+                    key="btn_restart_hud",
+                    use_container_width=True,
+                ):
+                    try:
+                        _start_new_investigation(with_tab_intro=False)
+                    except requests.RequestException as exc:
+                        st.error(f"세션 생성 실패: {exc}")
 
 
 def _render_inventory(owned: list[str]) -> None:
@@ -2101,39 +2191,12 @@ except requests.RequestException as exc:
 
 game = st.session_state.get("game")
 if not game:
-    _inject_theme()
-    st.markdown(
-        """
-        <div class="hud">
-          <div>
-            <div class="brand-title">진실의 방</div>
-            <div class="brand-gap" style="height:28px;min-height:28px;" aria-hidden="true">&nbsp;</div>
-            <div class="brand-sub">스크롤 브리핑으로 시작하거나, 바로 수사를 개시하세요.</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    # Docker/nginx: `/` · 로컬: API(8000) 인트로
-    if os.environ.get("RAILWAY_ENVIRONMENT") or Path("/.dockerenv").exists():
-        _intro_url = os.environ.get("INTRO_URL", "/")
-    else:
-        _intro_url = os.environ.get("INTRO_URL", "http://127.0.0.1:8000/")
-    c_intro, c_start = st.columns(2)
-    with c_intro:
-        st.link_button(
-            "스크롤 브리핑으로 시작",
-            url=_intro_url,
-            type="primary",
-            use_container_width=True,
-        )
-    with c_start:
-        if st.button("바로 수사 개시", type="secondary", use_container_width=True):
-            try:
-                _start_new_investigation(with_tab_intro=True)
-            except requests.RequestException as exc:
-                st.error(f"세션 생성 실패: {exc}")
-    st.stop()
+    try:
+        _start_new_investigation(with_tab_intro=False)
+    except requests.RequestException as exc:
+        st.error(f"세션 생성 실패: {exc}")
+        st.stop()
+    st.stop()  # _start_new_investigation가 rerun하지만, 실패 경로 외 안전망
 
 sid = game["session_id"]
 status = game.get("status") or "playing"
@@ -2145,22 +2208,8 @@ stamina = int(game.get("stamina") or 0)
 
 _inject_theme(mental=mental, revoked=revoked)
 
-# 웹툰형 사건 인트로 — 한 장면씩, 탭으로 진행
-if st.session_state.get("show_intro") and not game.get("ended"):
-    st.markdown(
-        """
-        <div class="hud">
-          <div>
-            <div class="brand-title">진실의 방</div>
-            <div class="brand-gap" style="height:16px;min-height:16px;" aria-hidden="true">&nbsp;</div>
-            <div class="brand-sub">사건 프롤로그</div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
-    _render_case_intro(game)
-    st.stop()
+# 인트로/시작 화면 생략 — 바로 본편
+st.session_state["show_intro"] = False
 
 _render_hud(game)
 _case_btn, _ = st.columns([1, 4])
@@ -2225,29 +2274,22 @@ if st.session_state.get("last_ending"):
     else:
         st.error(st.session_state["last_ending"])
 
-# 제목 행(상단 정렬) + 본문 한 줄: 왼쪽 용의자/탭, 오른쪽 인벤토리·압박·기록
+# 본문 한 줄: 왼쪽 용의자/탭, 오른쪽 인벤토리·압박·기록
+# (제목·스페이서를 같은 행에 두어 인벤토리 상단 = 용의자 초상 상단)
 suspects = game.get("suspects") or []
 broken = list(game.get("mental_break_suspects") or [])
 g = st.session_state["game"]
-
-head_l, head_r = st.columns([4, 1], gap="medium")
-with head_l:
-    st.markdown(
-        '<p class="suspect-grid-hint">대상 용의자</p>'
-        '<div class="suspect-title-gap" aria-hidden="true">&nbsp;</div>',
-        unsafe_allow_html=True,
-    )
-with head_r:
-    st.markdown(
-        '<p class="suspect-grid-hint" style="visibility:hidden;">대상 용의자</p>'
-        '<div class="suspect-title-gap" aria-hidden="true">&nbsp;</div>',
-        unsafe_allow_html=True,
-    )
 
 left, right = st.columns([4, 1], gap="medium")
 with left:
     st.markdown(
         '<div class="suspect-session-marker" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        '<div class="suspect-heading">'
+        '<p class="suspect-grid-hint">대상 용의자</p>'
+        "</div>",
         unsafe_allow_html=True,
     )
     suspect_id = _pick_suspect(suspects, broken, show_title=False)
