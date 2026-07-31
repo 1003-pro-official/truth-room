@@ -22,13 +22,14 @@
 
 | 역할 (레포) | 담당자 | 발표 역할 | GitHub | OS · 비고 |
 | :--- | :--- | :--- | :--- | :--- |
-| **Agent / LangGraph** · PM | 최승현 (팀장) | 아키텍처 · LangGraph 상태/노드 · 에이전트 연결 | @ | |
-| **Scenario** (세계관·증거 원문) | 최병철 | 시나리오 기획 · 알리바이/모순 · RAG 원천 데이터 생성 | @ | `data/scenarios/`, `data/raw/` |
-| **Prompt** (페르소나) | 박정우 | 용의자 3 + 조수 프롬프트 · 스트레스별 대사 | @ | `data/personas/`, `gm_system_prompt` |
-| **RAG / Data** · Tools | 이근목 | Vector DB · Retrieval 최적화 · Function Calling | @ | `ingest`·`build_index`·`rag_pipeline`·`lib/` |
-| **Service / Demo** · QA | 천세문 | Streamlit 심문 UI · API 연동 · 데모·QA | @ | `app.py`, `backend/` |
+| **Agent / LangGraph** · PM | 최승현 (팀장) | 아키텍처 · LangGraph 상태/노드 · 에이전트 연결 | [@toryhyeon80](https://github.com/toryhyeon80) | 레포 owner |
+| **Scenario** (세계관·증거 원문) | 최병철 | 시나리오 기획 · 알리바이/모순 · RAG 원천 데이터 생성 | [@choi0310](https://github.com/choi0310) | `data/scenarios/`, `data/raw/` |
+| **Prompt** (페르소나) | 박성우 | 용의자 3 + 조수 프롬프트 · 스트레스별 대사 | [@parkjw8](https://github.com/parkjw8) | `data/personas/`, `gm_system_prompt` |
+| **RAG / Data** · Tools | 이근목 | Vector DB · Retrieval 최적화 · Function Calling | [@snarmse](https://github.com/snarmse) | `ingest`·`build_index`·`rag_pipeline`·`lib/` |
+| **Service / Demo** · QA | 천세문 | Streamlit 심문 UI · API 연동 · 데모·QA | [@1003-pro-official](https://github.com/1003-pro-official) | `app.py`, `backend/` |
 
-> GitHub ID는 초대 후 `@아이디`로 채우고, [.github/CODEOWNERS](../.github/CODEOWNERS)도 같이 갱신합니다.
+> **초대 상태 (2026-07-31):** 전원 GitHub ID 확인 · collaborator(write) 초대 발송. 각자 메일/알림에서 수락 필요.  
+> [.github/CODEOWNERS](../.github/CODEOWNERS) 역할별 리뷰어 반영.  
 > 인원 5명 기준: Scenario와 Prompt를 분리. 발표의「RAG 데이터 설계」는 최병철(원문) + 이근목(인덱싱/검색)으로 핸드오프.
 
 ---

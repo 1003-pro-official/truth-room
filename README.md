@@ -190,7 +190,9 @@
 | 문서 | 용도 |
 | :--- | :--- |
 | [GETTING_STARTED.md](GETTING_STARTED.md) | 설치·실행 |
-| [docs/ROLES.md](docs/ROLES.md) | 역할 (최승현·최병철·박정우·이근목·천세문) |
+| [docs/ROLES.md](docs/ROLES.md) | 역할 (최승현·최병철·박성우·이근목·천세문) |
+| [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md) | 팀원용 구현 현황 · 코드 맵 · 데모 |
+| [docs/GAME_RULES.md](docs/GAME_RULES.md) | 3-Out · 멘탈 붕괴 · 타임어택 |
 | [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) | DLthon2 마일스톤 |
 | [PRESENTATION.md](PRESENTATION.md) | 발표 초안 |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | 팀 OS |

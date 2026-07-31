@@ -14,7 +14,15 @@
 
 ---
 
-## 0. 빠른 시작
+## 0. 팀원이면 먼저
+
+1. clone: `git clone https://github.com/toryhyeon80/truth-room.git`
+2. **구현 현황·코드 맵:** [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)
+3. 역할: [docs/ROLES.md](docs/ROLES.md) · PR 규칙: [docs/INTEGRATION.md](docs/INTEGRATION.md)
+
+---
+
+## 1. 빠른 시작
 
 ```bash
 cd truth-room
@@ -68,6 +76,7 @@ python3 -m streamlit run app.py
 
 ## 3. 팀 · 일정
 
+- **구현 현황·코드 맵 (팀원 필독):** [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)
 - 역할: [docs/ROLES.md](docs/ROLES.md)
 - Kickoff: [TEAM_KICKOFF_CHECKLIST.md](TEAM_KICKOFF_CHECKLIST.md)
 - DLthon2 일정: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)

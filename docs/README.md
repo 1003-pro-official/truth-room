@@ -10,6 +10,7 @@
 | [../AI_CONVENTION.md](../AI_CONVENTION.md) | 코딩·역할 경계 |
 | [../CLAUDE.md](../CLAUDE.md) | Phase 게이트 · references→경로 매핑 |
 | [ROLES.md](ROLES.md) | 팀 역할 (5인) |
+| [TEAM_HANDOFF.md](TEAM_HANDOFF.md) | **팀원용** — 구현 현황 · 코드 맵 · 데모 · PR |
 | [GAME_RULES.md](GAME_RULES.md) | 3-Out · 멘탈 붕괴 · 타임어택 |
 | [WORKFLOW.md](WORKFLOW.md) | Git · 파이프라인 명령 |
 | [INTEGRATION.md](INTEGRATION.md) | PR → main |

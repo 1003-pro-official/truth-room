@@ -1,27 +1,35 @@
-# CODEOWNERS — kickoff 시 실 GitHub ID로 교체
-# 역할: docs/ROLES.md
+# CODEOWNERS — docs/ROLES.md 기준
+# Collaborator write 초대 후 리뷰어로 동작
 
-*                       @YOUR_GITHUB_ID
+*                       @toryhyeon80
 
-/data/                  @YOUR_SCENARIO_OWNER @YOUR_RAG_OWNER
-/ingest.py              @YOUR_RAG_OWNER
-/build_index.py         @YOUR_RAG_OWNER
-/rag_pipeline.py        @YOUR_RAG_OWNER
-/evaluate.py            @YOUR_RAG_OWNER
+# Scenario · Prompt · RAG
+/data/scenarios/        @choi0310 @toryhyeon80
+/data/raw/              @choi0310 @snarmse @toryhyeon80
+/data/personas/         @parkjw8 @toryhyeon80
+/data/                  @choi0310 @parkjw8 @snarmse @toryhyeon80
+/ingest.py              @snarmse @toryhyeon80
+/build_index.py         @snarmse @toryhyeon80
+/rag_pipeline.py        @snarmse @toryhyeon80
+/evaluate.py            @snarmse @toryhyeon80
+/lib/                   @snarmse @toryhyeon80
 
-/agent_graph.py         @YOUR_AGENT_OWNER
-/configs/agent.yaml     @YOUR_AGENT_OWNER
+# Agent
+/agent_graph.py         @toryhyeon80
+/configs/agent.yaml     @toryhyeon80
 
-/backend/               @YOUR_SERVICE_OWNER
-/app.py                 @YOUR_SERVICE_OWNER
-/configs/api.yaml       @YOUR_SERVICE_OWNER
+# Service
+/backend/               @1003-pro-official @toryhyeon80
+/app.py                 @1003-pro-official @toryhyeon80
+/configs/api.yaml       @1003-pro-official @toryhyeon80
 
-/README.md              @YOUR_DOCS_OWNER
-/docs/PEER_REVIEW.md    @YOUR_DOCS_OWNER
-/PRESENTATION.md        @YOUR_DOCS_OWNER
-/MASTER_PLAN.md         @YOUR_DOCS_OWNER
-/TECH_SPEC.md           @YOUR_DOCS_OWNER
-/AI_CONVENTION.md       @YOUR_DOCS_OWNER
-/CLAUDE.md              @YOUR_DOCS_OWNER
-/docs/                  @YOUR_DOCS_OWNER
-/tests/                 @YOUR_RAG_OWNER @YOUR_SERVICE_OWNER
+# Docs / PM
+/README.md              @toryhyeon80
+/docs/PEER_REVIEW.md    @toryhyeon80
+/PRESENTATION.md        @toryhyeon80
+/MASTER_PLAN.md         @toryhyeon80
+/TECH_SPEC.md           @toryhyeon80
+/AI_CONVENTION.md       @toryhyeon80
+/CLAUDE.md              @toryhyeon80
+/docs/                  @toryhyeon80
+/tests/                 @snarmse @1003-pro-official @toryhyeon80

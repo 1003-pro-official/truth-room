@@ -39,7 +39,7 @@
 - **범인(내부):** `suspect_b` 이대리 · win `[ev_card_03, ev_msg_12, ev_net_01]`
 - **인덱스:** `runs/rag/index/`
 - **레퍼런스 정본:** [references.md](references.md)
-- **GitHub:** (레포 URL 기입)
+- **GitHub:** https://github.com/toryhyeon80/truth-room
 
 ---
 

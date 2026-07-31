@@ -58,7 +58,7 @@
 | :--- | :--- | :--- |
 | **Agent / LangGraph · PM** | 최승현 | 아키텍처 · 상태 그래프 |
 | **Scenario** | 최병철 | 세계관 · 증거 원문 |
-| **Prompt** | 박정우 | 페르소나 · 조수 프롬프트 |
+| **Prompt** | 박성우 | 페르소나 · 조수 프롬프트 |
 | **RAG / Data · Tools** | 이근목 | 인덱스 · Retrieval · Function Calling |
 | **Service / Demo · QA** | 천세문 | Streamlit · API 연동 · 데모 |
 

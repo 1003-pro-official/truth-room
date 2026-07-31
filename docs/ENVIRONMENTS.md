@@ -9,11 +9,11 @@
 
 | 팀원 | OS | 비고 |
 | :--- | :--- | :--- |
-| 최승현 | | Agent · API |
-| 최병철 | | Scenario · raw |
-| 박정우 | | Prompt |
-| 이근목 | | RAG · tools |
-| 천세문 | | Streamlit · 데모 |
+| 최승현 | | Agent · API · [@toryhyeon80](https://github.com/toryhyeon80) |
+| 최병철 | | Scenario · raw · [@choi0310](https://github.com/choi0310) |
+| 박성우 | | Prompt · [@parkjw8](https://github.com/parkjw8) |
+| 이근목 | | RAG · tools · [@snarmse](https://github.com/snarmse) |
+| 천세문 | | Streamlit · 데모 · [@1003-pro-official](https://github.com/1003-pro-official) |
 
 공통: Python 3.9+ · `pip install -r requirements.txt -r requirements-llm.txt` · UI는 `streamlit`
 
