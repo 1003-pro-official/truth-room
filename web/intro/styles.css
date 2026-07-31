@@ -126,6 +126,56 @@ body {
   opacity: 0;
 }
 
+/* 휠만으로는 소리 불가 → 클릭/탭 유도 고정 CTA */
+.bgm-unlock {
+  position: fixed;
+  left: 50%;
+  bottom: max(1.35rem, env(safe-area-inset-bottom, 0px) + 1rem);
+  z-index: 50;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  margin: 0;
+  padding: 0.75rem 1.35rem 0.85rem;
+  min-width: min(18rem, calc(100vw - 2rem));
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  background: rgba(12, 16, 22, 0.9);
+  color: var(--ink);
+  font: inherit;
+  cursor: pointer;
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(10px);
+  transition: opacity 0.45s ease, transform 0.45s ease, visibility 0.45s ease;
+  pointer-events: auto;
+}
+
+.bgm-unlock:hover {
+  border-color: #fff;
+  background: rgba(28, 38, 52, 0.95);
+}
+
+.bgm-unlock.is-gone {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(12px);
+}
+
+.bgm-unlock-kicker {
+  font-size: 0.65rem;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+}
+
+.bgm-unlock-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
 .pin-root {
   width: 100%;
   margin: 0;

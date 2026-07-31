@@ -87,7 +87,7 @@ st.set_page_config(
     page_title="진실의 방으로",
     page_icon="🚪",
     layout="wide",
-    initial_sidebar_state="collapsed" if _embed else "expanded",
+    initial_sidebar_state="collapsed",
 )
 
 # Streamlit 기본 primary(빨강) flash 방지 — 어떤 위젯보다 먼저 주입
@@ -97,14 +97,26 @@ st.markdown(
     :root {
       --primary-color: #7A9BB8 !important;
     }
+    /* 게임 UI — 사이드바·접기 버튼 비표시 */
+    [data-testid="stSidebar"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"],
+    section[data-testid="stSidebar"] {
+      display: none !important;
+      width: 0 !important;
+      min-width: 0 !important;
+      visibility: hidden !important;
+      pointer-events: none !important;
+    }
+    [data-testid="stAppViewContainer"] {
+      margin-left: 0 !important;
+    }
     button[kind="primary"],
     [data-testid="baseButton-primary"],
     [data-testid="stBaseButton-primary"],
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="baseButton-primary"],
-    .stButton > button[data-testid="stBaseButton-primary"],
-    div[data-testid="stSidebar"] button[kind="primary"],
-    div[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+    .stButton > button[data-testid="stBaseButton-primary"] {
       background-color: #3d5568 !important;
       background-image: none !important;
       border-color: #4a657a !important;
@@ -123,7 +135,24 @@ st.markdown(
 
 
 def _api() -> str:
-    return st.session_state.get("api_url", API_URL).rstrip("/")
+    return API_URL.rstrip("/")
+
+
+def _start_new_investigation(*, with_tab_intro: bool = False) -> None:
+    """새 세션 생성. with_tab_intro=True면 Streamlit 탭 인트로, 아니면 바로 본편."""
+    r = requests.post(f"{_api()}/api/v1/session", timeout=10)
+    r.raise_for_status()
+    st.session_state["game"] = r.json()
+    st.session_state["log"] = []
+    st.session_state.pop("last_agent_turn", None)
+    st.session_state["hits"] = []
+    st.session_state["pending_clues"] = []
+    st.session_state["last_ending"] = None
+    st.session_state.pop("last_ending_ok", None)
+    st.session_state["show_intro"] = bool(with_tab_intro)
+    st.session_state["intro_scene_idx"] = 0
+    st.session_state["turn_deadline"] = None
+    st.rerun()
 
 
 def _browser_asset_url(rel: str) -> str:
@@ -138,7 +167,7 @@ def _browser_asset_url(rel: str) -> str:
 
 
 def _inject_game_bgm(*, muted: bool = False) -> None:
-    """Streamlit 단독 진입 시 game.mp3 (UI 없음 — 사이드바 토글로 제어)."""
+    """Streamlit 단독 진입 시 game.mp3 (UI 없음)."""
     if st.session_state.get("from_intro_shell"):
         return
     src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
@@ -271,26 +300,13 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: #c8ced8 !important;
         }}
         [data-testid="stHeader"] {{ background: transparent; }}
-        [data-testid="stSidebar"] {{
-          background: #12151b;
-          border-right: 1px solid var(--line);
-        }}
-        /* 사이드바 열기/닫기 버튼 — 호버 없이 항상 표시 */
+        [data-testid="stSidebar"],
+        [data-testid="stSidebarCollapsedControl"],
         [data-testid="collapsedControl"] {{
-          display: flex !important;
-          opacity: 1 !important;
-          visibility: visible !important;
-          pointer-events: auto !important;
-          left: 0.35rem !important;
-          top: 0.55rem !important;
-          z-index: 1000 !important;
-        }}
-        [data-testid="stSidebarCollapseButton"],
-        [data-testid="stBaseButton-headerNoPadding"],
-        button[kind="headerNoPadding"] {{
-          opacity: 1 !important;
-          visibility: visible !important;
-          pointer-events: auto !important;
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+          width: 0 !important;
         }}
         /* 헤더 호버 전에는 툴바 버튼이 흐려지는 기본 동작 완화 */
         header[data-testid="stHeader"] {{
@@ -1474,7 +1490,7 @@ def _pick_suspect(
                 unsafe_allow_html=True,
             )
             if st.button(
-                "프로필",
+                "수사파일",
                 key=f"suspect_profile_{sid}",
                 type="secondary",
                 help=f"{name} 수사 파일",
@@ -1551,7 +1567,7 @@ def _handle_timeout(sid: str) -> None:
     _reset_timer()
 
 
-# 사이드바·본문 위젯보다 먼저 테마 적용 (기본 빨강 primary flash 방지)
+# 본문 위젯보다 먼저 테마 적용 (기본 빨강 primary flash 방지)
 _inject_theme()
 
 # 스크롤 인트로 핸드오프: ?intro_done=1&session_id=...
@@ -1587,31 +1603,6 @@ if not st.session_state.get("game"):
         except requests.RequestException:
             pass
 
-with st.sidebar:
-    st.markdown("### 콘솔")
-    api_input = st.text_input("API URL", value=API_URL)
-    st.session_state["api_url"] = api_input
-    timer_ui = st.checkbox("20초 타임어택", value=True)
-    st.caption("스크롤 인트로: API 루트 `/` 또는 `/intro/`")
-    if st.button("새 수사 개시", type="primary", use_container_width=True):
-        try:
-            r = requests.post(f"{_api()}/api/v1/session", timeout=10)
-            r.raise_for_status()
-            st.session_state["game"] = r.json()
-            st.session_state["log"] = []
-            st.session_state.pop("last_agent_turn", None)
-            st.session_state["hits"] = []
-            st.session_state["pending_clues"] = []
-            st.session_state["last_ending"] = None
-            # 사이드바 개시 = 기존 탭 인트로 (스크롤 인트로는 / 진입)
-            st.session_state["show_intro"] = True
-            st.session_state["intro_scene_idx"] = 0
-            # 타이머는 브리핑(마지막 장면) 확인 후 시작
-            st.session_state["turn_deadline"] = None
-            st.rerun()
-        except requests.RequestException as exc:
-            st.error(f"세션 생성 실패: {exc}")
-
 try:
     health = requests.get(f"{_api()}/health", timeout=3)
     if health.status_code != 200:
@@ -1630,20 +1621,31 @@ if not game:
           <div>
             <div class="brand-title">진실의 방</div>
             <div class="brand-gap" style="height:28px;min-height:28px;" aria-hidden="true">&nbsp;</div>
-            <div class="brand-sub">사이드바에서 새 수사를 개시하거나, 스크롤 인트로로 진입하세요.</div>
+            <div class="brand-sub">스크롤 브리핑으로 시작하거나, 바로 수사를 개시하세요.</div>
           </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
     # Docker/nginx: `/` · 로컬: API(8000) 인트로
-    _intro_url = os.environ.get("INTRO_URL", "http://127.0.0.1:8000/")
-    st.link_button(
-        "스크롤 브리핑으로 시작",
-        url=_intro_url,
-        type="primary",
-        use_container_width=True,
-    )
+    if os.environ.get("RAILWAY_ENVIRONMENT") or Path("/.dockerenv").exists():
+        _intro_url = os.environ.get("INTRO_URL", "/")
+    else:
+        _intro_url = os.environ.get("INTRO_URL", "http://127.0.0.1:8000/")
+    c_intro, c_start = st.columns(2)
+    with c_intro:
+        st.link_button(
+            "스크롤 브리핑으로 시작",
+            url=_intro_url,
+            type="primary",
+            use_container_width=True,
+        )
+    with c_start:
+        if st.button("바로 수사 개시", type="secondary", use_container_width=True):
+            try:
+                _start_new_investigation(with_tab_intro=True)
+            except requests.RequestException as exc:
+                st.error(f"세션 생성 실패: {exc}")
     st.stop()
 
 sid = game["session_id"]
@@ -1689,8 +1691,7 @@ elif mental:
     st.warning("알리바이 3-Out — 용의자 멘탈 마스크가 깨졌습니다.")
 
 timer_on = (
-    timer_ui
-    and bool(game.get("timer_enabled", True))
+    bool(game.get("timer_enabled", True))
     and not game.get("ended")
     and game.get("status") not in ("turn_out", "authority_revoked")
     and not st.session_state.get("show_intro")
@@ -1736,6 +1737,17 @@ if st.session_state.get("last_ending"):
         st.success(st.session_state["last_ending"])
     else:
         st.error(st.session_state["last_ending"])
+    if st.button("새 수사 개시", type="primary", key="btn_restart_after_ending"):
+        try:
+            _start_new_investigation(with_tab_intro=False)
+        except requests.RequestException as exc:
+            st.error(f"세션 생성 실패: {exc}")
+elif game.get("ended"):
+    if st.button("새 수사 개시", type="primary", key="btn_restart_ended"):
+        try:
+            _start_new_investigation(with_tab_intro=False)
+        except requests.RequestException as exc:
+            st.error(f"세션 생성 실패: {exc}")
 
 # 제목 행(상단 정렬) + 본문 한 줄: 왼쪽 용의자/탭, 오른쪽 인벤토리·압박·기록
 suspects = game.get("suspects") or []
@@ -1928,4 +1940,4 @@ with right:
         for line in st.session_state["log"][-8:]:
             st.chat_message("assistant").write(line)
 
-st.caption(f"API {_api()} · docs/GAME_RULES.md")
+st.caption("docs/GAME_RULES.md")

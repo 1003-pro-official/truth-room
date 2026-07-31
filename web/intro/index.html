@@ -13,21 +13,26 @@
   <header class="topbar">
     <div class="brand">진실의 방</div>
     <div class="topbar-right">
+      <p class="topbar-hint" id="scrollHint">잠시 후 자동 진행 · 스크롤로도 이동</p>
       <button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="배경음악">
         <span class="eq" aria-hidden="true">
           <i></i><i></i><i></i><i></i>
         </span>
       </button>
-      <p class="topbar-hint" id="scrollHint">잠시 후 자동 진행 · 스크롤로도 이동</p>
     </div>
   </header>
+
+  <button type="button" class="bgm-unlock" id="bgmUnlock" aria-live="polite">
+    <span class="bgm-unlock-kicker">AUDIO</span>
+    <span class="bgm-unlock-label">탭하여 배경음악 시작</span>
+  </button>
 
   <audio
     id="introBgm"
     src="/assets/audio/intro.mp3"
     loop
     preload="auto"
-    autoplay
+    muted
     playsinline
   ></audio>
   <audio

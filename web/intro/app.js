@@ -48,15 +48,21 @@
   const introBgm = document.getElementById("introBgm");
   const gameBgm = document.getElementById("gameBgm");
   const bgmToggle = document.getElementById("bgmToggle");
+  const bgmUnlockBtn = document.getElementById("bgmUnlock");
 
   let scenes = FALLBACK_SCENES;
   let caseMeta = { case_id: "case_01", title: "진실의 방" };
   let sessionId = null;
   let startingGame = false;
   let bgmUserMuted = false;
-  let bgmStarted = false;
+  /** media element가 play 중인지 (무음 포함) */
+  let bgmPlaying = false;
+  /** 실제 소리가 나는지 */
+  let bgmAudible = false;
   let bgmFading = false;
+  let bgmUnlockBound = false;
   const BGM_VOL = 0.45;
+  const BGM_FADE_IN_MS = 900;
   let fadeToken = 0;
   /** 씬당 체류 후 자동 스크롤 (7~8초) — 마지막 씬은 제외 */
   const AUTO_SCENE_MS = 7500;
@@ -69,7 +75,10 @@
   const CTA_REVEAL_MS = 2800;
   const CTA_REVEAL_REDUCED_MS = 400;
 
-  if (introBgm) introBgm.volume = BGM_VOL;
+  if (introBgm) {
+    introBgm.volume = 0;
+    introBgm.muted = true;
+  }
   if (gameBgm) gameBgm.volume = BGM_VOL;
 
   function setBgmUi(on) {
@@ -84,25 +93,92 @@
     el.pause();
   }
 
-  async function tryStartTrack(el) {
-    if (!el || bgmUserMuted || bgmFading || startingGame) return false;
+  function hideBgmUnlock() {
+    if (bgmUnlockBtn) bgmUnlockBtn.classList.add("is-gone");
+  }
+
+  function showBgmUnlock() {
+    if (bgmUnlockBtn && !bgmAudible && !bgmUserMuted) {
+      bgmUnlockBtn.classList.remove("is-gone");
+    }
+  }
+
+  function fadeInEl(el, ms = BGM_FADE_IN_MS) {
+    if (!el || bgmUserMuted) return Promise.resolve(false);
+    const token = ++fadeToken;
+    bgmFading = true;
+    el.muted = false;
+    el.volume = 0;
+    return el
+      .play()
+      .then(
+        () =>
+          new Promise((resolve) => {
+            bgmPlaying = true;
+            const t0 = performance.now();
+            function step(now) {
+              if (token !== fadeToken) {
+                resolve(false);
+                return;
+              }
+              const t = Math.min(1, (now - t0) / ms);
+              el.volume = BGM_VOL * t;
+              if (t < 1) {
+                requestAnimationFrame(step);
+                return;
+              }
+              bgmFading = false;
+              el.volume = BGM_VOL;
+              bgmAudible = true;
+              setBgmUi(true);
+              hideBgmUnlock();
+              resolve(true);
+            }
+            requestAnimationFrame(step);
+          })
+      )
+      .catch(() => {
+        bgmFading = false;
+        bgmAudible = false;
+        setBgmUi(false);
+        showBgmUnlock();
+        return false;
+      });
+  }
+
+  /** Chrome: 소리 있는 autoplay는 차단 → 무음 play는 허용되는 경우가 많음 */
+  async function armMutedBgm() {
+    if (!introBgm || bgmUserMuted || startingGame) return false;
     try {
-      el.muted = false;
-      el.volume = BGM_VOL;
-      await el.play();
-      bgmStarted = true;
-      setBgmUi(true);
+      introBgm.muted = true;
+      introBgm.volume = 0;
+      await introBgm.play();
+      bgmPlaying = true;
+      setBgmUi(false);
       return true;
     } catch (err) {
-      bgmStarted = false;
-      setBgmUi(false);
+      bgmPlaying = false;
       return false;
     }
   }
 
-  async function tryStartBgm() {
-    if (startingGame) return false;
-    return tryStartTrack(introBgm);
+  /** 첫 제스처 이후 — 무음 해제 + 볼륨 페이드인 */
+  async function unlockAudibleBgm() {
+    if (!introBgm || bgmUserMuted || startingGame || bgmAudible) return false;
+    if (bgmPlaying && !introBgm.paused) {
+      return fadeInEl(introBgm, BGM_FADE_IN_MS);
+    }
+    try {
+      introBgm.muted = false;
+      introBgm.volume = 0;
+      await introBgm.play();
+      bgmPlaying = true;
+      return fadeInEl(introBgm, BGM_FADE_IN_MS);
+    } catch (err) {
+      bgmAudible = false;
+      setBgmUi(false);
+      return false;
+    }
   }
 
   function fadeOutEl(el, ms = 900) {
@@ -128,8 +204,11 @@
           return;
         }
         pauseEl(el);
+        el.muted = true;
         el.volume = BGM_VOL;
         bgmFading = false;
+        bgmPlaying = false;
+        bgmAudible = false;
         resolve();
       }
       requestAnimationFrame(step);
@@ -137,48 +216,61 @@
   }
 
   function bindBgmGestures() {
+    if (bgmUnlockBound) return;
+    bgmUnlockBound = true;
+    // wheel/scroll은 Chrome에서 미디어 활성화로 인정되지 않음 → 클릭·탭·키만
     const unlock = () => {
-      if (!bgmUserMuted && !startingGame && introBgm && (introBgm.paused || !bgmStarted)) {
-        tryStartBgm();
-      }
+      if (bgmUserMuted || startingGame || bgmAudible) return;
+      unlockAudibleBgm();
     };
-    ["pointerdown", "touchstart", "keydown", "scroll", "wheel"].forEach((ev) => {
+    ["pointerdown", "touchstart", "keydown", "click"].forEach((ev) => {
       window.addEventListener(ev, unlock, { passive: true });
     });
+    if (bgmUnlockBtn) {
+      bgmUnlockBtn.addEventListener("click", (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        unlockAudibleBgm();
+      });
+    }
     if (bgmToggle) {
       bgmToggle.addEventListener("click", async (e) => {
         e.stopPropagation();
         if (!introBgm) return;
-        if (!introBgm.paused && !bgmUserMuted) {
+        if (bgmAudible && !bgmUserMuted && !introBgm.paused) {
           bgmUserMuted = true;
           fadeToken += 1;
           bgmFading = false;
           pauseEl(introBgm);
           pauseEl(gameBgm);
+          bgmPlaying = false;
+          bgmAudible = false;
           setBgmUi(false);
+          showBgmUnlock();
           return;
         }
         bgmUserMuted = false;
         bgmFading = false;
-        introBgm.volume = BGM_VOL;
-        await tryStartBgm();
+        await unlockAudibleBgm();
       });
     }
   }
 
-  async function autoplayBgm() {
-    if (await tryStartBgm()) return;
-    if (introBgm) {
+  async function bootBgm() {
+    let armed = await armMutedBgm();
+    if (!armed && introBgm) {
       introBgm.addEventListener(
         "canplaythrough",
         () => {
-          tryStartBgm();
+          armMutedBgm();
         },
         { once: true }
       );
+      setTimeout(() => armMutedBgm(), 400);
+      setTimeout(() => armMutedBgm(), 1200);
     }
-    setTimeout(() => tryStartBgm(), 300);
-    setTimeout(() => tryStartBgm(), 1000);
+    bindBgmGestures();
+    showBgmUnlock();
   }
 
   function assetUrl(imageKey) {
@@ -405,6 +497,7 @@
     if (startingGame) return;
     startingGame = true;
     clearAutoAdvance();
+    hideBgmUnlock();
     const status = document.querySelector("[data-start-status]");
     if (btn) {
       btn.disabled = true;
@@ -455,8 +548,7 @@
 
   async function boot() {
     setBgmUi(false);
-    bindBgmGestures();
-    autoplayBgm();
+    await bootBgm();
     await fetchPublicCase();
     renderScenes(scenes);
     bindStartButton();
