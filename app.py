@@ -203,6 +203,46 @@ def _inject_game_bgm(*, muted: bool = False) -> None:
     )
 
 
+def _sync_ops_rail_width() -> None:
+    """「새 수사 개시」버튼 폭을 재고 우측 패널(--ops-rail-width)만 맞춘다. 버튼·좌측 컬럼은 불변."""
+    components.html(
+        """<!DOCTYPE html>
+<html><body style="margin:0">
+<script>
+(function () {
+  var doc;
+  try { doc = window.parent.document; } catch (e) { return; }
+  function findBtn() {
+    var mark = doc.querySelector(".hud-restart-mark");
+    if (!mark) return null;
+    var wrap = mark.closest('[data-testid="stElementContainer"]');
+    if (!wrap || !wrap.nextElementSibling) return null;
+    return wrap.nextElementSibling.querySelector("button");
+  }
+  function sync() {
+    var btn = findBtn();
+    if (!btn) return;
+    var w = Math.round(btn.getBoundingClientRect().width);
+    if (w < 48) return;
+    doc.documentElement.style.setProperty("--ops-rail-width", w + "px");
+  }
+  sync();
+  setTimeout(sync, 50);
+  setTimeout(sync, 200);
+  try {
+    var btn = findBtn();
+    if (btn && window.parent.ResizeObserver) {
+      new window.parent.ResizeObserver(sync).observe(btn);
+    }
+  } catch (e) {}
+})();
+</script>
+</body></html>""",
+        height=0,
+        width=0,
+    )
+
+
 def _reset_timer() -> None:
     turn_sec = int((st.session_state.get("game") or {}).get("turn_seconds") or 20)
     st.session_state["turn_deadline"] = time.time() + turn_sec
@@ -253,8 +293,9 @@ def _file_data_uri(path_str: str) -> str:
 
 
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
-    # 저채도 블루그레이 — 눈 피로 완화
+    # 저채도 블루그레이 — 눈 피로 완화 · 취조실 배경
     accent = "#7A9BB8" if not mental and not revoked else "#8A9BB5"
+    bg_url = html.escape(_browser_asset_url("ui/game_bg.jpg"), quote=True)
     st.markdown(
         f"""
         <style>
@@ -264,15 +305,136 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           --muted: #8b919c;
           --accent: {accent};
           --accent-soft: rgba(122,155,184,0.22);
-          --line: rgba(200,210,220,0.12);
-          --surface: #1a1e26;
+          --line: rgba(200,210,220,0.14);
+          --surface: rgba(18, 22, 30, 0.72);
+          --surface-solid: #1a1e26;
+          --panel-glass: rgba(12, 16, 22, 0.62);
+          /* 우측 패널 전용 — 「새 수사 개시」 실측 폭으로 JS가 덮어씀. 버튼 자체는 변경하지 않음 */
+          --ops-rail-width: 14rem;
+          --game-left-max: 78rem;
+          /* 용의자 카드 간격 = 좌·우 스테이지 간격 */
+          --suspect-gutter: 2.5rem;
+          --game-stage-gap: var(--suspect-gutter);
           --font-ui: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
           --font-display: "Apple SD Gothic Neo", "Malgun Gothic", "Black Han Sans", sans-serif;
         }}
 
         .stApp {{
-          background: #151820;
+          background-color: #0b0e14 !important;
+          background-image:
+            linear-gradient(180deg, rgba(7,9,13,0.78) 0%, rgba(7,9,13,0.52) 42%, rgba(7,9,13,0.82) 100%),
+            radial-gradient(ellipse at 50% 35%, transparent 18%, rgba(5,7,10,0.62) 100%),
+            url("{bg_url}") !important;
+          background-position: center, center, center !important;
+          background-size: cover, cover, cover !important;
+          background-repeat: no-repeat !important;
+          background-attachment: fixed, fixed, fixed !important;
           color: var(--ink);
+        }}
+        [data-testid="stAppViewContainer"],
+        [data-testid="stAppViewContainer"] > .main,
+        [data-testid="stMain"],
+        section.main,
+        .main .block-container,
+        [data-testid="stHeader"] {{
+          background: transparent !important;
+        }}
+        .main .block-container {{
+          padding-top: 1.35rem !important;
+          padding-bottom: 2.25rem !important;
+          padding-left: 2rem !important;
+          padding-right: 2rem !important;
+          /* 좌·우 묶음이 화면 가운데에 오도록 스테이지 폭 제한 */
+          max-width: calc(
+            var(--game-left-max) + var(--game-stage-gap) + var(--ops-rail-width) + 4.5rem
+          ) !important;
+          margin-left: auto !important;
+          margin-right: auto !important;
+        }}
+        /* height=0 components.html 이 남기는 세로 틈 제거 */
+        div[data-testid="stElementContainer"]:has(iframe[height="0"]),
+        div[data-testid="stElementContainer"]:has(iframe[height="0px"]),
+        div[data-testid="element-container"]:has(iframe[height="0"]),
+        iframe[height="0"],
+        iframe[height="0px"] {{
+          display: none !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          width: 0 !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }}
+        /* 좌·우 메인: 한 덩어리로 붙이고 가운데 정렬 */
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker),
+        div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint),
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker) {{
+          justify-content: center !important;
+          gap: var(--game-stage-gap) !important;
+          column-gap: var(--game-stage-gap) !important;
+          width: 100% !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="column"]:first-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="stColumn"]:first-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint)
+          > div[data-testid="column"]:first-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint)
+          > div[data-testid="stColumn"]:first-child {{
+          flex: 0 1 var(--game-left-max) !important;
+          width: var(--game-left-max) !important;
+          max-width: var(--game-left-max) !important;
+          min-width: 0 !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="column"]:last-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="stColumn"]:last-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint)
+          > div[data-testid="column"]:last-child,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-grid-hint)
+          > div[data-testid="stColumn"]:last-child,
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="column"]:last-child,
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="stColumn"]:last-child {{
+          flex: 0 0 var(--ops-rail-width) !important;
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+        }}
+        /* 용의자 카드(김/이/박) 가로 간격 = 좌·우 여백과 동일 */
+        div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame) {{
+          gap: var(--suspect-gutter) !important;
+          column-gap: var(--suspect-gutter) !important;
+          flex-wrap: nowrap !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame)
+          > div[data-testid="column"],
+        div[data-testid="stHorizontalBlock"]:has(.suspect-pick-frame)
+          > div[data-testid="stColumn"] {{
+          padding-left: 0.4rem !important;
+          padding-right: 0.4rem !important;
+        }}
+        .panel-stack-gap {{
+          display: block !important;
+          height: 0.85rem !important;
+          min-height: 0.85rem !important;
+          line-height: 0.85rem !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        .right-panel-marker {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }}
         .stApp, .stApp p, .stApp label, .stMarkdown, .stCaption {{
           font-family: var(--font-ui) !important;
@@ -317,11 +479,18 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
 
         .stButton > button {{
-          border-radius: 6px !important;
-          border: 1px solid rgba(200,210,220,0.18) !important;
-          font-weight: 500 !important;
-          background: #222832 !important;
+          border-radius: 4px !important;
+          border: 1px solid rgba(170,190,210,0.28) !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.04em !important;
+          background: linear-gradient(180deg, rgba(36,44,56,0.92), rgba(22,28,38,0.92)) !important;
           color: var(--ink) !important;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.05), 0 8px 18px rgba(0,0,0,0.25) !important;
+          transition: border-color 0.15s ease, background 0.15s ease, transform 0.12s ease !important;
+        }}
+        .stButton > button:hover {{
+          border-color: rgba(210,225,240,0.55) !important;
+          transform: translateY(-1px);
         }}
         .stButton > button[kind="primary"],
         .stButton > button[data-testid="baseButton-primary"],
@@ -329,16 +498,17 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         button[kind="primary"],
         [data-testid="baseButton-primary"],
         [data-testid="stBaseButton-primary"] {{
-          background: #3d5568 !important;
-          background-image: none !important;
-          border-color: #4a657a !important;
-          color: #e8eef4 !important;
+          background: linear-gradient(180deg, #4a657a, #354a5c) !important;
+          background-image: linear-gradient(180deg, #4a657a, #354a5c) !important;
+          border-color: #6d879c !important;
+          color: #eef3f8 !important;
+          text-transform: none !important;
         }}
         .stButton > button[kind="primary"]:hover,
         button[kind="primary"]:hover,
         [data-testid="stBaseButton-primary"]:hover {{
-          background: #4a657a !important;
-          border-color: #5a7890 !important;
+          background: linear-gradient(180deg, #5a7890, #3d5568) !important;
+          border-color: #8aa4b8 !important;
           color: #e8eef4 !important;
         }}
         .stButton > button[kind="secondary"],
@@ -346,49 +516,65 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .stButton > button[data-testid="stBaseButton-secondary"],
         button[kind="secondary"],
         [data-testid="stBaseButton-secondary"] {{
-          background: #1e2430 !important;
-          border-color: rgba(200,210,220,0.16) !important;
-          color: #b8c0cc !important;
+          background: rgba(18, 24, 34, 0.78) !important;
+          border-color: rgba(200,210,220,0.22) !important;
+          color: #c5ccd6 !important;
         }}
 
         div[data-baseweb="select"] > div,
         .stTextInput input,
         .stMultiSelect div[data-baseweb="select"] > div {{
-          background: #1e2430 !important;
-          border-radius: 6px !important;
-          border-color: rgba(200,210,220,0.16) !important;
+          background: rgba(10, 14, 20, 0.78) !important;
+          border-radius: 4px !important;
+          border: 1px solid rgba(170,190,210,0.24) !important;
+          color: #e4e8ee !important;
+          box-shadow: inset 0 0 0 1px rgba(0,0,0,0.25) !important;
+        }}
+        .stTextInput label,
+        .stMultiSelect label,
+        .stSelectbox label {{
+          color: #9aa8b8 !important;
+          font-size: 0.78rem !important;
+          letter-spacing: 0.08em !important;
+          text-transform: uppercase !important;
         }}
 
-        /* 탭: Streamlit 기본 빨강 밑줄 제거 */
-        /* 탭 → 세그먼트/버튼형 */
+        /* 탭 → 수사 콘솔 세그먼트 */
         .stTabs [data-baseweb="tab-list"] {{
-          gap: 0.5rem;
+          gap: 0.4rem;
           border-bottom: none !important;
-          background: #12151b;
-          padding: 0.4rem;
+          background: rgba(8, 12, 18, 0.72) !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          padding: 0.45rem;
           border-radius: 8px;
-          border: 1px solid var(--line);
-          margin-bottom: 0.35rem !important;
+          border: 1px solid rgba(170,190,210,0.22);
+          margin-bottom: 0.45rem !important;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.04), 0 12px 28px rgba(0,0,0,0.28);
         }}
         .stTabs [data-baseweb="tab"] {{
-          color: var(--muted) !important;
+          color: #8b969f !important;
           background: transparent !important;
           border: 1px solid transparent !important;
-          border-radius: 6px !important;
-          padding: 0.55rem 1.1rem !important;
+          border-radius: 4px !important;
+          padding: 0.6rem 1.05rem !important;
           height: auto !important;
-          min-height: 2.5rem !important;
+          min-height: 2.55rem !important;
+          letter-spacing: 0.06em !important;
+          font-weight: 600 !important;
         }}
         .stTabs [data-baseweb="tab"]:hover {{
-          background: rgba(122,155,184,0.12) !important;
-          color: #c8ced8 !important;
+          background: rgba(122,155,184,0.14) !important;
+          color: #d5dde6 !important;
+          border-color: rgba(170,190,210,0.2) !important;
         }}
         .stTabs [aria-selected="true"] {{
-          color: #e8eef4 !important;
-          background: #3d5568 !important;
-          border: 1px solid #4a657a !important;
-          border-bottom: 1px solid #4a657a !important;
-          font-weight: 600 !important;
+          color: #f0f4f8 !important;
+          background: linear-gradient(180deg, #4a657a, #354a5c) !important;
+          border: 1px solid #6d879c !important;
+          border-bottom: 1px solid #6d879c !important;
+          font-weight: 700 !important;
+          box-shadow: inset 0 1px 0 rgba(255,255,255,0.08) !important;
         }}
         .stTabs [data-baseweb="tab-highlight"],
         .stTabs [data-baseweb="tab-border"] {{
@@ -397,7 +583,28 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           background: transparent !important;
         }}
         .stTabs [data-baseweb="tab-panel"] {{
-          padding-top: 1.25rem !important;
+          padding: 1rem 1.05rem 1.1rem !important;
+          margin-top: 0.25rem !important;
+          border: 1px solid rgba(170,190,210,0.16);
+          border-radius: 8px;
+          background: rgba(10, 14, 20, 0.58);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 14px 34px rgba(0,0,0,0.22);
+        }}
+        .ops-kicker {{
+          margin: 1.35rem 0 0.75rem !important;
+          font-size: 0.68rem !important;
+          letter-spacing: 0.16em !important;
+          text-transform: uppercase !important;
+          color: var(--accent) !important;
+        }}
+        .suspect-grid-hint {{
+          margin: 0 0 0.45rem !important;
+          font-size: 0.72rem !important;
+          letter-spacing: 0.14em !important;
+          text-transform: uppercase !important;
+          color: var(--accent) !important;
         }}
 
         /* 상태 배너(타이머·3진 아웃) — 동일 높이로 레이아웃 점프 방지 */
@@ -406,19 +613,20 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           height: 40px;
           min-height: 40px;
           max-height: 40px;
-          margin: 0 0 0.75rem 0 !important;
+          margin: 0.2rem 0 0.55rem 0 !important;
           padding: 0 0.85rem !important;
           display: flex !important;
           align-items: center !important;
           gap: 0.75rem;
           border-radius: 0.5rem;
           border: 1px solid rgba(122,155,184,0.35);
-          background: rgba(90,110,130,0.18);
+          background: rgba(12, 18, 26, 0.7);
+          backdrop-filter: blur(8px);
           overflow: hidden;
         }}
         .status-banner--alert {{
           border-color: rgba(180,100,100,0.45);
-          background: rgba(90,40,40,0.35);
+          background: rgba(50,20,20,0.55);
         }}
         .status-banner .timer-track {{
           flex: 1 1 auto;
@@ -445,13 +653,118 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
 
         .hud {{
           display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between;
-          gap: 0.75rem; padding: 0 0 0.75rem; border-bottom: 1px solid var(--line);
-          margin-bottom: 0.75rem;
+          gap: 0.75rem; padding: 0.85rem 1rem 0.95rem;
+          border: 1px solid rgba(200,210,220,0.14);
+          border-radius: 10px;
+          background: var(--panel-glass);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+          margin-top: 0 !important;
+          margin-bottom: 0.85rem;
+        }}
+        /* 브랜드 | 스탯+새 수사 개시 가로 배치 */
+        div[data-testid="stElementContainer"]:has(.hud-top-mark) {{
+          display: none !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-top-mark)
+          + div[data-testid="stElementContainer"] {{
+          margin-top: 0 !important;
+          margin-bottom: 1.25rem !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-top-mark)
+          + div[data-testid="stElementContainer"]
+          > div[data-testid="stHorizontalBlock"] {{
+          gap: 0.85rem !important;
+          padding: 0.75rem 1rem !important;
+          border: 1px solid rgba(200,210,220,0.14) !important;
+          border-radius: 10px !important;
+          background: var(--panel-glass) !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          box-shadow: 0 18px 40px rgba(0,0,0,0.28);
+          align-items: center !important;
+        }}
+        /* 우측 스탯 3열 세로 중앙 정렬 */
+        div[data-testid="stElementContainer"]:has(.hud-stats-mark)
+          > div[data-testid="stHorizontalBlock"],
+        div[data-testid="column"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"] {{
+          align-items: stretch !important;
+          gap: 0.5rem !important;
+        }}
+        .hud-brand {{
+          padding: 0.15rem 0;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: 3.5rem;
+        }}
+        .hud-stat {{
+          box-sizing: border-box;
+          min-height: 3.5rem;
+          height: 100%;
+          padding: 0.45rem 0.7rem;
+          border: 1px solid var(--line);
+          background: rgba(20,24,32,0.72);
+          border-radius: 6px;
+          backdrop-filter: blur(6px);
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }}
+        .hud-stat .stat-label {{
+          display: block;
+          font-size: 0.65rem;
+          letter-spacing: 0.1em;
+          text-transform: uppercase;
+          color: var(--muted);
+          margin-bottom: 0.15rem;
+        }}
+        .hud-stat .stat-value {{
+          font-size: 1.1rem;
+          color: #b7c6d4;
+          font-weight: 600;
+          line-height: 1.2;
+        }}
+        div[data-testid="column"]:has(.hud-restart-mark) {{
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-restart-mark) {{
+          display: none !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] {{
+          height: 100% !important;
+          display: flex !important;
+          align-items: center !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"]
+          .stButton {{
+          width: 100% !important;
+          margin: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"]
+          .stButton > button {{
+          width: 100% !important;
+          min-height: 3.5rem !important;
+          height: 3.5rem !important;
+          margin: 0 !important;
+          white-space: nowrap !important;
+          font-size: 0.82rem !important;
+          letter-spacing: 0.04em !important;
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+          box-sizing: border-box !important;
         }}
         .brand-title {{
           font-size: clamp(1.35rem, 2.4vw, 1.85rem); line-height: 1.15;
           margin: 0 !important; padding: 0 !important;
-          text-shadow: none !important; display: block !important;
+          text-shadow: 0 2px 18px rgba(0,0,0,0.45) !important; display: block !important;
         }}
         .brand-sub {{
           margin: 0 !important; padding: 0 !important;
@@ -474,8 +787,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .hud-stats {{ display: flex; gap: 0.75rem; align-items: center; }}
         .stat {{
           min-width: 6.5rem; padding: 0.4rem 0.7rem;
-          border: 1px solid var(--line); background: var(--surface);
+          border: 1px solid var(--line); background: rgba(20,24,32,0.72);
           border-radius: 6px;
+          backdrop-filter: blur(6px);
         }}
         .stat-label {{
           display: block; font-size: 0.65rem; letter-spacing: 0.1em;
@@ -487,6 +801,41 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .panel-title {{
           font-family: var(--font-display); font-size: 1rem;
           margin: 0 0 0.5rem; color: #c8ced8;
+        }}
+        .inventory-session {{
+          border: 1px solid rgba(200,210,220,0.14);
+          border-radius: 10px;
+          background: var(--panel-glass);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          padding: 1rem 1.05rem 1.15rem;
+          margin-bottom: 0 !important;
+          box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+          box-sizing: border-box !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+        }}
+        .inventory-session .panel-title {{
+          margin-bottom: 0.65rem;
+        }}
+        .pressure-block, .log-block {{
+          border: 1px solid rgba(200,210,220,0.14);
+          border-radius: 10px;
+          background: var(--panel-glass);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          padding: 1rem 1.05rem 1.15rem;
+          margin-bottom: 0 !important;
+          box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+          box-sizing: border-box !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
         }}
         .inv-empty {{ color: var(--muted); font-size: 0.85rem; padding: 0.35rem 0; }}
         .inv-item {{
@@ -506,15 +855,23 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding: 0;
         }}
         .inventory-session {{
-          border: 1px solid var(--line);
-          border-radius: 8px;
-          background: rgba(30,36,48,0.7);
-          padding: 0.85rem 0.9rem;
-          box-sizing: border-box;
+          border: 1px solid rgba(200,210,220,0.14);
+          border-radius: 10px;
+          background: var(--panel-glass);
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+          padding: 1rem 1.05rem 1.15rem;
+          box-sizing: border-box !important;
           display: flex;
           flex-direction: column;
-          margin-top: 8px;
-          margin-bottom: 0;
+          margin-top: 0;
+          margin-bottom: 0 !important;
+          box-shadow: 0 14px 36px rgba(0,0,0,0.22);
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
         }}
         .inventory-session .panel-title {{
           margin-bottom: 0.75rem;
@@ -529,10 +886,11 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
 
         .clue-banner {{
-          margin: 0 0 0.75rem; padding: 0.9rem 1.1rem;
+          margin: 0 0 1.15rem; padding: 1rem 1.15rem;
           border: 1px solid rgba(122,155,184,0.4);
-          background: rgba(50,65,82,0.45);
-          border-radius: 6px;
+          background: rgba(18, 24, 34, 0.72);
+          backdrop-filter: blur(8px);
+          border-radius: 8px;
         }}
         .clue-kicker {{
           font-size: 0.68rem; letter-spacing: 0.14em; text-transform: uppercase;
@@ -544,8 +902,10 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         .clue-snip {{ color: var(--muted); font-size: 0.85rem; margin: 0; }}
         .suspect-grid-hint {{
-          color: var(--muted);
-          font-size: 0.8rem;
+          color: var(--accent);
+          font-size: 0.72rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
           margin: 0 0 0.45rem !important;
           padding-bottom: 0.1rem !important;
           display: block !important;
@@ -561,17 +921,72 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding-bottom: 0 !important;
         }}
         .stTabs {{
-          margin-top: 0.5rem !important;
+          margin-top: 0.85rem !important;
         }}
         /* 용의자 초상 ↔ 선택 버튼: 살짝만 띄움 (완전 밀착/과대 간격 방지) */
-        [data-testid="stColumn"] > div {{
-          gap: 0.45rem !important;
+        div[data-testid="column"]:has(.suspect-pick-frame) > div,
+        div[data-testid="stColumn"]:has(.suspect-pick-frame) > div,
+        div[data-testid="column"]:has(.suspect-pick-frame)
+          [data-testid="stVerticalBlock"],
+        div[data-testid="stColumn"]:has(.suspect-pick-frame)
+          [data-testid="stVerticalBlock"] {{
+          gap: 0.65rem !important;
         }}
-        [data-testid="column"] > div {{
-          gap: 0.45rem !important;
+        /* 좌측: 용의자 그리드 ↔ Field Ops */
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="column"]:first-child > div,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="stColumn"]:first-child > div,
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="column"]:first-child
+          > div[data-testid="stVerticalBlock"],
+        div[data-testid="stHorizontalBlock"]:has(.suspect-session-marker)
+          > div[data-testid="stColumn"]:first-child
+          > div[data-testid="stVerticalBlock"] {{
+          gap: 1.35rem !important;
+          row-gap: 1.35rem !important;
         }}
-        [data-testid="stColumn"] [data-testid="stVerticalBlock"] {{
-          gap: 0.45rem !important;
+        /* 우측 패널: 좌측 컬럼 비율은 유지, 박스만 버튼 폭·우측 정렬 */
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="column"]:last-child > div,
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="stColumn"]:last-child > div,
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="column"]:last-child
+          > div[data-testid="stVerticalBlock"],
+        div[data-testid="stHorizontalBlock"]:has(.right-panel-marker)
+          > div[data-testid="stColumn"]:last-child
+          > div[data-testid="stVerticalBlock"],
+        div[data-testid="stVerticalBlock"]:has(.right-panel-marker) {{
+          gap: 2rem !important;
+          row-gap: 2rem !important;
+          align-items: flex-end !important;
+          width: 100% !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.inventory-session),
+        div[data-testid="stElementContainer"]:has(.pressure-block),
+        div[data-testid="stElementContainer"]:has(.log-block),
+        div[data-testid="stElementContainer"]:has(.panel-stack-gap),
+        div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        div[data-testid="stMarkdownContainer"]:has(.pressure-block),
+        div[data-testid="stMarkdownContainer"]:has(.log-block) {{
+          display: flex !important;
+          justify-content: flex-end !important;
+          width: 100% !important;
+          max-width: 100% !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.inventory-session) > div,
+        div[data-testid="stElementContainer"]:has(.pressure-block) > div,
+        div[data-testid="stElementContainer"]:has(.log-block) > div,
+        div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        div[data-testid="stMarkdownContainer"]:has(.pressure-block),
+        div[data-testid="stMarkdownContainer"]:has(.log-block) {{
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.panel-stack-gap) {{
+          min-height: 0 !important;
         }}
         .suspect-pick-frame {{
           position: relative;
@@ -681,9 +1096,10 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           height: auto !important;
           max-height: none !important;
           width: 100% !important;
-          padding: 0.45rem 0.75rem !important;
-          font-size: inherit !important;
-          border-radius: 0.5rem !important;
+          padding: 0.5rem 0.75rem !important;
+          font-size: 0.95rem !important;
+          border-radius: 4px !important;
+          letter-spacing: 0.03em !important;
         }}
 
         .dossier-shell {{
@@ -948,46 +1364,87 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
 
         .pressure-row {{
-          margin: 0 0 0.55rem;
-          padding: 0.7rem 0.85rem;
+          margin: 0 0 0.75rem;
+          padding: 0.8rem 0.9rem;
           background: rgba(30,36,48,0.7);
           border: 1px solid var(--line);
           border-radius: 6px;
         }}
         .pressure-row:last-child {{
-          margin-bottom: 0;
+          margin-bottom: 0.2rem;
         }}
         .pressure-block {{
-          margin-top: calc(0.75rem + 20px);
-          margin-bottom: 0.75rem;
-          padding-bottom: 0;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+          box-sizing: border-box !important;
+          padding: 1rem 1.05rem 1.2rem !important;
         }}
         .pressure-block .panel-title {{
-          margin: 0 0 0.5rem !important;
+          margin: 0 0 0.65rem !important;
           display: block !important;
         }}
         .pressure-block .pressure-row:first-of-type {{
           margin-top: 0;
         }}
+        .pressure-block .pressure-row:last-child {{
+          margin-bottom: 0.2rem;
+        }}
         .log-block {{
-          margin-top: calc(0.75rem + 10px);
-          padding-top: 0;
-          margin-bottom: 0;
+          margin-top: 0 !important;
+          margin-bottom: 0 !important;
+          margin-left: auto !important;
+          margin-right: 0 !important;
+          width: var(--ops-rail-width) !important;
+          min-width: var(--ops-rail-width) !important;
+          max-width: var(--ops-rail-width) !important;
+          box-sizing: border-box !important;
+          padding: 1rem 1.05rem 1.2rem !important;
         }}
         .log-block .panel-title {{
-          margin: 0 0 calc(0.5rem - 5px) !important;
+          margin: 0 0 0.65rem !important;
           padding: 0 !important;
           display: block !important;
         }}
-        .log-title-gap {{
-          display: block !important;
-          height: 0 !important;
-          min-height: 0 !important;
-          line-height: 0 !important;
+        .log-row {{
+          margin: 0 0 0.7rem;
+          padding: 0.8rem 0.9rem;
+          background: rgba(30,36,48,0.7);
+          border: 1px solid var(--line);
+          border-radius: 6px;
         }}
-        /* 심문 기록 제목 ↔ 첫 카드 간격 */
-        div[data-testid="stMarkdownContainer"]:has(.log-block) {{
-          margin-bottom: calc(0.5rem - 5px) !important;
+        .log-row:last-child {{
+          margin-bottom: 0.2rem;
+        }}
+        .log-row.is-alert {{
+          border-color: rgba(180,100,100,0.35);
+          background: rgba(50,24,28,0.55);
+        }}
+        .log-row.is-assist {{
+          border-color: rgba(122,155,184,0.28);
+        }}
+        .log-row-meta {{
+          display: flex;
+          justify-content: space-between;
+          align-items: baseline;
+          gap: 0.5rem;
+          margin-bottom: 0.35rem;
+          font-size: 0.78rem;
+          color: var(--muted);
+          letter-spacing: 0.06em;
+          text-transform: uppercase;
+        }}
+        .log-row-body {{
+          margin: 0;
+          font-size: 0.9rem;
+          line-height: 1.45;
+          color: var(--ink);
+          white-space: pre-wrap;
+          word-break: break-word;
         }}
         .pressure-meta {{
           display: flex; justify-content: space-between; align-items: baseline;
@@ -1197,28 +1654,57 @@ def _render_hud(game: dict) -> None:
     strikes = int(game.get("timeout_strikes") or 0)
     strike_max = int(game.get("timeout_strike_max") or 3)
     title = html.escape(str(game.get("title") or "진실의 방"))
-    st.markdown(
-        f"""
-        <div class="hud">
-          <div>
-            <div class="brand-title">진실의 방</div>
-            <div class="brand-gap" style="height:28px;min-height:28px;" aria-hidden="true">&nbsp;</div>
-            <div class="brand-sub">{title}</div>
-          </div>
-          <div class="hud-stats">
-            <div class="stat">
-              <span class="stat-label">수사 권한</span>
-              <div class="stat-value hearts">{hearts}</div>
+    st.markdown('<div class="hud-top-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    brand_col, stats_col = st.columns([1.4, 1.4], gap="small")
+    with brand_col:
+        st.markdown(
+            f"""
+            <div class="hud-brand">
+              <div class="brand-title">진실의 방</div>
+              <div class="brand-gap" style="height:10px;min-height:10px;" aria-hidden="true">&nbsp;</div>
+              <div class="brand-sub">{title}</div>
             </div>
-            <div class="stat">
-              <span class="stat-label">타임아웃</span>
-              <div class="stat-value">{strikes}/{strike_max}</div>
-            </div>
-          </div>
-        </div>
-        """,
-        unsafe_allow_html=True,
-    )
+            """,
+            unsafe_allow_html=True,
+        )
+    with stats_col:
+        st.markdown('<div class="hud-stats-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+        s1, s2, s3 = st.columns([1, 1, 1.15], gap="small")
+        with s1:
+            st.markdown(
+                f"""
+                <div class="hud-stat">
+                  <span class="stat-label">수사 권한</span>
+                  <div class="stat-value hearts">{hearts}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with s2:
+            st.markdown(
+                f"""
+                <div class="hud-stat">
+                  <span class="stat-label">타임아웃</span>
+                  <div class="stat-value">{strikes}/{strike_max}</div>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        with s3:
+            st.markdown(
+                '<div class="hud-restart-mark" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
+            if st.button(
+                "새 수사 개시",
+                type="primary",
+                key="btn_restart_hud",
+                use_container_width=True,
+            ):
+                try:
+                    _start_new_investigation(with_tab_intro=False)
+                except requests.RequestException as exc:
+                    st.error(f"세션 생성 실패: {exc}")
 
 
 def _render_inventory(owned: list[str]) -> None:
@@ -1452,7 +1938,8 @@ def _pick_suspect(
             '<div class="suspect-title-gap" aria-hidden="true">&nbsp;</div>',
             unsafe_allow_html=True,
         )
-    cols = st.columns(len(suspects), gap="small")
+    # 카드 간격은 CSS --suspect-gutter (좌·우 스테이지 간격과 동일)
+    cols = st.columns(len(suspects), gap="large")
     for col, s in zip(cols, suspects):
         sid = str(s.get("id") or "")
         name = str(s.get("name") or sid)
@@ -1678,7 +2165,7 @@ if st.session_state.get("show_intro") and not game.get("ended"):
 _render_hud(game)
 _case_btn, _ = st.columns([1, 4])
 with _case_btn:
-    if st.button("사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
+    if st.button("CASE FILE · 사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
         _request_case_info(sid, title_fallback=str(game.get("title") or "사건개요"))
 _render_clue_banner()
 
@@ -1737,24 +2224,13 @@ if st.session_state.get("last_ending"):
         st.success(st.session_state["last_ending"])
     else:
         st.error(st.session_state["last_ending"])
-    if st.button("새 수사 개시", type="primary", key="btn_restart_after_ending"):
-        try:
-            _start_new_investigation(with_tab_intro=False)
-        except requests.RequestException as exc:
-            st.error(f"세션 생성 실패: {exc}")
-elif game.get("ended"):
-    if st.button("새 수사 개시", type="primary", key="btn_restart_ended"):
-        try:
-            _start_new_investigation(with_tab_intro=False)
-        except requests.RequestException as exc:
-            st.error(f"세션 생성 실패: {exc}")
 
 # 제목 행(상단 정렬) + 본문 한 줄: 왼쪽 용의자/탭, 오른쪽 인벤토리·압박·기록
 suspects = game.get("suspects") or []
 broken = list(game.get("mental_break_suspects") or [])
 g = st.session_state["game"]
 
-head_l, head_r = st.columns([1.55, 1], gap="medium")
+head_l, head_r = st.columns([4, 1], gap="medium")
 with head_l:
     st.markdown(
         '<p class="suspect-grid-hint">대상 용의자</p>'
@@ -1768,7 +2244,7 @@ with head_r:
         unsafe_allow_html=True,
     )
 
-left, right = st.columns([1.55, 1], gap="medium")
+left, right = st.columns([4, 1], gap="medium")
 with left:
     st.markdown(
         '<div class="suspect-session-marker" aria-hidden="true"></div>',
@@ -1776,11 +2252,15 @@ with left:
     )
     suspect_id = _pick_suspect(suspects, broken, show_title=False)
 
-    tab_ask, tab_search, tab_accuse = st.tabs(["심문", "증거 수색", "최종 지목"])
+    st.markdown(
+        '<p class="ops-kicker">Field Ops · Command Deck</p>',
+        unsafe_allow_html=True,
+    )
+    tab_ask, tab_search, tab_accuse = st.tabs(["01 심문", "02 증거 수색", "03 최종 지목"])
 
     with tab_ask:
-        question = st.text_input("심문 질문", placeholder="그날 밤 어디에 있었습니까?")
-        if st.button("질문하기", type="primary", key="btn_ask") and question and not game.get("ended"):
+        question = st.text_input("심문 입력", placeholder="그날 밤 어디에 있었습니까?")
+        if st.button("심문 실행", type="primary", key="btn_ask") and question and not game.get("ended"):
             if timer_on and not st.session_state.get("timer_paused") and _timer_seconds_left() <= 0:
                 st.warning("시간 초과 — 턴이 패스됩니다.")
                 _handle_timeout(sid)
@@ -1843,7 +2323,7 @@ with left:
                     st.markdown(f"**{who}** — {content}")
 
     with tab_search:
-        query = st.text_input("검색 키워드", placeholder="법인카드 룸살롱 / Wi-Fi 100GB")
+        query = st.text_input("수색 쿼리", placeholder="법인카드 룸살롱 / Wi-Fi 100GB")
         if st.button("수색 실행", type="primary", key="btn_search") and query and not game.get("ended"):
             resp = requests.post(
                 f"{_api()}/api/v1/session/{sid}/search",
@@ -1885,7 +2365,7 @@ with left:
             key="accuse_ev",
         )
         ready = len(selected_labels) == 2 and not game.get("ended")
-        if st.button("진범으로 지목한다", type="primary", disabled=not ready, key="btn_accuse"):
+        if st.button("지목 확정", type="primary", disabled=not ready, key="btn_accuse"):
             eids = [ev_options[lab] for lab in selected_labels]
             resp = requests.post(
                 f"{_api()}/api/v1/session/{sid}/accuse",
@@ -1904,7 +2384,13 @@ with left:
                 st.error(resp.text)
 
 with right:
+    st.markdown(
+        '<div class="right-panel-marker" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
     _render_inventory(list(g.get("evidence_ids") or []))
+
+    st.markdown('<div class="panel-stack-gap" aria-hidden="true"></div>', unsafe_allow_html=True)
 
     pressure = g.get("pressure") or {}
     breaks = g.get("break_count") or {}
@@ -1929,15 +2415,36 @@ with right:
         rows.append("</div>")
         st.markdown("".join(rows), unsafe_allow_html=True)
 
-    if st.session_state.get("log"):
-        st.markdown(
-            '<div class="log-block">'
-            '<p class="panel-title">심문 기록</p>'
-            '<div class="log-title-gap" aria-hidden="true">&nbsp;</div>'
-            "</div>",
-            unsafe_allow_html=True,
-        )
-        for line in st.session_state["log"][-8:]:
-            st.chat_message("assistant").write(line)
+    st.markdown('<div class="panel-stack-gap" aria-hidden="true"></div>', unsafe_allow_html=True)
 
-st.caption("docs/GAME_RULES.md")
+    if st.session_state.get("log"):
+        entries = list(st.session_state["log"][-8:])
+        parts = ['<div class="log-block"><p class="panel-title">심문 기록</p>']
+        for i, line in enumerate(entries, start=1):
+            text = str(line or "")
+            kind = "LOG"
+            row_cls = "log-row"
+            if text.startswith("[조수]"):
+                kind = "ASSIST"
+                row_cls += " is-assist"
+                text = text.replace("[조수]", "", 1).strip()
+            elif "타임아웃" in text or "턴 패스" in text:
+                kind = "TIMEOUT"
+                row_cls += " is-alert"
+            elif "알리바이 붕괴" in text:
+                kind = "BREAK"
+                row_cls += " is-alert"
+            elif "단서 획득" in text:
+                kind = "CLUE"
+            parts.append(
+                f'<div class="{row_cls}">'
+                f'<div class="log-row-meta"><span>{kind}</span>'
+                f"<span>#{i:02d}</span></div>"
+                f'<p class="log-row-body">{html.escape(text)}</p>'
+                f"</div>"
+            )
+        parts.append("</div>")
+        st.markdown("".join(parts), unsafe_allow_html=True)
+
+st.caption("진실의 방 · interrogation deck")
+_sync_ops_rail_width()
