@@ -34,14 +34,16 @@ Interactive Mystery · Advanced RAG · Multi-Agent(AutoGen 심문) DLthon 프로
             ↓
 [RAG]    build_index (runs/rag/index) → baseline / advanced
             ↓
-[Agent]  LangGraph-style 심문 루프 + Function Calling
+[Agent]  LangGraph StateGraph (`lib/langgraph_runtime.py`) + AutoGen ask + Function Calling
             ↓
-[Eval]   evaluate (Faithfulness · 루브릭)
+[Eval]   evaluate (로컬 Faith) · RAGAS py3.12 n=30 · `scripts/plot_metrics.py`
             ↓
-[Service] FastAPI 세션/search/tool → Streamlit UI
+[Service] FastAPI 세션/search/tool/ask → Streamlit UI (API only)
             ↓
-[Docs]   README · PRT · 발표
+[Docs]   README · PRT · 발표 · Notion
 ```
+
+**라이브:** https://web-production-072b8.up.railway.app
 
 ---
 
@@ -52,8 +54,9 @@ truth-room/
 ├── MASTER_PLAN.md · TECH_SPEC.md · AI_CONVENTION.md · CLAUDE.md
 ├── README.md · ARCHITECTURE.md
 ├── ingest.py · build_index.py · rag_pipeline.py · agent_graph.py · evaluate.py
-├── lib/ · backend/ · app.py
-├── configs/ · data/ · runs/ · docs/ · tests/smoke/ · notebooks/
+├── lib/          # langgraph_runtime · autogen_runtime · rag_core · tools · …
+├── backend/ · app.py
+├── configs/ · data/ · runs/ · report/assets/ · docs/ · tests/smoke/ · notebooks/
 └── .github/
 ```
 

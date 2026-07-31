@@ -24,11 +24,14 @@
 
 ## Agent
 
-- [ ] `python3 agent_graph.py --smoke`
+- [ ] `python3 agent_graph.py --smoke` → `backend: langgraph`
+- [ ] `python3 scripts/smoke_autogen_ask.py`
 - [ ] 페르소나 자백 가드레일 (`ev_net_01` 전 부인) 확인
 
 ## Eval · Demo
 
 - [ ] `python3 evaluate.py`
-- [ ] API + Streamlit Golden Route 1회
+- [ ] `python3 scripts/eval_ragas.py` (n=30 · py≥3.10)
+- [ ] `python3 scripts/plot_metrics.py`
+- [ ] API + Streamlit Golden Route 1회 · 또는 Railway https://web-production-072b8.up.railway.app
 - [ ] `culprit_id` 클라이언트 미노출

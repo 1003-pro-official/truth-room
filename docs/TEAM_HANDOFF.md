@@ -63,8 +63,11 @@ python3 -m streamlit run app.py
 | Streamlit: 초상 선택 · 인벤 · 단서 · 타임어택 · 프로필 dialog | ✅ | `app.py`, `assets/suspects/` |
 | 프로필 열 때 타이머 pause / 닫으면 resume | ✅ | `app.py` (`_pause_timer` / `on_dismiss`) |
 | Smoke 테스트 | ✅ | `tests/smoke/` |
-| RAG baseline/advanced · eval 리포트 자동화 | 🟡 | 스크립트 있음 · `runs/` 는 로컬 생성 |
-| GM LLM 알리바이 판정 · Judge LLM | ⏳ | 스텁 → 프롬프트 고도화 예정 |
+| RAG baseline/advanced · Hit@5 **4/4** · soft routing · eval/RAGAS · 그래프 | ✅ | `runs/rag/` · `runs/eval/` · `report/assets/` · `scripts/plot_metrics.py` |
+| **LangGraph** StateGraph smoke | ✅ | `lib/langgraph_runtime.py` · `agent_graph.py --smoke` |
+| **AutoGen** ask 본선 | ✅ | `lib/autogen_runtime.py` · `scripts/smoke_autogen_ask.py` |
+| 로컬 LoRA ladder (≤3B) · 7B memory_limit | ✅ | `runs/sft/local_lora_qwen*` |
+| GM LLM 알리바이 판정 · Judge | ✅/⏳ | 로컬 판정 + 프롬프트 · live LLM 고도화는 선택 |
 
 최근 커밋 예:
 
@@ -77,7 +80,7 @@ python3 -m streamlit run app.py
 
 | 담당 | GitHub | 주로 보는/고치는 곳 | 브랜치 예 |
 | :--- | :--- | :--- | :--- |
-| 최승현 (Agent·PM) | `toryhyeon80` | `agent_graph.py`, `configs/agent.yaml`, `backend/`, 문서 | `feature/agent-*` |
+| 최승현 (Agent·PM) | `toryhyeon80` | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml`, `backend/`, 문서 | `feature/agent-*` |
 | 최병철 (Scenario) | `choi0310` | `data/scenarios/`, `data/raw/` | `feature/data-*` |
 | 박성우 (Prompt) | `parkjw8` | `data/personas/`, 시스템 프롬프트 | `feature/data-*` |
 | 이근목 (RAG·Tools) | `snarmse` | `ingest.py`, `build_index.py`, `rag_pipeline.py`, `lib/`, `evaluate.py` | `feature/rag-*` |
@@ -128,19 +131,18 @@ git push -u origin HEAD
 
 | 우선 | 내용 | 담당 힌트 |
 | :--- | :--- | :--- |
-| 페르소나·알리바이 대사 고도화 | `system_prompt` / mental_break | Prompt |
-| raw 증거 보강 · ID 일관성 | `data/raw/`, scenario 링크 | Scenario |
-| Hybrid RAG · eval 수치 README | `rag_pipeline` · `evaluate` · `update_report` | RAG |
-| GM `is_alibi_broken` LLM JSON | agent / game_engine | Agent · Prompt |
-| UI QA · 데모 스크립트 5분 | Streamlit · Golden Route | Service |
-| PRT · 발표 슬라이드 | `docs/PEER_REVIEW.md`, `PRESENTATION.md` | PM |
+| Golden Route UI 연출 · 5분 데모 리허설 | Streamlit · 라이브 URL | Service · PM |
+| 페르소나·알리바이 대사 폴리싱 | `system_prompt` / mental_break | Prompt |
+| PRT · 발표 슬라이드 확정 | `docs/PEER_REVIEW.md`, `PRESENTATION.md` | PM |
+| (선택) 32GB+/QLoRA로 7B LoRA 재시도 | `scripts/local_lora_persona.py` | Agent |
 
 질문·이슈는 GitHub Issues 또는 팀 채널에, 코드 변경은 **PR**로.
 
 ---
 
-## 8. 클라우드 데모 (선택)
+## 8. 클라우드 데모
 
-- **Railway (추천):** [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
+- **라이브 (Railway):** https://web-production-072b8.up.railway.app
+- 가이드: [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
 - Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
 

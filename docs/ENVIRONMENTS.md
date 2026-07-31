@@ -15,7 +15,9 @@
 | 이근목 | | RAG · tools · [@snarmse](https://github.com/snarmse) |
 | 천세문 | | Streamlit · 데모 · [@1003-pro-official](https://github.com/1003-pro-official) |
 
-공통: Python 3.9+ · `pip install -r requirements.txt -r requirements-llm.txt` · UI는 `streamlit`
+공통: Python **3.9+** · `pip install -r requirements.txt -r requirements-llm.txt` · UI는 `streamlit`  
+**RAGAS**는 Python **≥3.10** 권장 (본 레포 **3.12** 검증 · n=30 Faith≈0.64 / Prec≈0.75 / Recall≈0.77)  
+**라이브 데모:** https://web-production-072b8.up.railway.app
 
 ---
 

@@ -5,7 +5,8 @@
 > **체크리스트:** [TEAM_KICKOFF_CHECKLIST.md](TEAM_KICKOFF_CHECKLIST.md) · [TRAINING_CHECKLIST.md](TRAINING_CHECKLIST.md)  
 > **발표 초안:** [PRESENTATION.md](PRESENTATION.md)  
 > **역할:** [docs/ROLES.md](docs/ROLES.md)  
-> **마일스톤 매핑:** Data(ingest) → RAG → Agent → Eval → API → Demo
+> **마일스톤 매핑:** Data(ingest) → RAG → Agent → Eval → API → Demo  
+> **현황 (2026-07-31):** RAG Hit@5 4/4 · LangGraph smoke · AutoGen ask · RAGAS n=30 · LoRA≤3B · Railway 라이브 · **남은 핵심은 Golden Route 데모 연출**
 
 ---
 

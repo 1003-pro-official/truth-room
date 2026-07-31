@@ -10,7 +10,7 @@
 | :--- | :--- | :--- | :--- |
 | **Scenario / Prompt** | 사건·페르소나·자백 조건 | `data/scenarios/`, `data/personas/` | OS 무관 |
 | **RAG / Data** | 증거 코퍼스·인덱싱·검색·평가셋 · Function Calling | `data/raw/`, `lib/`, `ingest.py`, `build_index.py`, `rag_pipeline.py`, `evaluate.py` | 로컬·Colab |
-| **Agent / LangGraph-style** | 심문 상태머신·압력·툴 연쇄 · AutoGen ask | `agent_graph.py`, `lib/autogen_runtime.py`, `configs/agent.yaml` | 로컬 (API 키) |
+| **Agent / LangGraph** | 심문 상태머신·압력·툴 연쇄 · AutoGen ask | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml` | 로컬 (API 키) |
 | **Service / Demo** | API·UI·데모 | `backend/`, `app.py`, `configs/api.yaml` | 데모 PC |
 | **PM / Docs** (선택) | 리포트·발표·PRT | `README.md`, `PRESENTATION.md`, `docs/PEER_REVIEW.md` | — |
 
@@ -64,15 +64,15 @@
 
 ---
 
-## Agent / LangGraph-style
+## Agent / LangGraph
 
-**목표:** 심문 → 검색 → 툴 → 압박 → 엔딩. 온라인 ask는 AutoGen GroupChat, 오프라인 smoke는 `agent_graph.py`.
+**목표:** 심문 → 검색 → 툴 → 압박 → 엔딩. 온라인 ask는 AutoGen GroupChat, 오프라인 smoke는 **공식 LangGraph** StateGraph (`lib/langgraph_runtime.py` · `langgraph.enabled`).
 
 | 작업 | 산출물 |
 | :--- | :--- |
-| 그래프 | `agent_graph.py` · `runs/agent/` |
+| 그래프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `runs/agent/` |
 | AutoGen ask | `lib/autogen_runtime.py` · `scripts/smoke_autogen_ask.py` |
-| 스모크 | `agent_graph.py --smoke` · `scripts/smoke_autogen_ask.py` |
+| 스모크 | `agent_graph.py --smoke` (backend=`langgraph`) · `scripts/smoke_autogen_ask.py` |
 
 **Handoff → Service:** 세션 상태 스키마 · 툴 입출력 JSON을 API PR에 링크
 
@@ -97,7 +97,7 @@
 | :--- | :--- |
 | Scenario | 「용의자 3 · 핵심 증거 4 ID(카드·슬랙·출입·네트워크) · 자백 임계값」 |
 | RAG | 「Baseline vs Hybrid/RRF+rerank, Faithfulness로 비교」 |
-| Agent | 「LangGraph-style 상태머신으로 심문-증거-툴-대질 루프」 |
+| Agent | 「공식 LangGraph StateGraph로 심문-증거-툴-대질 루프 · ask는 AutoGen」 |
 | Service | 「FastAPI 세션 + Streamlit 진실의 방 데모」 |
 
 ---

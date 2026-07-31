@@ -20,4 +20,5 @@ python3 build_index.py
 | 네트워크 | `raw/network/*.txt` | Smoking Gun + 노이즈 |
 
 핵심 `evidence_id`: `ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`  
-시나리오: `scenarios/case_01.yaml` · 페르소나: `personas/`
+시나리오: `scenarios/case_01.yaml` · 페르소나: `personas/`  
+평가 질문 정본: `eval/eval_questions.jsonl` (**n=30**) · SFT: `sft/` (로컬 LoRA ladder · RAGAS)

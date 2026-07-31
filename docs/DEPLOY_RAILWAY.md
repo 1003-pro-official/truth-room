@@ -36,7 +36,9 @@ Internet ──HTTPS──► Railway ($PORT)
    - `CORS_ALLOW_ALL` = `1`
    - `OPENAI_API_KEY` = (권장 · AutoGen 심문 ask 본선. 없으면 스텁 폴백)
 5. **Settings → Networking → Generate Domain** (공개 URL)
-6. Deploy 완료 후 `https://<project>.up.railway.app` 접속 → **새 수사 개시**
+6. Deploy 완료 후 접속 → **새 수사 개시**  
+   **현 배포 URL:** https://web-production-072b8.up.railway.app  
+   (신규 프로젝트는 `https://<project>.up.railway.app`)
 
 첫 빌드는 pip 설치로 **수 분** 걸릴 수 있습니다.
 

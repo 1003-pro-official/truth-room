@@ -18,7 +18,7 @@ feature/service-*  (API·Streamlit)     ─┘
 | :--- | :--- | :--- |
 | Scenario / Prompt | `feature/data-*` | `data/scenarios/`, `data/personas/`, `data/raw/` |
 | RAG / Tools | `feature/rag-*` | `lib/`, ingest/index/rag/eval, `runs/rag/exp_*/` 요약 |
-| Agent | `feature/agent-*` | `agent_graph.py`, `configs/agent.yaml`, `runs/agent/` |
+| Agent | `feature/agent-*` | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml`, `runs/agent/` |
 | Service | `feature/service-*` | `backend/`, `app.py`, `configs/api.yaml` |
 
 ---

@@ -12,13 +12,13 @@
          ↓
 [RAG]   build_index → rag_pipeline (baseline | advanced)
          ↓
-[Agent] agent_graph (LangGraph-style 상태머신 + tools)
+[Agent] agent_graph + lib/langgraph_runtime (공식 StateGraph) · ask=autogen_runtime
          ↓
-[Eval]  evaluate (Faithfulness · 루브릭)
+[Eval]  evaluate · RAGAS (`scripts/eval_ragas.py`, n=30) · plot_metrics
          ↓
-[Service] FastAPI (세션·search·tool) → Streamlit (API 호출)
+[Service] FastAPI (세션·search·tool·ask) → Streamlit (API 호출)
          ↓
-[Docs]  README / PRT / 발표
+[Docs]  README / PRT / 발표 / Notion
 ```
 
 > **서빙 단일 경로:** Streamlit ❌ LLM/Chroma 직접 · ✅ `POST /api/v1/session/...`
@@ -32,7 +32,7 @@
 | `main` | 제출·발표 안정본 |
 | `feature/data-*` | Scenario · ingest |
 | `feature/rag-*` | index · pipeline · eval |
-| `feature/agent-*` | LangGraph |
+| `feature/agent-*` | LangGraph · AutoGen |
 | `feature/service-*` | API · UI |
 
 **흐름:** `feature/*` → PR → 리뷰 → Smoke CI → `main`
@@ -49,7 +49,10 @@ python3 build_index.py
 python3 rag_pipeline.py --mode baseline
 python3 rag_pipeline.py --mode advanced
 python3 agent_graph.py --smoke
+python3 scripts/smoke_autogen_ask.py
 python3 evaluate.py
+python3 scripts/eval_ragas.py          # Python ≥3.10 · n=30
+python3 scripts/plot_metrics.py        # report/assets/
 
 python3 -m uvicorn backend.main:app --reload --host 0.0.0.0 --port 8000
 python3 -m streamlit run app.py

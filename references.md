@@ -75,12 +75,13 @@
 
 | 레퍼런스 개념 | 레포 경로 | 상태 |
 | :--- | :--- | :---: |
-| 조력 AI / 용의자 AI 분리 | `data/personas/` · `agent_graph.py` · GM 톤 | 🟡 |
+| 조력 AI / 용의자 AI 분리 | `data/personas/` · `lib/autogen_runtime.py` · GM 톤 | 🟢 |
 | 방탈출형 규칙 · win_condition | `data/scenarios/case_01.yaml` | 🟢 |
-| Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `configs/agent.yaml` | 🟢 LangGraph smoke |
-
-| Modular / Hybrid RAG | `lib/rag_core.py` · `rag_pipeline.py` | 🟢 |
-| Streamlit 심문 UI | `app.py` → FastAPI only | 🟡 |
+| Modular / Hybrid RAG | `lib/rag_core.py` · soft routing · Hit@5 4/4 · C-Prec 0.40 | 🟢 |
+| Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` | 🟢 LangGraph smoke |
+| AutoGen GroupChat ask | `lib/autogen_runtime.py` | 🟢 본선 |
+| Streamlit 심문 UI | `app.py` → FastAPI only | 🟢 |
+| RAGAS · 메트릭 그래프 | `scripts/eval_ragas.py` · `scripts/plot_metrics.py` · `report/assets/` | 🟢 |
 | 리포트 · Notion | `update_report.py` · `update_notion.py` | 🟢 |
 
 ---

@@ -48,17 +48,20 @@
 
 ## Phase 1c — Agent
 
-- [ ] LangGraph 노드 연결 (심문·검색·대질·엔딩)
-- [ ] `python3 agent_graph.py --smoke`
-- [ ] Agent PR merge
+- [x] LangGraph StateGraph (`lib/langgraph_runtime.py`) · 심문·검색·툴·대질·엔딩
+- [x] `python3 agent_graph.py --smoke` (backend=`langgraph`)
+- [x] AutoGen ask (`lib/autogen_runtime.py` · `scripts/smoke_autogen_ask.py`)
+- [x] Agent PR merge
 
 ---
 
 ## Phase 1d — Eval
 
-- [ ] `python3 evaluate.py` (RAGAS 또는 루브릭)
-- [ ] 데모 스크립트 완주 테스트
-- [ ] Eval PR merge
+- [x] `python3 evaluate.py` (로컬 Faith)
+- [x] `python3 scripts/eval_ragas.py` (RAGAS py3.12 · n=30)
+- [x] `python3 scripts/plot_metrics.py` → `report/assets/`
+- [ ] 데모 스크립트 완주 테스트 (Golden Route UI)
+- [x] Eval 수치 README 반영
 
 ---
 

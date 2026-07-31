@@ -36,7 +36,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 **관찰**
 
 - **불균형:** logs·messenger가 청크의 ~90%를 차지 → dense-only 시 의미 유사 노이즈가 카드/네트워크 신호를 덮기 쉬움.
-- **핵심 증거 희소성:** `evidence_id`가 붙은 청크는 전체 5838 중 **6개**(약 0.1%). 검색 실패 비용이 큼.
+- **핵심 증거 희소성:** `evidence_id`가 붙은 청크는 전체 **6665** 중 **5개**(약 0.1%). 검색 실패 비용이 큼.
 - **중복:** 청크 텍스트 exact duplicate = **0** (완전 동일 복제 없음).
 - **의도적 결측/이상:** 로비 CCTV `unavailable`(폭우·정전), 출입 로그 위조 지문(`ev_log_07`) — 전처리로 삭제하지 않고 **툴·시나리오 신호**로 보존.
 
@@ -48,7 +48,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | :-------------------- | :----------------------------------------------------------------------------------------------------------------------------- |
 | 500자 청크            | 로그/슬랙 한 화면·심문 컨텍스트에 넣기 적합한 단위. 너무 크면 노이즈, 너무 작으면 evidence 문장 분절                           |
 | overlap 50            | 경계에서 Smoking Gun 문장이 잘리는 확률 완화                                                                                   |
-| Train/Val/Test 미분할 | 본 Task는 분류기 학습이 아니라 **검색 코퍼스 + 별도 eval 질문셋**. 분할 대신 `data/processed/eval_questions.jsonl`(n=6)로 평가 |
+| Train/Val/Test 미분할 | 본 Task는 분류기 학습이 아니라 **검색 코퍼스 + 별도 eval 질문셋**. 정본 `data/eval/eval_questions.jsonl` (**n=30**) |
 
 ### Ingest 결과
 
@@ -88,7 +88,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 - raw: `data/raw/{statements,forensics,messenger,logs,corporate_card,network}/`
 - chunks: `data/processed/chunks.jsonl`
 - index: `runs/rag/index/vectors.json`
-- eval set: `data/processed/eval_questions.jsonl` (n=6)
+- eval set: `data/eval/eval_questions.jsonl` (**n=30**, ragas·평가 정본) · 로컬 `evaluate` sample은 config에 따라 n=18 가능
 
 ### 데이터 정책 · 한계
 
@@ -259,7 +259,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 
 RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 토큰 overlap**을 채택했습니다. 절대값은 보수적으로 읽어야 하며, **주 KPI는 Hit@k·Context Recall**입니다.
 
-### 4.2 메트릭 결과 (eval_questions n=18)
+### 4.2 메트릭 결과 (로컬 evaluate sample n=18 · 데이터셋 정본 n=30)
 
 <!-- report:auto:eval -->
 
@@ -302,7 +302,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | RRF + rerank              |     ✅      | Smoking Gun 순위 안정화                                                                                                            |
 | eval 질문 분리            |     ✅      | 검색 코퍼스와 평가 질의 분리                                                                                                       |
 | OpenAI embedding / Chroma |   🧪 실험   | `text-embedding-3-small` · Hit@5 **0/4** → 본선 미채택                                                                             |
-| AutoGen                   | ✅ 본선 ask | GroupChat · `lib/autogen_runtime.py`. 오프라인 상태머신 smoke는 **LangGraph** (`agent_graph.py`) |
+| AutoGen                   | ✅ 본선 ask | GroupChat · `lib/autogen_runtime.py`. 오프라인 smoke는 **LangGraph** (`lib/langgraph_runtime.py` · `agent_graph.py` · `langgraph.enabled`) |
 | 대규모 LLM FT             |    ❌→🧪    | 대규모는 비범위. **소량 78쌍 제출 시도** → OpenAI FT 차단 · **로컬 LoRA로 대체 완주**                                              |
 
 ### 오류 패턴 (검색)
@@ -333,7 +333,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 결론 (설득력 범위 명시)
 
-1. **데이터·전처리:** 6종 raw → 5838 청크 파이프라인이 재현 가능하며, EDA상 노이즈 불균형·evidence 희소성이 Hybrid 선택의 근거가 된다.
+1. **데이터·전처리:** 6종 raw → **6665** 청크 파이프라인이 재현 가능하며, EDA상 노이즈 불균형·evidence 희소성이 Hybrid 선택의 근거가 된다.
 2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 4/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
 3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT/로컬 LoRA(Qwen)/Tool/Agent/Eval + 실패·개선 기록.
 4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=30(ragas)·로컬 overlap 한계.
@@ -341,7 +341,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### Next (완료 요약)
 
-1. ~~더 큰 한국어 베이스 LoRA~~ → **완료** (0.5B → **1.5B** Qwen, `lora_model_compare.json`)
+1. ~~더 큰 한국어 베이스 LoRA~~ → **완료** (SmolLM → 0.5B → **1.5B** → **3B**)
 2. ~~eval n 확대·재측정~~ → **완료** (로컬 eval n=18 · **ragas n=30**)
 3. ~~`ev_msg_12` exact 회수~~ → **완료** (Advanced top-1)
 4. ~~Context Precision~~ → **완료** (0.10→**0.40**, source soft routing)
@@ -360,7 +360,8 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | [docs/ROLES.md](docs/ROLES.md)                         | 역할 (최승현·최병철·박성우·이근목·천세문) |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)           | 팀원용 구현 현황 · 코드 맵 · 데모         |
 | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) | Docker + Cloudflare Containers            |
-| [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway (추천)                   |
+| [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
+
 | [docs/GAME_RULES.md](docs/GAME_RULES.md)               | 3-Out · 멘탈 붕괴 · 타임어택              |
 | [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)             | DLthon2 마일스톤                          |
 | [PRESENTATION.md](PRESENTATION.md)                     | 발표 초안                                 |

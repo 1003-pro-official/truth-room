@@ -10,14 +10,15 @@
 | :--- | :--- |
 | **제품** | 인터랙티브 심문 게임 (웹 데모) |
 | **케이스** | `case_01` — 「100억의 야근자들」· Omega 가중치 유출 |
-| **핵심 기술** | Advanced RAG (Hybrid/RRF) · Function Calling · LangGraph-style 상태머신 · LLM |
+| **핵심 기술** | Advanced RAG (Hybrid/RRF) · Function Calling · **LangGraph** StateGraph · **AutoGen** · LLM |
 | **차별점** | 단순 Q&A가 아니라 **심문 → 증거 → 자백** 루프 |
 | **제출물** | GitHub 리포트(`README.md`) · 데모 · Peer Review · 발표 |
 | **일정** | DLthon2 4일 전략·마일스톤 → [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) (**변경 가능**) |
 
 **완성 전략 (요약):** Day 1 문서·몹 기획으로 시나리오/데이터 동시 설계 → 상태머신↔Streamlit 뼈대 먼저 연결 → RAG·프롬프트를 얹어 데모 안정화.
 
-> **AutoGen:** 심문 ask 본선 — `lib/autogen_runtime.py` GroupChat(용의자·포렌식 조수·심판). `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백. 오프라인 상태머신 smoke는 `agent_graph.py`.
+> **AutoGen:** 심문 ask 본선 — `lib/autogen_runtime.py` GroupChat(용의자·포렌식 조수·심판). `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백.  
+> **LangGraph:** 오프라인 상태머신 smoke — `lib/langgraph_runtime.py` 공식 StateGraph · `agent_graph.py` 노드 · `langgraph.enabled` (false/미설치 시 순수 Python 폴백).
 
 ---
 
@@ -44,8 +45,8 @@
 | **0** | 레포·팀 | `docs/ROLES.md` 담당 · `.env` · configs |
 | **1a** | Data | 시나리오 YAML · 증거 코퍼스 · `runs/ingest/` |
 | **1b** | RAG | `runs/rag/index/` · Baseline/Advanced · `runs/rag/exp_*/` |
-| **1c** | Agent | LangGraph-style 루프 · `runs/agent/` · `--smoke` |
-| **1d** | Eval | Faithfulness 등 · `runs/eval/` |
+| **1c** | Agent | **LangGraph** StateGraph · `lib/langgraph_runtime.py` · `runs/agent/` · `--smoke` |
+| **1d** | Eval | Faithfulness · **RAGAS n=30** · `runs/eval/` |
 | **2** | API | FastAPI 심문/증거/세션/툴 |
 | **3** | Demo | Streamlit「진실의 방」UI |
 | **제출** | Docs | README · PRT · 발표 |
@@ -68,21 +69,21 @@
 
 ## 5. 성공 기준 (초안)
 
-- [ ] 용의자 3명 페르소나가 일관되게 대답
-- [ ] 핵심 증거 ID 회수 (Hit@k 팀 합의) · win_condition `[ev_card_03, ev_msg_12, ev_net_01]`
-- [ ] 심문 세션이 API → UI 단일 경로로 동작
-- [ ] Baseline RAG vs Advanced RAG 비교 수치 1회 이상
-- [ ] 5분 Golden Route 데모 (범인 지목 → 자백) 완주
-- [ ] 게임 룰: 3-Out · 멘탈 붕괴 · (선택) 20초 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
+- [x] 용의자 3명 페르소나가 일관되게 대답
+- [x] 핵심 증거 ID 회수 — Advanced Hit@5 **4/4** · win_condition `[ev_card_03, ev_msg_12, ev_net_01]`
+- [x] 심문 세션이 API → UI 단일 경로로 동작 (AutoGen ask 본선)
+- [x] Baseline RAG vs Advanced RAG 비교 (Hit@5 **0/4 → 4/4**)
+- [ ] 5분 Golden Route 데모 (범인 지목 → 자백) 완주 · UI 연출
+- [x] 게임 룰: 3-Out · 멘탈 붕괴 · 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
 
 ---
 
 ## 6. 비범위 (Out of scope · 초안)
 
 - 실시간 음성 / 3D
-- 대규모 파인튜닝 (LoRA는 선택·시간 남으면)
-- 상용 배포 (로컬·Colab 데모면 충분)
-- 무제한 AutoGen 티키타카(상한·폴백 없는) · OpenAI embedding/Chroma 필수화 (선택 실험만)
+- **대규모** LLM 파인튜닝 (소량 로컬 LoRA는 **완료**: SmolLM→0.5B→1.5B→**3B** · 7B는 16GB `memory_limit`)
+- 상용 필수화 (로컬·Colab도 가능 — **Railway 데모:** https://web-production-072b8.up.railway.app )
+- 무제한 AutoGen 티키타카(상한·폴백 없는) · OpenAI embedding/Chroma 필수화 (선택 실험만 · Hit@5에서 Advanced 미상회)
 - 객체탐지(YOLO) · CV 학습 파이프라인
 
 상세 기술 → [TECH_SPEC.md](TECH_SPEC.md) · 코딩 규칙 → [AI_CONVENTION.md](AI_CONVENTION.md)

@@ -8,12 +8,12 @@
 
 1. **타이틀** — 방구석 프로파일러: 진실의 방으로 · 「100억의 야근자들」
 2. **문제** — 단순 RAG 챗봇의 한계 →「플레이 가능한 추론」필요
-3. **솔루션** — 심문 × Advanced RAG × Function Calling × AutoGen Multi-Agent × 상태머신 압박 루프
-4. **아키텍처** — Data → Hybrid RAG → Agent(AutoGen ask + 상태) → FastAPI → UI
-5. **데이터** — 용의자 3 · 증거 소스 4종(메신저·출입·카드·네트워크) · win_condition
-6. **실험** — Baseline vs Advanced RAG (표 1장) · Faithfulness · AutoGen ask 스모크
-7. **데모** — Golden Route 라이브 또는 녹화 2~3분 (심문 transcript 시연)
-8. **회고 · 한계 · Next** (Chroma embedding·소량 FT 등은 Next로)
+3. **솔루션** — 심문 × Advanced RAG × Function Calling × **AutoGen** × **LangGraph** 압박 루프
+4. **아키텍처** — Data → Hybrid RAG → Agent(AutoGen ask + LangGraph StateGraph) → FastAPI → UI
+5. **데이터** — 용의자 3 · 증거 소스 6종 · Smoking Gun 4 ID · win_condition
+6. **실험** — Baseline vs Advanced Hit@5 **0/4→4/4** · RAGAS n=30 · LoRA ladder · AutoGen ask
+7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분
+8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit · UI Golden Route 연출)
 9. **역할 분담 · Q&A**
 
 ---
@@ -25,12 +25,15 @@
 3. 박신입 심문 → 슬랙 RAG → 목격자화 (1분)
 4. 이대리 대질 → 출입 미끼 + Wi-Fi 100GB → 자백 (1분 30초)
 5. 지목 → 엔딩 (30초)
-6. 기술 한 줄: Hybrid RAG + Function Calling + 상태 분기 (30초)
+6. 기술 한 줄: Hybrid RAG + Function Calling + LangGraph + AutoGen (30초)
 
 ---
 
-## 멘트로 쓸 숫자 (측정 후 기입)
+## 멘트로 쓸 숫자 (측정 완료)
 
-- Hit@5 / Faithfulness: — (`runs/eval/report.json`)
-- 평균 클리어 턴: —
-- 파이프라인: Baseline → Advanced 개선폭 —
+- **Hit@5 (고정 4쿼리):** Baseline **0/4** · Advanced **4/4** · Embedding **0/4**
+- **Context Precision:** soft routing **0.22→0.40** (Hit@5 유지)
+- **로컬 Faith / RAGAS Faith:** ≈0.27 / ≈**0.64** (n=30, Python 3.12)
+- **RAGAS C-Prec / C-Recall:** ≈**0.75** / ≈**0.77** (n=30)
+- **LoRA:** SmolLM→0.5B→1.5B→**3B** 완주 · **7B** 16GB `memory_limit`
+- **그래프:** `report/assets/` · `python3 scripts/plot_metrics.py`

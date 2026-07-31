@@ -25,7 +25,7 @@
 | :--- | :--- |
 | Data / Scenario | `data/`, `ingest.py`, `configs/ingest.yaml` |
 | RAG / Eval | `build_index.py`, `rag_pipeline.py`, `evaluate.py`, `configs/rag.yaml`, `configs/eval.yaml`, `runs/rag/`, `runs/eval/` |
-| Agent | `agent_graph.py`, `configs/agent.yaml`, `runs/agent/` · 페르소나 프롬프트 |
+| Agent | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml`, `runs/agent/` · 페르소나 프롬프트 |
 | Service | `backend/`, `app.py`, `configs/api.yaml` |
 | Docs / PM | `README.md`, `PRESENTATION.md`, `references.md`, `update_report.py`, `update_notion.py` |
 

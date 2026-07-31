@@ -9,7 +9,7 @@
 - [ ] Scenario / Data 원문
 - [ ] Prompt / Persona
 - [ ] RAG / Tools
-- [ ] Agent / LangGraph-style
+- [ ] Agent / LangGraph
 - [ ] Service / Demo
 - [ ] PM / Docs
 

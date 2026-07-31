@@ -12,12 +12,13 @@
 | LLM | OpenAI / 대체 가능 (env) | `.env` 키만 · UI에서 직결 금지 |
 | Orchestration | **LangGraph** StateGraph (`lib/langgraph_runtime.py` · `agent_graph.py`) + **AutoGen GroupChat** 심문 턴 | 오프라인 smoke=`agent_graph --smoke` (langgraph) · 온라인 ask=`lib/autogen_runtime` |
 | Multi-Agent | 용의자 · 포렌식 조수 · 심판 (pyautogen) | `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백 |
-| RAG | **로컬 Hybrid** (`lib/rag_core.py`) | Baseline=dense · Advanced=sparse+dense **RRF+rerank** · 인덱스 `runs/rag/index/` |
+| RAG | **로컬 Hybrid** (`lib/rag_core.py`) + **source soft routing** | Baseline=dense · Advanced=sparse+dense **RRF+rerank** · Hit@5 **4/4** · C-Prec **0.40** · 인덱스 `runs/rag/index/` |
 | Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
-| Eval | 로컬 Faithfulness + 시나리오 루브릭 | `evaluate.py` · RAGAS는 선택 |
+| Eval | 로컬 Faithfulness + **RAGAS** | `evaluate.py` · `scripts/eval_ragas.py` (Python 3.12 · **n=30** Faith≈0.64 · Prec≈0.75 · Recall≈0.77) · `scripts/plot_metrics.py` |
 | API | FastAPI | `backend/` |
 | UI | Streamlit | `app.py` — **API만** 호출 |
-| Config | YAML | `configs/*.yaml` |
+| Deploy | Railway | https://web-production-072b8.up.railway.app |
+| Config | YAML | `configs/*.yaml` · `langgraph.enabled` · `autogen.enabled` |
 
 ---
 
@@ -143,7 +144,7 @@ State:
 | 메트릭 | 대상 | 기준 |
 | :--- | :--- | :--- |
 | Context Precision / Recall | RAG | Baseline vs Advanced |
-| Faithfulness / Answer Relevancy | 생성 | `evaluate.py` (로컬) · RAGAS 선택 |
+| Faithfulness / Answer Relevancy | 생성 | `evaluate.py` (로컬) · **RAGAS** `scripts/eval_ragas.py` (py3.12 · n=30) |
 | Scenario clear rate | 에이전트 | Golden Route 데모 완주 |
 
 ---
