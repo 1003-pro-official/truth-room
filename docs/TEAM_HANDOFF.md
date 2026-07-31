@@ -136,3 +136,11 @@ git push -u origin HEAD
 | PRT · 발표 슬라이드 | `docs/PEER_REVIEW.md`, `PRESENTATION.md` | PM |
 
 질문·이슈는 GitHub Issues 또는 팀 채널에, 코드 변경은 **PR**로.
+
+---
+
+## 8. 클라우드 데모 (선택)
+
+- **Railway (추천):** [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
+- Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
+

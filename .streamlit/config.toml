@@ -8,3 +8,9 @@ font = "sans serif"
 
 [browser]
 gatherUsageStats = false
+
+[server]
+headless = true
+# Cloudflare Container / reverse proxy (WebSocket)
+enableCORS = false
+enableXsrfProtection = false

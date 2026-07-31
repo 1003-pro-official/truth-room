@@ -1,0 +1,21 @@
+# 로컬에서 Cloudflare 없이 컨테이너 검증
+#   docker compose up --build
+# 브라우저: http://localhost:8080
+
+services:
+  truth-room:
+    build:
+      context: .
+      platforms:
+        - linux/amd64
+    image: truth-room:local
+    ports:
+      - "8080:8080"
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      API_URL: http://127.0.0.1:8000
+      CORS_ALLOW_ALL: "1"
+      # OPENAI_API_KEY: set in .env
+    restart: unless-stopped

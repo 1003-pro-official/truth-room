@@ -9,6 +9,7 @@ backend/main.py — Phase 2 FastAPI (진실의 방으로)
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 from typing import Any
 
@@ -23,8 +24,16 @@ API_CONFIG = ROOT / "configs" / "api.yaml"
 
 
 def _cors_origins() -> list[str]:
+    # Docker / Cloudflare Containers — Streamlit이 같은 오리진 또는 workers.dev
+    if os.environ.get("CORS_ALLOW_ALL", "").strip() in ("1", "true", "yes"):
+        return ["*"]
     cfg = load_api_config(API_CONFIG) if API_CONFIG.exists() else load_api_config()
     return list(cfg.get("cors_origins", ["http://localhost:8501"]))
+
+
+def _cors_credentials() -> bool:
+    # allow_origins=["*"] 와 credentials 동시 사용 불가
+    return "*" not in _cors_origins()
 
 
 app = FastAPI(
@@ -36,7 +45,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=_cors_origins(),
-    allow_credentials=True,
+    allow_credentials=_cors_credentials(),
     allow_methods=["*"],
     allow_headers=["*"],
 )

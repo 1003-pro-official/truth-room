@@ -1,0 +1,31 @@
+# Cloudflare Containers — 진실의 방으로
+# 문서: docs/DEPLOY_CLOUDFLARE.md
+#
+# 사전: Docker Desktop 실행 + `npx wrangler login`
+# 배포: cd deploy/cloudflare && npm i && npx wrangler deploy
+
+name = "truth-room"
+main = "src/index.ts"
+compatibility_date = "2025-05-25"
+compatibility_flags = ["nodejs_compat"]
+
+workers_dev = true
+
+[[containers]]
+class_name = "TruthRoomContainer"
+image = "../../Dockerfile"
+max_instances = 2
+# 데모 중 cold start 완화 (요금 주의)
+# instance_type = "basic"
+
+[[durable_objects.bindings]]
+name = "TRUTH_ROOM"
+class_name = "TruthRoomContainer"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["TruthRoomContainer"]
+
+# 비민감 기본값 (시크릿은 `npx wrangler secret put OPENAI_API_KEY`)
+[vars]
+APP_NAME = "truth-room"

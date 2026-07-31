@@ -1,0 +1,21 @@
+{
+  "name": "truth-room-cloudflare",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "containers:list": "wrangler containers list",
+    "tail": "wrangler tail"
+  },
+  "dependencies": {
+    "@cloudflare/containers": "^0.3.7"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20250525.0",
+    "typescript": "^5.8.3",
+    "wrangler": "^4.19.1"
+  },
+  "overrides": {
+    "@cloudflare/workers-types": "$@cloudflare/workers-types"
+  }
+}

@@ -49,6 +49,18 @@ python3 -m streamlit run app.py
 
 ---
 
+## 3b. 클라우드 데모 (선택)
+
+- **Railway (추천):** [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
+- Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
+
+```bash
+docker compose up --build          # http://localhost:8080
+# Railway: GitHub 연동 또는 npx @railway/cli up
+```
+
+---
+
 ## 4. 트러블슈팅
 
 | 증상 | 조치 |
@@ -56,3 +68,5 @@ python3 -m streamlit run app.py
 | `command not found: streamlit` | `python3 -m streamlit run app.py` |
 | API Connection refused | `python3 -m uvicorn backend.main:app --port 8000` 후 UI 새로고침 |
 | chunks 없음 | `python3 ingest.py` → `python3 build_index.py` |
+| Docker missing | Docker Desktop 설치 후 `docker info` 확인 |
+| Railway healthcheck 실패 | 로그에서 API/Streamlit 기동 확인 · `healthcheckTimeout` 증가 |
