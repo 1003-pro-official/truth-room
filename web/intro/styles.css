@@ -40,6 +40,74 @@ body {
   background: linear-gradient(180deg, rgba(7, 9, 13, 0.85), transparent);
 }
 
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  pointer-events: auto;
+}
+
+.bgm-toggle {
+  pointer-events: auto;
+  margin: 0;
+  width: 2.5rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border-radius: 0.4rem;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(18, 22, 30, 0.85);
+  color: var(--ink);
+  cursor: pointer;
+}
+
+.bgm-toggle:hover {
+  border-color: #fff;
+}
+
+.bgm-toggle[aria-pressed="true"] {
+  border-color: var(--accent);
+}
+
+.eq {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2px;
+  width: 14px;
+  height: 12px;
+}
+
+.eq i {
+  display: block;
+  width: 2px;
+  height: 40%;
+  border-radius: 1px;
+  background: #c5ccd6;
+  transform-origin: bottom center;
+}
+
+.bgm-toggle[aria-pressed="true"] .eq i {
+  background: var(--accent);
+  animation: eq-bounce 0.9s ease-in-out infinite;
+}
+
+.bgm-toggle[aria-pressed="true"] .eq i:nth-child(1) { animation-delay: 0s; }
+.bgm-toggle[aria-pressed="true"] .eq i:nth-child(2) { animation-delay: 0.15s; }
+.bgm-toggle[aria-pressed="true"] .eq i:nth-child(3) { animation-delay: 0.35s; }
+.bgm-toggle[aria-pressed="true"] .eq i:nth-child(4) { animation-delay: 0.22s; }
+
+.bgm-toggle[aria-pressed="false"] .eq i {
+  height: 35%;
+  opacity: 0.55;
+}
+
+@keyframes eq-bounce {
+  0%, 100% { height: 30%; }
+  50% { height: 100%; }
+}
+
 .brand {
   font-family: var(--font-display);
   font-size: 1.15rem;

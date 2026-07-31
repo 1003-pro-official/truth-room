@@ -49,11 +49,203 @@
   const gameFrame = document.getElementById("gameFrame");
   const enterGameBtn = document.getElementById("enterGameBtn");
   const gameSection = document.getElementById("gameSection");
+  const introBgm = document.getElementById("introBgm");
+  const gameBgm = document.getElementById("gameBgm");
+  const bgmToggle = document.getElementById("bgmToggle");
 
   let scenes = FALLBACK_SCENES;
   let caseMeta = { case_id: "case_01", title: "진실의 방" };
   let sessionId = null;
   let gameReady = false;
+  let bgmUserMuted = false;
+  let bgmStarted = false;
+  let bgmFading = false;
+  let inGameZone = false;
+  const BGM_VOL = 0.45;
+  let fadeToken = 0;
+  /** 씬당 체류 후 자동 스크롤 (7~8초) */
+  const AUTO_SCENE_MS = 7500;
+  const AUTO_SCROLL_MS = 1100;
+  let autoTimer = null;
+  let autoSceneIndex = -1;
+  let autoScrolling = false;
+
+  if (introBgm) introBgm.volume = BGM_VOL;
+  if (gameBgm) gameBgm.volume = BGM_VOL;
+
+  function setBgmUi(on) {
+    if (!bgmToggle) return;
+    bgmToggle.setAttribute("aria-pressed", on ? "true" : "false");
+    bgmToggle.setAttribute("aria-label", on ? "배경음악 끄기" : "배경음악 켜기");
+    bgmToggle.title = on ? "BGM ON" : "BGM OFF";
+  }
+
+  function pauseEl(el) {
+    if (!el) return;
+    el.pause();
+  }
+
+  async function tryStartTrack(el) {
+    if (!el || bgmUserMuted || bgmFading || inGameZone) return false;
+    try {
+      el.muted = false;
+      el.volume = BGM_VOL;
+      await el.play();
+      bgmStarted = true;
+      setBgmUi(true);
+      return true;
+    } catch (err) {
+      bgmStarted = false;
+      setBgmUi(false);
+      return false;
+    }
+  }
+
+  async function tryStartBgm() {
+    if (inGameZone) return false;
+    return tryStartTrack(introBgm);
+  }
+
+  function fadeOutEl(el, ms = 900) {
+    return new Promise((resolve) => {
+      if (!el || el.paused) {
+        pauseEl(el);
+        resolve();
+        return;
+      }
+      const token = ++fadeToken;
+      bgmFading = true;
+      const start = el.volume;
+      const t0 = performance.now();
+      function step(now) {
+        if (token !== fadeToken) {
+          resolve();
+          return;
+        }
+        const t = Math.min(1, (now - t0) / ms);
+        el.volume = Math.max(0, start * (1 - t));
+        if (t < 1) {
+          requestAnimationFrame(step);
+          return;
+        }
+        pauseEl(el);
+        el.volume = BGM_VOL;
+        bgmFading = false;
+        resolve();
+      }
+      requestAnimationFrame(step);
+    });
+  }
+
+  function fadeInEl(el, ms = 800) {
+    if (!el || bgmUserMuted) return Promise.resolve(false);
+    const token = ++fadeToken;
+    bgmFading = true;
+    el.volume = 0;
+    return el
+      .play()
+      .then(
+        () =>
+          new Promise((resolve) => {
+            bgmStarted = true;
+            setBgmUi(true);
+            const t0 = performance.now();
+            function step(now) {
+              if (token !== fadeToken) {
+                resolve(false);
+                return;
+              }
+              const t = Math.min(1, (now - t0) / ms);
+              el.volume = BGM_VOL * t;
+              if (t < 1) {
+                requestAnimationFrame(step);
+                return;
+              }
+              bgmFading = false;
+              el.volume = BGM_VOL;
+              resolve(true);
+            }
+            requestAnimationFrame(step);
+          })
+      )
+      .catch(() => {
+        bgmFading = false;
+        bgmStarted = false;
+        setBgmUi(false);
+        return false;
+      });
+  }
+
+  async function crossfadeToGame() {
+    // 게임 화면 BGM 비활성 — 인트로만 페이드아웃
+    await fadeOutEl(introBgm, 900);
+    pauseEl(gameBgm);
+    setBgmUi(false);
+  }
+
+  async function crossfadeToIntro() {
+    pauseEl(gameBgm);
+    if (inGameZone || bgmUserMuted) {
+      setBgmUi(false);
+      return;
+    }
+    await fadeInEl(introBgm, 800);
+  }
+
+  function bindBgmGestures() {
+    const unlock = () => {
+      if (!bgmUserMuted && !inGameZone && introBgm && (introBgm.paused || !bgmStarted)) {
+        tryStartBgm();
+      }
+    };
+    ["pointerdown", "touchstart", "keydown", "scroll", "wheel"].forEach((ev) => {
+      window.addEventListener(ev, unlock, { passive: true });
+    });
+    if (bgmToggle) {
+      bgmToggle.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        if (!introBgm) return;
+        if (inGameZone) {
+          // 게임 구간에서는 BGM 없음
+          bgmUserMuted = true;
+          fadeToken += 1;
+          bgmFading = false;
+          pauseEl(introBgm);
+          pauseEl(gameBgm);
+          setBgmUi(false);
+          return;
+        }
+        if (!introBgm.paused && !bgmUserMuted) {
+          bgmUserMuted = true;
+          fadeToken += 1;
+          bgmFading = false;
+          pauseEl(introBgm);
+          pauseEl(gameBgm);
+          setBgmUi(false);
+          return;
+        }
+        bgmUserMuted = false;
+        bgmFading = false;
+        introBgm.volume = BGM_VOL;
+        await tryStartBgm();
+      });
+    }
+  }
+
+  async function autoplayBgm() {
+    if (await tryStartBgm()) return;
+    if (introBgm) {
+      introBgm.addEventListener(
+        "canplaythrough",
+        () => {
+          tryStartBgm();
+        },
+        { once: true }
+      );
+    }
+    setTimeout(() => tryStartBgm(), 300);
+    setTimeout(() => tryStartBgm(), 1000);
+  }
 
   function assetUrl(imageKey) {
     const key = String(imageKey || "").replace(/^\/+/, "");
@@ -109,6 +301,61 @@
     return Math.min(1, Math.max(0, scrolled / total));
   }
 
+  function activeSceneIndex(nodes) {
+    let best = -1;
+    nodes.forEach((scene, i) => {
+      if (scene.classList.contains("is-active")) best = i;
+    });
+    if (best >= 0) return best;
+    // 활성 판정 전이/직후 폴백
+    for (let i = 0; i < nodes.length; i += 1) {
+      const mid = nodes[i].getBoundingClientRect();
+      if (mid.top < window.innerHeight * 0.55 && mid.bottom > window.innerHeight * 0.35) {
+        return i;
+      }
+    }
+    return nodes.length ? 0 : -1;
+  }
+
+  function clearAutoAdvance() {
+    if (autoTimer) {
+      clearTimeout(autoTimer);
+      autoTimer = null;
+    }
+  }
+
+  function scrollToY(y) {
+    autoScrolling = true;
+    clearAutoAdvance();
+    window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
+    window.setTimeout(() => {
+      autoScrolling = false;
+      onScroll();
+    }, AUTO_SCROLL_MS + 80);
+  }
+
+  function advanceFromScene(idx) {
+    const nodes = [...document.querySelectorAll(".scene")];
+    if (!nodes.length || inGameZone) return;
+    if (idx >= nodes.length - 1) {
+      scrollToY(gameSection.offsetTop);
+      return;
+    }
+    scrollToY(nodes[idx + 1].offsetTop);
+  }
+
+  function scheduleAutoAdvance(idx) {
+    clearAutoAdvance();
+    if (inGameZone || autoScrolling) return;
+    if (idx < 0) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    autoTimer = window.setTimeout(() => {
+      autoTimer = null;
+      if (inGameZone || autoScrolling) return;
+      advanceFromScene(idx);
+    }, AUTO_SCENE_MS);
+  }
+
   function onScroll() {
     const nodes = [...document.querySelectorAll(".scene")];
     let anyActive = false;
@@ -132,8 +379,24 @@
     else scrollHint.classList.remove("is-hide");
 
     const gameTop = gameSection.getBoundingClientRect().top;
-    if (gameTop < window.innerHeight * 0.75) {
+    const nowInGame = gameTop < window.innerHeight * 0.75;
+    if (nowInGame && !inGameZone) {
+      inGameZone = true;
+      clearAutoAdvance();
+      autoSceneIndex = -1;
+      crossfadeToGame();
       ensureGameSession();
+    } else if (!nowInGame && inGameZone) {
+      inGameZone = false;
+      crossfadeToIntro();
+    }
+
+    if (!inGameZone && !autoScrolling) {
+      const idx = activeSceneIndex(nodes);
+      if (idx !== autoSceneIndex) {
+        autoSceneIndex = idx;
+        scheduleAutoAdvance(idx);
+      }
     }
   }
 
@@ -193,6 +456,9 @@
   }
 
   async function boot() {
+    setBgmUi(false);
+    bindBgmGestures();
+    autoplayBgm();
     await fetchPublicCase();
     renderScenes(scenes);
     onScroll();

@@ -7,6 +7,8 @@ cd /app
 PORT="${PORT:-8080}"
 export PORT
 export API_URL="${API_URL:-http://127.0.0.1:8000}"
+# 브라우저용 정적 에셋 (루프백 API_URL과 분리 — nginx /assets)
+export ASSET_PUBLIC_URL="${ASSET_PUBLIC_URL:-/assets}"
 export CORS_ALLOW_ALL="${CORS_ALLOW_ALL:-1}"
 
 # nginx listen 포트를 $PORT 에 맞춤

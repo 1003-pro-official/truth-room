@@ -21,6 +21,7 @@ from pathlib import Path
 
 import requests
 import streamlit as st
+import streamlit.components.v1 as components
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 ROOT = Path(__file__).resolve().parent
@@ -79,6 +80,9 @@ PROFILE_FIELD_ORDER = PROFILE_IDENTITY_FIELDS + PROFILE_INTERROGATION_FIELDS
 
 _qp = st.query_params
 _embed = str(_qp.get("embed") or "") in ("1", "true", "yes")
+if _embed:
+    # 인트로 셸 iframe — 부모 페이지가 game.mp3 재생 (이중 재생 방지)
+    st.session_state["from_intro_shell"] = True
 st.set_page_config(
     page_title="진실의 방으로",
     page_icon="🚪",
@@ -120,6 +124,54 @@ st.markdown(
 
 def _api() -> str:
     return st.session_state.get("api_url", API_URL).rstrip("/")
+
+
+def _browser_asset_url(rel: str) -> str:
+    """브라우저가 직접 받는 정적 URL (서버 루프백 API_URL과 분리)."""
+    base = (os.environ.get("ASSET_PUBLIC_URL") or "").rstrip("/")
+    if not base:
+        if os.environ.get("RAILWAY_ENVIRONMENT") or Path("/.dockerenv").exists():
+            base = "/assets"
+        else:
+            base = f"{API_URL.rstrip('/')}/assets"
+    return f"{base}/{rel.lstrip('/')}"
+
+
+def _inject_game_bgm(*, muted: bool = False) -> None:
+    """Streamlit 단독 진입 시 game.mp3 (UI 없음 — 사이드바 토글로 제어)."""
+    if st.session_state.get("from_intro_shell"):
+        return
+    src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
+    muted_js = "true" if muted else "false"
+    # height=0 · 버튼 없음 — Streamlit components 이중 마운트로 버튼이 두 개 보이던 문제 방지
+    components.html(
+        f"""<!DOCTYPE html>
+<html><body style="margin:0">
+<audio id="a" src="{src}" loop preload="auto" playsinline></audio>
+<script>
+(function(){{
+  const a=document.getElementById("a");
+  const VOL=0.45;
+  const muted={muted_js};
+  a.volume=VOL;
+  async function play(){{
+    if(muted){{a.pause();return;}}
+    try{{await a.play();}}catch(e){{}}
+  }}
+  if(muted){{a.pause();}}
+  else{{
+    ["pointerdown","keydown","touchstart"].forEach(function(ev){{
+      try{{window.parent.addEventListener(ev,function(){{play();}},{{once:true,passive:true}});}}catch(e){{}}
+      window.addEventListener(ev,function(){{play();}},{{once:true,passive:true}});
+    }});
+    play();
+  }}
+}})();
+</script>
+</body></html>""",
+        height=0,
+        width=0,
+    )
 
 
 def _reset_timer() -> None:

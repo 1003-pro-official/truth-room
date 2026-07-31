@@ -12,8 +12,31 @@
 <body>
   <header class="topbar">
     <div class="brand">진실의 방</div>
-    <p class="topbar-hint" id="scrollHint">스크롤하여 브리핑을 진행하세요</p>
+    <div class="topbar-right">
+      <button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="배경음악">
+        <span class="eq" aria-hidden="true">
+          <i></i><i></i><i></i><i></i>
+        </span>
+      </button>
+      <p class="topbar-hint" id="scrollHint">잠시 후 자동 진행 · 스크롤로도 이동</p>
+    </div>
   </header>
+
+  <audio
+    id="introBgm"
+    src="/assets/audio/intro.mp3"
+    loop
+    preload="auto"
+    autoplay
+    playsinline
+  ></audio>
+  <audio
+    id="gameBgm"
+    src="/assets/audio/game.mp3"
+    loop
+    preload="auto"
+    playsinline
+  ></audio>
 
   <main id="pinRoot" class="pin-root" aria-live="polite">
     <!-- scenes injected by app.js -->
