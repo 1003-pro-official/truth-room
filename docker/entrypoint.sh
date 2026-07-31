@@ -11,6 +11,13 @@ export API_URL="${API_URL:-http://127.0.0.1:8000}"
 export ASSET_PUBLIC_URL="${ASSET_PUBLIC_URL:-/assets}"
 export CORS_ALLOW_ALL="${CORS_ALLOW_ALL:-1}"
 
+# 이미지에 runs/·processed 미포함 → 최초 기동 시 raw에서 인덱스 구축
+if [ ! -f runs/rag/index/vectors.json ] || [ ! -f data/processed/chunks.jsonl ]; then
+  echo "[truth-room] building RAG index from data/raw (ingest + build_index)"
+  python3 ingest.py
+  python3 build_index.py
+fi
+
 # nginx listen 포트를 $PORT 에 맞춤
 sed "s/listen       8080;/listen       ${PORT};/" /app/docker/nginx.conf > /tmp/nginx.conf
 
