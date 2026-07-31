@@ -177,11 +177,13 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-RAG-A** | hybrid RRF + rerank | 고정 4쿼리 exact Hit **3/4** · card/net top-1 | `runs/rag/exp_advanced/` |
 | **EXP-EMBED** | OpenAI `text-embedding-3-small` + Chroma | 동일 4쿼리 Hit@5 **0/4** · Advanced 미상회 | `runs/rag/exp_embedding/` · `lib/rag_chroma.py` |
 | **EXP-PROMPT** | 페르소나 템플릿에 알리바이·환각·단정 금지 조항 추가 | 3인 렌더 규칙 검사 **통과** · live 알리바이 유지 | `data/personas/prompt_template.yaml` · `runs/sft/persona_prompt_eval.json` |
-| **EXP-SFT-SMALL** | 소량 페르소나 SFT JSONL **78쌍** (OpenAI FT 형식) | dry-run 준비 완료 · `--submit`은 선택(과금) | `data/sft/` · `scripts/build_persona_sft.py` |
+| **EXP-SFT-SMALL** | 소량 SFT 78쌍 + OpenAI FT `--submit` | **OpenAI 403** `training_not_available`(셀프서브 FT 종료) | `runs/sft/finetune_job_openai.json` |
+| **EXP-SFT-LOCAL** | 동일 78쌍 → 로컬 LoRA (`SmolLM2-135M`) | train_loss **1.87** · MPS 30steps · 한국어 생성 품질은 제한 | `scripts/local_lora_persona.py` · `runs/sft/local_lora/` |
 | **EXP-AUTOGEN** | pyautogen GroupChat → **본선 ask 경로** | 고정 순서·max_round·timeout·폴백 · Streamlit transcript | `lib/autogen_runtime.py` · `configs/agent.yaml` `autogen` |
 | **EXP-FAIL-1** | dense만으로 카드 Smoking Gun 확정 | **실패** — top-1 출입로그 오탐 | 아래 |
 | **EXP-FAIL-2** | Advanced로 `ev_msg_12` exact 회수 | **부분 실패** — `ev_msg`만 상위 | 아래 |
 | **EXP-FAIL-3** | Embedding만으로 Smoking Gun ID 회수 | **실패** — 의미 유사 노이즈(logs 등)가 상위 | 아래 |
+| **EXP-FAIL-4** | OpenAI self-serve FT로 페르소나 개선 | **실패** — 조직 FT job 생성 차단 | 아래 |
 | **EXP-TOOL** | `request_cctv_log` · `run_forensic` | 로비 CCTV 결측 · 이대리 노트북 MAC 힌트 | `data/tools/` · API `/tool` |
 | **EXP-AGENT** | ReAct: 심문→retrieve→CCTV→pressure | smoke 1턴 완주 | `runs/agent/smoke.json` |
 | **EXP-EVAL** | Faithfulness 로컬 루브릭 | 아래 §4 | `runs/eval/report.json` |
@@ -193,6 +195,17 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-FAIL-1** | dense만으로도 카드 증거가 위로 온다 | `rag_pipeline.py --mode baseline --query "법인카드 룸살롱"` | top-1=`access_control_*`, `ev_card_03` ∉ top-5 ID | Hybrid/rerank 필수 |
 | **EXP-FAIL-2** | Advanced면 슬랙 Smoking Gun도 exact Hit | 동일 프로토콜 · 쿼리 `슬랙 DM 박신입 서버실` | top-1=`ev_msg`(부분), `ev_msg_12` 미Hit | evidence 태깅·쿼리 정규화 보강 여지 |
 | **EXP-FAIL-3** | 상용 embedding이면 Hit@5가 Advanced를 이긴다 | `build_index.py --backend chroma` + `--mode embedding` | 4쿼리 Hit@5 **0/4** (예: 카드 쿼리→logs) | Task KPI엔 evidence/키워드 rerank가 더 직접적 |
+| **EXP-FAIL-4** | OpenAI FT로 페르소나 말투 고정 | `openai_finetune_persona.py --submit` | **403** `training_not_available` (self-serve FT wind-down) | 상용 FT 의존 위험 · 로컬 LoRA로 파이프라인 학습 |
+
+### 소량 SFT · FT 실험 상세
+
+| 단계 | 결과 |
+| :--- | :--- |
+| 데이터 | `data/sft/persona_sft.jsonl` **78** examples (OpenAI messages 형식) |
+| 프롬프트-only live | `gpt-4o-mini` · 알리바이 유지·AI 미노출 (`runs/sft/persona_prompt_eval.json`) |
+| OpenAI FT submit | **실패** — 조직에 신규 fine-tuning job 생성 권한 없음 ([deprecations](https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning)) |
+| 로컬 LoRA 대체 | `SmolLM2-135M-Instruct` · trainable **0.34%** · 30 steps · `train_loss≈1.87` · adapter `runs/sft/local_lora/` |
+| 학습 | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 데모용 gpt-4o-mini를 대체하지 못함) |
 
 ### Agent 스모크 (1턴)
 
@@ -266,7 +279,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | eval 질문 분리 | ✅ | 검색 코퍼스와 평가 질의 분리 |
 | OpenAI embedding / Chroma | 🧪 실험 | `text-embedding-3-small` · Hit@5 **0/4** → 본선 미채택 |
 | AutoGen | ✅ 본선 ask | GroupChat (용의자·조수·심판) · `lib/autogen_runtime.py` · `autogen.enabled` · 실패 시 스텁 폴백. 오프라인 smoke는 `agent_graph.py` |
-| 대규모 LLM FT | ❌ | 비범위. 대신 **소량 SFT 78쌍** 준비(`data/sft/`) · 제출은 선택 |
+| 대규모 LLM FT | ❌→🧪 | 대규모는 비범위. **소량 78쌍 제출 시도** → OpenAI FT 차단 · **로컬 LoRA로 대체 완주** |
 
 ### 오류 패턴 (검색)
 
@@ -299,11 +312,11 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 2. **성능 개선:** 동일 쿼리 프로토콜에서 Baseline Hit@5 **0/4 → Advanced 3/4**. OpenAI+Chroma Embedding은 **0/4**로 Advanced를 상회하지 못함 → 본선은 Hybrid 유지.
 3. **여러 시도:** Baseline/Advanced/Embedding/Prompt/SFT-small/Tool/Agent/Eval + **실패 3건**을 기록.
 4. **메트릭:** Hit@k·Context Recall을 주 KPI로, Faithfulness 등은 보수적 proxy. **절대 성능 우수 주장 안 함** — n=6·로컬 overlap 한계.
-5. **비범위 준수:** 대규모 FT 필수는 하지 않음. AutoGen은 **심문 ask 본선**(`lib/autogen_runtime.py`, `autogen.enabled`) · 실패 시 스텁 폴백. 오프라인 상태머신은 `agent_graph.py`.
+5. **비범위 준수:** 대규모 FT는 하지 않음. 소량 SFT는 **실행** — OpenAI FT는 플랫폼 종료로 실패, 로컬 LoRA로 파이프라인 학습. AutoGen은 심문 ask 본선.
 
 ### Next
 
-1. (선택) `python3 scripts/openai_finetune_persona.py --submit` 로 소량 FT job 제출 후 모델 ID를 `configs/agent.yaml`에 연결.
+1. (선택) 더 큰 한국어 베이스로 로컬 LoRA 재실험 · 한국어 생성 품질 비교.
 2. eval n 확대 후 Hit@k·Faithfulness 재측정 (가능하면 RAGAS/임베딩 유사도).
 3. `ev_msg_12` exact 회수 개선 (태깅·동의어·쿼리 템플릿).
 4. Context Precision 향상: 메타필터·chunk 경계.
