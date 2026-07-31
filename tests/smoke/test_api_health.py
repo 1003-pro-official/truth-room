@@ -64,3 +64,19 @@ def test_session_flow(api_available: str) -> None:
     body = tool.json()
     assert body.get("name") == "request_cctv_log"
     assert body.get("result", {}).get("tool") == "request_cctv_log"
+
+    profile = requests.get(
+        f"{api_available}/api/v1/session/{sid}/suspects/suspect_a/profile",
+        timeout=10,
+    )
+    assert profile.status_code == 200
+    pdata = profile.json()
+    assert pdata.get("name")
+    assert "profile" in pdata
+    assert "secrets" not in pdata
+    assert "role" not in pdata
+    assert "culprit_id" not in (pdata.get("case_overview") or {})
+
+    case = requests.get(f"{api_available}/api/v1/session/{sid}/case", timeout=10)
+    assert case.status_code == 200
+    assert "culprit_id" not in case.json()

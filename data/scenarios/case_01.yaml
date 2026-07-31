@@ -5,6 +5,15 @@ synopsis: |
   프로젝트 Omega 핵심 가중치 파일이 불법 반출되었다(추정 피해 약 100억).
   당시 건물 잔류 인원은 김팀장·이대리·박신입 세 명뿐.
   플레이어는 외부 디지털 포렌식 감사관으로서 RAG로 거짓을 걷어내고 진범의 자백을 받는다.
+# 클라이언트 공개용 — culprit_id / win_condition 미포함
+public_overview:
+  discovered_at: "2024-07-29 23:00~24:00 (추정)"
+  location: "사내 건물 · 서버실 / 사내망 (CCTV 먹통)"
+  incident: "프로젝트 Omega 핵심 가중치 파일 불법 반출 (추정 피해 약 100억)"
+  notes: |
+    폭우로 옥외·복도 CCTV가 상당 구간 끊겼다.
+    당시 잔류 인원은 김팀장·이대리·박신입 세 명.
+    외부 디지털 포렌식 감사관이 RAG·심문으로 진범을 특정한다.
 progression:
   - phase: opening
     goal: 사건 브리핑 · 역할 고지

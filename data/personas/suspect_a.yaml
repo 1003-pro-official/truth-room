@@ -3,6 +3,18 @@ name: "김팀장"
 role: "무고"
 mbti: "ESTJ"
 traits: ["꼰대", "책임 전가", "권위적"]
+profile:
+  gender: "남성"
+  birth_date: "1982-05-14"
+  height: "176cm"
+  weight: "78kg"
+  eye_color: "검정"
+  hair_color: "흑발(약간 희끗)"
+  occupation: "기획팀 팀장"
+  marital_status: "기혼"
+  family: "아내 / 자녀 1"
+  criminal_record: "없음"
+  notes: "평소 권위적. 야근을 강조하는 편. 법인카드 사용 내역은 감사 대상."
 alibi: "11시부터 12시까지 자기 자리에서 발표용 기획안을 꼼꼼히 검토하고 있었습니다. PC 문서 수정 기록만 보면 압니다."
 secrets:
   - "실제로는 강남역 룸살롱에 있었고, 법인카드로 85만 원을 결제했다"

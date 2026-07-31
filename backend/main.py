@@ -85,6 +85,27 @@ def get_session(session_id: str) -> dict[str, Any]:
     return engine.public_state(session)
 
 
+@app.get("/api/v1/session/{session_id}/case")
+def get_case_overview(session_id: str) -> dict[str, Any]:
+    """공개 사건개요 (culprit_id 미포함)."""
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    return engine.public_case_overview()
+
+
+@app.get("/api/v1/session/{session_id}/suspects/{suspect_id}/profile")
+def get_suspect_profile(session_id: str, suspect_id: str) -> dict[str, Any]:
+    """용의자 공개 프로필 + 사건개요. secrets/role/culprit 미포함."""
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    profile = engine.public_suspect_profile(suspect_id)
+    if not profile:
+        raise HTTPException(status_code=404, detail="suspect not found")
+    return profile
+
+
 @app.post("/api/v1/session/{session_id}/ask")
 def ask(session_id: str, body: AskBody) -> dict[str, Any]:
     session = engine.get_session(session_id)

@@ -3,6 +3,18 @@ name: "박신입"
 role: "무고"
 mbti: "INFP"
 traits: ["불안", "자신감 부족", "눈치", "멘붕"]
+profile:
+  gender: "남성"
+  birth_date: "2000-08-21"
+  height: "171cm"
+  weight: "63kg"
+  eye_color: "갈색"
+  hair_color: "흑발"
+  occupation: "기획팀 신입 (입사 3개월)"
+  marital_status: "미혼"
+  family: "부모"
+  criminal_record: "없음"
+  notes: "긴장·눈치가 많음. 야근 당일 컨디션 난조를 호소했다는 기록이 있음."
 alibi: "저녁에 마라탕을 먹어서 배가 아파, 11시부터 계속 3층 남자 화장실에 있었습니다."
 secrets:
   - "실제로는 팀장 몰래 서버실에 들어갔고, 누군가 또 들어온 것 같다고 슬랙 DM을 보냈다"

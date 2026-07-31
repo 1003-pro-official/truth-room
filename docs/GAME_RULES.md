@@ -115,6 +115,16 @@ turn_out: false           # true면 3진 아웃 · ended
 status: "playing" | "turn_out"
 ```
 
+### 5.2c 공개 프로필 · 사건개요
+
+| Method | Path | 내용 |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/session/{id}/suspects/{sid}/profile` | `name` · `mbti` · `traits` · `profile{}` · `case_overview` |
+| `GET` | `/api/v1/session/{id}/case` | `title` · `synopsis` · `discovered_at` · `location` · `incident` · `notes` |
+
+- UI: 용의자 카드 **「프로필」** 버튼 → 수사 파일 dialog (○/● 심문 대상 선택과 분리). 초상 클릭으로 열지 않음.
+- **미노출:** `secrets` · `role` · `system_prompt*` · `culprit_id` · `win_condition`
+
 ### 5.3 `configs/agent.yaml` · `game` 블록
 
 ```yaml
@@ -183,6 +193,7 @@ game:
 | G9 | 단서 획득 `new_clues` UI · 인벤토리 · HUD | Front | ✅ |
 | G5 | GM LLM `is_alibi_broken` JSON | Prompt+Agent | ⏳ 프롬프트 후 |
 | G6 | 용의자 초상 에셋 · 라디오 선택 UI | Front | ✅ (스텁 일러스트) |
+| G11 | 용의자 공개 프로필 · 수사 파일 dialog | API/Front | ✅ |
 | G10 | Judge LLM 조합 지목 JSON | Prompt+Agent | ⏳ 프롬프트 후 |
 
 ---
@@ -190,6 +201,7 @@ game:
 ## 10. 비범위 · 주의
 
 - `culprit_id` 클라이언트 미노출 (기존 안티패널 유지)
+- 프로필 API도 `secrets` / `role` / 내부 프롬프트 미노출
 - UI → LLM 직결 금지
 - 알리바이 3-Out만으로 엔딩 강제 금지 — **조합 지목**이 최종 클리어
 - AutoGen 필수화 없음 ([references.md](../references.md))

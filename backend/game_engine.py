@@ -140,8 +140,48 @@ class GameEngine:
             threshold=int(self.game_cfg["break_threshold"]),
         )
 
+    def _suspect_ids(self) -> list[str]:
+        return list(self.scenario.get("suspects") or self.personas.keys())
+
+    def public_case_overview(self) -> dict[str, Any]:
+        """클라이언트용 사건개요 — culprit_id / win_condition / secrets 미포함."""
+        overview = self.scenario.get("public_overview") or {}
+        if not isinstance(overview, dict):
+            overview = {}
+        synopsis = str(self.scenario.get("synopsis") or "").strip()
+        return {
+            "case_id": str(self.scenario.get("case_id", "case_01")),
+            "title": self.scenario.get("title"),
+            "synopsis": synopsis,
+            "discovered_at": str(overview.get("discovered_at") or ""),
+            "location": str(overview.get("location") or ""),
+            "incident": str(overview.get("incident") or ""),
+            "notes": str(overview.get("notes") or synopsis),
+        }
+
+    def public_suspect_profile(self, suspect_id: str) -> dict[str, Any] | None:
+        """공개 프로필만. role/secrets/system_prompt/culprit 미노출."""
+        if suspect_id not in self._suspect_ids():
+            return None
+        persona = self.personas.get(suspect_id) or {}
+        raw_profile = persona.get("profile") or {}
+        if not isinstance(raw_profile, dict):
+            raw_profile = {}
+        profile = {str(k): str(v) for k, v in raw_profile.items() if v is not None}
+        traits = persona.get("traits") or []
+        if not isinstance(traits, list):
+            traits = []
+        return {
+            "id": suspect_id,
+            "name": str(persona.get("name") or suspect_id),
+            "mbti": str(persona.get("mbti") or ""),
+            "traits": [str(t) for t in traits],
+            "profile": profile,
+            "case_overview": self.public_case_overview(),
+        }
+
     def public_state(self, session: Session, *, focus_suspect: str | None = None) -> dict[str, Any]:
-        suspect_ids = list(self.scenario.get("suspects") or self.personas.keys())
+        suspect_ids = self._suspect_ids()
         broken = self._broken_list(session)
         strike_max = int(self.game_cfg["timeout_strike_max"])
         stamina_max = int(self.game_cfg["stamina_max"])

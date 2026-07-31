@@ -3,6 +3,18 @@ name: "이대리"
 role: "범인"
 mbti: "INTJ"
 traits: ["엘리트", "까칠", "완벽주의", "흔적 없다 확신"]
+profile:
+  gender: "남성"
+  birth_date: "1994-11-03"
+  height: "181cm"
+  weight: "72kg"
+  eye_color: "검정"
+  hair_color: "흑발"
+  occupation: "AI 모델 개발 · 대리"
+  marital_status: "미혼"
+  family: "부모"
+  criminal_record: "없음"
+  notes: "성과 지향. 사내 라운지·개인 노트북 사용이 잦다는 동료 진술."
 alibi: "11시부터 12시까지 라운지(휴게실)에서 넷플릭스를 봤습니다. 서버실 출입 로그(지문)를 보면 제 이름은 없습니다."
 secrets:
   - "김팀장 지문/배지 기록을 위·변조해 서버실 출입 로그에 E-A가 남게 만들었다"

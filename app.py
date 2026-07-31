@@ -7,7 +7,7 @@ app.py — Phase 3 Streamlit「진실의 방」(API 단일 경로)
   streamlit run app.py
 
 게임 룰: docs/GAME_RULES.md
-  UI: 캐릭터 선택 · 증거 인벤토리 · 단서 배너 · 조합 지목 (다크 테마)
+  UI: 캐릭터 선택 · 프로필 수사 파일 · 증거 인벤토리 · 단서 배너 · 조합 지목 (다크 테마)
 """
 
 from __future__ import annotations
@@ -29,6 +29,12 @@ SUSPECT_PORTRAITS = {
     "suspect_b": ROOT / "assets" / "suspects" / "suspect_b.png",
     "suspect_c": ROOT / "assets" / "suspects" / "suspect_c.png",
 }
+# 수사 파일(프로필) 전신 — 선택 그리드는 bust 유지
+SUSPECT_FULLBODY = {
+    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a_full.png",
+    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b_full.png",
+    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c_full.png",
+}
 
 CLUE_LABELS = {
     "ev_card_03": "법인카드 · 강남역 룸살롱 결제",
@@ -44,11 +50,57 @@ CLUE_FLAVOR = {
     "ev_log_07": "서버실 출입 로그가 프린터에서 나온다.",
 }
 
+# 공개 프로필 필드 표시 순서 (API profile.* — secrets/role 미사용)
+PROFILE_FIELD_ORDER = [
+    ("gender", "성별"),
+    ("birth_date", "생년월일"),
+    ("height", "키"),
+    ("weight", "몸무게"),
+    ("eye_color", "눈 색"),
+    ("hair_color", "머리 색"),
+    ("occupation", "직업"),
+    ("marital_status", "결혼유무"),
+    ("family", "가족관계"),
+    ("criminal_record", "범죄이력"),
+    ("notes", "특이사항"),
+]
+
 st.set_page_config(
     page_title="진실의 방으로",
     page_icon="🚪",
     layout="wide",
     initial_sidebar_state="expanded",
+)
+
+# Streamlit 기본 primary(빨강) flash 방지 — 어떤 위젯보다 먼저 주입
+st.markdown(
+    """
+    <style>
+    :root {
+      --primary-color: #7A9BB8 !important;
+    }
+    button[kind="primary"],
+    [data-testid="baseButton-primary"],
+    [data-testid="stBaseButton-primary"],
+    .stButton > button[kind="primary"],
+    .stButton > button[data-testid="baseButton-primary"],
+    .stButton > button[data-testid="stBaseButton-primary"],
+    div[data-testid="stSidebar"] button[kind="primary"],
+    div[data-testid="stSidebar"] [data-testid="stBaseButton-primary"] {
+      background-color: #3d5568 !important;
+      background-image: none !important;
+      border-color: #4a657a !important;
+      color: #e8eef4 !important;
+    }
+    button[kind="primary"]:hover,
+    [data-testid="stBaseButton-primary"]:hover {
+      background-color: #4a657a !important;
+      border-color: #5a7890 !important;
+      color: #e8eef4 !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
 )
 
 
@@ -59,6 +111,36 @@ def _api() -> str:
 def _reset_timer() -> None:
     turn_sec = int((st.session_state.get("game") or {}).get("turn_seconds") or 20)
     st.session_state["turn_deadline"] = time.time() + turn_sec
+    st.session_state["timer_paused"] = False
+    st.session_state.pop("timer_remaining", None)
+
+
+def _pause_timer() -> None:
+    """프로필 등 팝업 오픈 시 — 남은 시간 동결."""
+    if st.session_state.get("timer_paused"):
+        return
+    deadline = float(st.session_state.get("turn_deadline") or 0)
+    if deadline <= 0:
+        return
+    st.session_state["timer_remaining"] = max(0.0, deadline - time.time())
+    st.session_state["timer_paused"] = True
+
+
+def _resume_timer() -> None:
+    """팝업 닫힘(on_dismiss) — 동결된 남은 시간으로 재개."""
+    if not st.session_state.get("timer_paused"):
+        return
+    remaining = float(st.session_state.get("timer_remaining") or 0)
+    st.session_state["turn_deadline"] = time.time() + remaining
+    st.session_state["timer_paused"] = False
+    st.session_state.pop("timer_remaining", None)
+
+
+def _timer_seconds_left() -> float:
+    if st.session_state.get("timer_paused"):
+        return max(0.0, float(st.session_state.get("timer_remaining") or 0))
+    deadline = float(st.session_state.get("turn_deadline") or 0)
+    return max(0.0, deadline - time.time())
 
 
 def _evidence_label(eid: str) -> str:
@@ -149,17 +231,28 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: var(--ink) !important;
         }}
         .stButton > button[kind="primary"],
-        .stButton > button[data-testid="baseButton-primary"] {{
+        .stButton > button[data-testid="baseButton-primary"],
+        .stButton > button[data-testid="stBaseButton-primary"],
+        button[kind="primary"],
+        [data-testid="baseButton-primary"],
+        [data-testid="stBaseButton-primary"] {{
           background: #3d5568 !important;
+          background-image: none !important;
           border-color: #4a657a !important;
           color: #e8eef4 !important;
         }}
-        .stButton > button[kind="primary"]:hover {{
+        .stButton > button[kind="primary"]:hover,
+        button[kind="primary"]:hover,
+        [data-testid="stBaseButton-primary"]:hover {{
           background: #4a657a !important;
           border-color: #5a7890 !important;
+          color: #e8eef4 !important;
         }}
         .stButton > button[kind="secondary"],
-        .stButton > button[data-testid="baseButton-secondary"] {{
+        .stButton > button[data-testid="baseButton-secondary"],
+        .stButton > button[data-testid="stBaseButton-secondary"],
+        button[kind="secondary"],
+        [data-testid="stBaseButton-secondary"] {{
           background: #1e2430 !important;
           border-color: rgba(200,210,220,0.16) !important;
           color: #b8c0cc !important;
@@ -417,6 +510,102 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding-bottom: 0.45rem !important;
         }}
 
+        .dossier-shell {{
+          border: 1px solid rgba(200,210,220,0.16);
+          border-radius: 8px;
+          background: linear-gradient(160deg, #1c222c 0%, #171b22 100%);
+          padding: 0.85rem 1rem 1rem;
+          margin-bottom: 0.5rem;
+        }}
+        .dossier-kicker {{
+          font-size: 0.68rem;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--accent);
+          margin: 0 0 0.55rem !important;
+        }}
+        .dossier-grid {{
+          display: grid;
+          grid-template-columns: 120px 1fr;
+          gap: 0.85rem;
+          align-items: start;
+        }}
+        .dossier-portrait {{
+          border: 1px solid rgba(200,210,220,0.18);
+          border-radius: 6px;
+          overflow: hidden;
+          background: #141820;
+          line-height: 0;
+        }}
+        .dossier-portrait img {{
+          width: 100%;
+          display: block;
+        }}
+        .dossier-name {{
+          font-family: "Black Han Sans", sans-serif;
+          font-size: 1.35rem;
+          color: #d5d8de;
+          margin: 0 0 0.35rem !important;
+        }}
+        .dossier-meta {{
+          color: var(--muted);
+          font-size: 0.8rem;
+          margin: 0 0 0.65rem !important;
+        }}
+        .dossier-row {{
+          display: grid;
+          grid-template-columns: 6.2rem 1fr;
+          gap: 0.55rem;
+          align-items: start;
+          font-size: 0.95rem;
+          line-height: 1.55;
+          padding: 0.42rem 0;
+          border-bottom: 1px solid rgba(200,210,220,0.14);
+        }}
+        .dossier-label {{
+          color: #9aa3b0 !important;
+          font-weight: 500;
+        }}
+        .dossier-value {{
+          color: #e8eaef !important;
+          white-space: pre-wrap;
+          font-weight: 500;
+        }}
+        [data-testid="stDialog"] .dossier-label {{ color: #9aa3b0 !important; }}
+        [data-testid="stDialog"] .dossier-value {{ color: #e8eaef !important; }}
+        /* 수사 파일 dialog — 상단과 맞춘 하단 여백 */
+        div[data-testid="stDialog"] > div {{
+          padding-bottom: 1.5rem !important;
+        }}
+        div[data-testid="stDialog"] [data-testid="stVerticalBlock"] {{
+          padding-bottom: 0.75rem !important;
+        }}
+        .dossier-foot-pad {{
+          display: block !important;
+          height: 1.35rem !important;
+          min-height: 1.35rem !important;
+          line-height: 1.35rem !important;
+        }}
+        .dossier-fullbody {{
+          border: 1px solid rgba(200,210,220,0.16);
+          border-radius: 6px;
+          overflow: hidden;
+          background: #141820;
+          line-height: 0;
+        }}
+        .dossier-fullbody img {{
+          width: 100%;
+          display: block;
+          object-fit: contain;
+        }}
+        .dossier-case-block {{ margin: 0.35rem 0 0.75rem; }}
+        .dossier-case-block p {{
+          margin: 0.2rem 0 !important;
+          font-size: 0.9rem;
+          line-height: 1.45;
+          color: #d5d8de;
+        }}
+
         [data-testid="stProgress"] > div > div {{
           background-color: #5f7a90 !important;
         }}
@@ -589,6 +778,131 @@ def _render_inventory(owned: list[str]) -> None:
     )
 
 
+def _fetch_suspect_profile(suspect_id: str) -> tuple[dict | None, str | None]:
+    """Returns (data, error_message)."""
+    game = st.session_state.get("game") or {}
+    session_id = game.get("session_id") or st.session_state.get("session_id")
+    if not session_id:
+        return None, "세션이 없습니다. 새 수사를 개시하세요."
+    try:
+        resp = requests.get(
+            f"{_api()}/api/v1/session/{session_id}/suspects/{suspect_id}/profile",
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        return None, f"프로필 요청 실패: {exc}"
+    if resp.status_code != 200:
+        return None, f"프로필 API 오류 ({resp.status_code}): {resp.text[:240]}"
+    data = resp.json()
+    if not isinstance(data, dict):
+        return None, "프로필 응답 형식이 올바르지 않습니다."
+    return data, None
+
+
+def _profile_field_rows(name: str, profile: dict) -> list[tuple[str, str]]:
+    rows: list[tuple[str, str]] = [("이름", name)]
+    known = {k for k, _ in PROFILE_FIELD_ORDER}
+    for key, label in PROFILE_FIELD_ORDER:
+        val = profile.get(key)
+        if val is None or str(val).strip() == "":
+            continue
+        rows.append((label, str(val)))
+    for key, val in profile.items():
+        if key in known or val is None or str(val).strip() == "":
+            continue
+        rows.append((str(key), str(val)))
+    return rows
+
+
+@st.dialog("수사 파일", width="large", on_dismiss=_resume_timer)
+def _open_dossier(suspect_id: str, data: dict) -> None:
+    """공개 프로필 · 사건개요 — 초상(st.image) + 페르소나 필드."""
+    name = str(data.get("name") or suspect_id)
+    mbti = str(data.get("mbti") or "")
+    traits = data.get("traits") or []
+    if not isinstance(traits, list):
+        traits = []
+    profile = data.get("profile") or {}
+    if not isinstance(profile, dict):
+        profile = {}
+    case = data.get("case_overview") or {}
+    if not isinstance(case, dict):
+        case = {}
+
+    case_no = str(case.get("case_id") or "case_01")
+    trait_line = " · ".join(str(t) for t in traits) if traits else "—"
+
+    tab_profile, tab_case = st.tabs(["프로필", "사건개요"])
+    with tab_profile:
+        st.caption(f"CHARACTER PROFILE · CASE {case_no}")
+        # 전신 세로 비율에 맞춤 (명탐정S 도감형)
+        col_img, col_info = st.columns([1, 1.35], gap="medium")
+        with col_img:
+            full = SUSPECT_FULLBODY.get(suspect_id)
+            bust = SUSPECT_PORTRAITS.get(suspect_id)
+            img_path = full if full and full.exists() else bust
+            if img_path and img_path.exists():
+                st.markdown('<div class="dossier-fullbody">', unsafe_allow_html=True)
+                st.image(str(img_path), use_container_width=True)
+                st.markdown("</div>", unsafe_allow_html=True)
+            else:
+                st.info(name[:1])
+        with col_info:
+            st.markdown(f"### {name}")
+            st.caption(f"MBTI {mbti or '—'} · {trait_line}")
+            # inline style — dialog에서 전역 CSS가 덮여도 값이 보이도록
+            rows_html = []
+            for label, val in _profile_field_rows(name, profile):
+                rows_html.append(
+                    '<div style="display:grid;grid-template-columns:6.2rem 1fr;'
+                    'gap:0.55rem;align-items:start;font-size:0.95rem;line-height:1.55;'
+                    'padding:0.45rem 0;border-bottom:1px solid rgba(200,210,220,0.16);">'
+                    f'<span style="color:#9aa3b0;font-weight:500;">{html.escape(label)}</span>'
+                    f'<span style="color:#e8eaef;font-weight:500;white-space:pre-wrap;">'
+                    f"{html.escape(val)}</span>"
+                    "</div>"
+                )
+            st.markdown("".join(rows_html), unsafe_allow_html=True)
+            st.markdown(
+                '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
+                unsafe_allow_html=True,
+            )
+
+    with tab_case:
+        st.markdown(f"### {case.get('title') or '사건개요'}")
+        blocks = [
+            ("발견·발생 시각", case.get("discovered_at")),
+            ("장소", case.get("location")),
+            ("사건", case.get("incident")),
+            ("기타", case.get("notes") or case.get("synopsis")),
+        ]
+        shown = False
+        for label, val in blocks:
+            text = str(val or "").strip()
+            if not text:
+                continue
+            shown = True
+            st.markdown(f"**{label}**")
+            st.write(text)
+        if not shown:
+            st.caption("공개된 사건 정보가 없습니다.")
+        st.markdown(
+            '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
+            unsafe_allow_html=True,
+        )
+
+
+def _request_dossier(suspect_id: str) -> None:
+    """프로필 선조회 후 dialog 오픈 (실패 시 빈 창 방지)."""
+    data, err = _fetch_suspect_profile(suspect_id)
+    if err or not data:
+        st.session_state["dossier_error"] = err or "프로필을 불러오지 못했습니다."
+        return
+    st.session_state.pop("dossier_error", None)
+    _pause_timer()
+    _open_dossier(suspect_id, data)
+
+
 def _pick_suspect(
     suspects: list[dict],
     broken: list[str],
@@ -654,11 +968,17 @@ def _pick_suspect(
             ):
                 st.session_state["suspect_id"] = sid
                 st.rerun()
+            if st.button(
+                "프로필",
+                key=f"suspect_profile_{sid}",
+                type="secondary",
+                use_container_width=True,
+            ):
+                _request_dossier(sid)
 
     suspect_id = str(st.session_state["suspect_id"])
     if suspect_id in broken:
         st.error("선택 중인 용의자는 멘탈 붕괴 상태입니다.")
-    # 탭과의 간격은 행 분리로 처리 (여기서 spacer 없음)
     return suspect_id
 
 
@@ -710,6 +1030,9 @@ def _handle_timeout(sid: str) -> None:
     st.session_state.setdefault("log", []).append("(타임아웃) 턴이 패스되었습니다.")
     _reset_timer()
 
+
+# 사이드바·본문 위젯보다 먼저 테마 적용 (기본 빨강 primary flash 방지)
+_inject_theme()
 
 with st.sidebar:
     st.markdown("### 콘솔")
@@ -767,6 +1090,9 @@ _inject_theme(mental=mental, revoked=revoked)
 _render_hud(game)
 _render_clue_banner()
 
+if st.session_state.get("dossier_error"):
+    st.error(st.session_state.pop("dossier_error"))
+
 if revoked:
     st.error("감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다.")
 elif mental:
@@ -798,15 +1124,17 @@ elif timer_on:
 
     @st.fragment(run_every=timedelta(seconds=1))
     def _timer_slot() -> None:
-        deadline = float(st.session_state.get("turn_deadline") or 0)
-        left = max(0, int(deadline - time.time()))
-        pct = (100.0 * left / total_sec) if total_sec else 0.0
-        _render_status_banner(
-            f"턴 남은 시간  {left}s / {total_sec}s",
-            kind="timer",
-            fill_pct=pct,
+        left_f = _timer_seconds_left()
+        left = max(0, int(left_f))
+        pct = (100.0 * left_f / total_sec) if total_sec else 0.0
+        paused = bool(st.session_state.get("timer_paused"))
+        label = (
+            f"턴 일시정지  {left}s / {total_sec}s"
+            if paused
+            else f"턴 남은 시간  {left}s / {total_sec}s"
         )
-        if left <= 0:
+        _render_status_banner(label, kind="timer", fill_pct=pct)
+        if not paused and left_f <= 0:
             _handle_timeout(sid)
             st.rerun()
 
@@ -850,7 +1178,7 @@ with left:
     with tab_ask:
         question = st.text_input("심문 질문", placeholder="그날 밤 어디에 있었습니까?")
         if st.button("질문하기", type="primary", key="btn_ask") and question and not game.get("ended"):
-            if timer_on and time.time() > st.session_state.get("turn_deadline", 0):
+            if timer_on and not st.session_state.get("timer_paused") and _timer_seconds_left() <= 0:
                 st.warning("시간 초과 — 턴이 패스됩니다.")
                 _handle_timeout(sid)
             else:
