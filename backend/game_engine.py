@@ -690,9 +690,63 @@ class GameEngine:
             ),
         }
 
-    def search(self, session: Session, query: str) -> dict[str, Any]:
+    def search(
+        self,
+        session: Session,
+        query: str,
+        *,
+        force_miss: bool = False,
+        force_evidence_id: str | None = None,
+    ) -> dict[str, Any]:
         if session.ended:
             return {"error": "session_ended"}
+        # 책상 decoy 클릭 — RAG 우회·강제 헛수색 (수사 권한 감소)
+        if force_miss:
+            stamina_info = self._apply_stamina_loss(session, 1)
+            return {
+                "query": query,
+                "hits": [],
+                "evidence_ids": list(session.evidence_ids),
+                "new_clues": [],
+                "useless_search": True,
+                **stamina_info,
+            }
+        # 책상 핵심/수집 증거 클릭 — RAG 우회·지정 ID 지급
+        if force_evidence_id:
+            eid = str(force_evidence_id).strip()
+            newly: list[str] = []
+            if eid and eid not in session.evidence_ids:
+                session.evidence_ids.append(eid)
+                newly.append(eid)
+            hits = [
+                {
+                    "evidence_id": eid,
+                    "source_type": "desk",
+                    "snippet": clue_title(eid),
+                    "score": 1.0,
+                    "chunk_id": None,
+                }
+            ]
+            new_clues = [
+                {
+                    "evidence_id": x,
+                    "title": clue_title(x),
+                    "snippet": clue_title(x),
+                    "smoking_gun": x in SMOKING_GUN_IDS,
+                }
+                for x in newly
+                if x in SMOKING_GUN_IDS
+            ]
+            return {
+                "query": query,
+                "hits": hits,
+                "evidence_ids": list(session.evidence_ids),
+                "new_clues": new_clues,
+                "useless_search": False,
+                "already_owned": len(newly) == 0,
+                "stamina": session.stamina,
+                "stamina_max": int(self.game_cfg["stamina_max"]),
+            }
         retrieval = self.rag_cfg.get("retrieval", {})
         top_k = int(retrieval.get("top_k", 5))
         rrf_k = int(retrieval.get("rrf_k", 60))

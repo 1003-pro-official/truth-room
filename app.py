@@ -15,10 +15,12 @@ from __future__ import annotations
 import base64
 import html
 import os
+import random
 import re
 import time
 from datetime import timedelta
 from pathlib import Path
+from urllib.parse import quote
 
 import requests
 import streamlit as st
@@ -102,9 +104,131 @@ GOLDEN_ROUTE_STEPS = [
 GOLDEN_ROUTE_ACCUSE = {
     "short": "조합 지목",
     "kicker": "STEP 04 · ACCUSE",
-    "beat": "이대리 + 네트워크 + (카드 또는 슬랙)",
+    "beat": "확보 증거 2장으로 진범을 지목",
     "suspect_name": "이대리",
 }
+
+# 책상 수색 보드 — 수집 가능 4(핵심 3+출입로그) + 수사형 decoy 6 = 10
+# decoy는 핵심과 같은 「증거 서류/로그」톤 — 소품형(커피·열쇠) 금지
+# 에셋: assets/ui/evidence_desk/ (README.md 스펙)
+EVIDENCE_DESK_DIR = ROOT / "assets" / "ui" / "evidence_desk"
+EVIDENCE_DESK_ITEMS = [
+    {
+        "id": "ev_card_03",
+        "file": "ev_card_03.png",
+        "short": "법인카드",
+        "evidence_id": "ev_card_03",
+        "query": "법인카드 룸살롱",
+        "hint": "결제 전표 · 강남",
+        "decoy": False,
+    },
+    {
+        "id": "bait_cctv",
+        "file": "bait_cctv.png",
+        "short": "로비 CCTV",
+        "evidence_id": None,
+        "query": "로비 CCTV 23시 타임스탬프 캡처",
+        "hint": "카메라 캡처 · 23:10",
+        "decoy": True,
+    },
+    {
+        "id": "ev_msg_12",
+        "file": "ev_msg_12.png",
+        "short": "슬랙 DM",
+        "evidence_id": "ev_msg_12",
+        "query": "슬랙 DM 박신입 서버실",
+        "hint": "메신저 캡처",
+        "decoy": False,
+    },
+    {
+        "id": "bait_vpn",
+        "file": "bait_vpn.png",
+        "short": "VPN 로그",
+        "evidence_id": None,
+        "query": "해외 VPN 세션 접속 로그 요약",
+        "hint": "원격 접속 · 세션 기록",
+        "decoy": True,
+    },
+    {
+        "id": "ev_net_01",
+        "file": "ev_net_01.png",
+        "short": "네트워크",
+        "evidence_id": "ev_net_01",
+        "query": "라운지 Wi-Fi 100GB",
+        "hint": "대용량 외부 전송",
+        "decoy": False,
+    },
+    {
+        "id": "bait_usb",
+        "file": "bait_usb.png",
+        "short": "USB 대장",
+        "evidence_id": None,
+        "query": "보안팀 USB 대여 반납 대장",
+        "hint": "대여·반납 기록",
+        "decoy": True,
+    },
+    {
+        "id": "ev_log_07",
+        "file": "ev_log_07.png",
+        "short": "출입 로그",
+        "evidence_id": "ev_log_07",
+        "query": "서버실 출입 지문",
+        "hint": "보안문 기록",
+        "decoy": False,
+    },
+    {
+        "id": "bait_taxi",
+        "file": "bait_taxi.png",
+        "short": "택시 전표",
+        "evidence_id": None,
+        "query": "강남 개인 택시 영수증 전표",
+        "hint": "야간 이동 · 강남",
+        "decoy": True,
+    },
+    {
+        "id": "bait_mail",
+        "file": "bait_mail.png",
+        "short": "업무 메일",
+        "evidence_id": None,
+        "query": "주간 업무보고 사내 메일 회신",
+        "hint": "사내 메일 출력",
+        "decoy": True,
+    },
+    {
+        "id": "bait_print",
+        "file": "bait_print.png",
+        "short": "프린터 로그",
+        "evidence_id": None,
+        "query": "복합기 프린터 대기열 출력 로그",
+        "hint": "출력 대기열 기록",
+        "decoy": True,
+    },
+]
+INVENTORY_SLOT_COUNT = 4
+
+
+def _reshuffle_desk_layout() -> list[str]:
+    """게임 시작 시 책상 증거 배치 순서를 랜덤화. id 리스트를 세션에 저장."""
+    order = [str(c["id"]) for c in EVIDENCE_DESK_ITEMS]
+    random.shuffle(order)
+    st.session_state["desk_layout"] = order
+    return order
+
+
+def _desk_items_for_session() -> list[dict]:
+    """현재 세션의 책상 배치 순서. 없으면 한 번 섞어 생성."""
+    by_id = {str(c["id"]): c for c in EVIDENCE_DESK_ITEMS}
+    order = st.session_state.get("desk_layout")
+    if not isinstance(order, list) or not order:
+        order = _reshuffle_desk_layout()
+    items = [by_id[i] for i in order if i in by_id]
+    # 카탈로그에 새 항목이 생기면 뒤에 덧붙임
+    seen = set(order)
+    for c in EVIDENCE_DESK_ITEMS:
+        cid = str(c["id"])
+        if cid not in seen:
+            items.append(c)
+    return items
 
 
 # 수사 파일 · CHARACTER PROFILE (인적사항) — 명탐정S 상단 블록
@@ -313,7 +437,7 @@ st.markdown(
       padding: 0 !important;
     }
     [data-testid="stSidebarUserContent"] {
-      padding: 0.9rem 0.95rem 1.35rem !important;
+      padding: 0.75rem 0.85rem 2.5rem !important;
       box-sizing: border-box !important;
     }
     button[kind="primary"],
@@ -353,8 +477,19 @@ def _start_new_investigation(*, with_tab_intro: bool = False) -> None:
     st.session_state.pop("last_agent_turn", None)
     st.session_state["hits"] = []
     st.session_state["pending_clues"] = []
+    st.session_state["desk_inspected"] = []
+    st.session_state.pop("pending_ask_suspect_select", None)
+    st.session_state.pop("_suspect_id_mirror", None)
+    st.session_state.pop("ask_suspect_select", None)
+    st.session_state.pop("accuse_suspect_select", None)
+    _reshuffle_desk_layout()
     st.session_state["last_ending"] = None
     st.session_state.pop("last_ending_ok", None)
+    st.session_state.pop("accuse_flash", None)
+    st.session_state.pop("case_won", None)
+    st.session_state.pop("arrest_stamp", None)
+    st.session_state.pop("arrest_stamp_suspect", None)
+    st.session_state.pop("arrest_stamp_slam", None)
     st.session_state["show_intro"] = bool(with_tab_intro)
     st.session_state["intro_scene_idx"] = 0
     st.session_state["turn_deadline"] = None
@@ -486,52 +621,39 @@ def _browser_asset_url(rel: str) -> str:
     return f"{base}/{rel.lstrip('/')}"
 
 
-def _inject_game_bgm(*, muted: bool = False, force_play: bool = False) -> None:
-    """Streamlit 게임 화면 BGM + 인트로와 동일한 EQ 토글 버튼."""
+def _inject_top_dock(
+    game: dict,
+    *,
+    with_bgm: bool = False,
+    muted: bool = False,
+    force_play: bool = False,
+) -> None:
+    """우상단 독 — 수사 권한(+ 선택 BGM). 인트로 셸에서는 스킵."""
     if st.session_state.get("from_intro_shell"):
         return
-    src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
+    stamina = int(game.get("stamina") or 0)
+    stamina_max = int(game.get("stamina_max") or 3)
+    hearts = "♥" * stamina + "♡" * max(0, stamina_max - stamina)
+    hearts_esc = html.escape(hearts)
     muted_js = "true" if muted else "false"
     force_js = "true" if force_play else "false"
-    # 마커 → 다음 iframe 컨테이너를 우상단 고정
-    st.markdown(
-        '<div class="game-bgm-dock-mark" aria-hidden="true"></div>',
-        unsafe_allow_html=True,
-    )
-    components.html(
-        f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8" />
-<style>
-  html,body{{margin:0;padding:0;background:transparent;overflow:hidden;}}
-  .bgm-toggle{{
-    margin:0;width:2.5rem;height:2rem;padding:0;
-    display:inline-grid;place-items:center;
-    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.35);
-    background:rgba(18,22,30,0.9);color:#e8e4dc;cursor:pointer;
-  }}
-  .bgm-toggle:hover{{border-color:#fff;}}
-  .bgm-toggle[aria-pressed="true"]{{border-color:#7A9BB8;}}
-  .eq{{display:flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:12px;}}
-  .eq i{{display:block;width:2px;height:40%;border-radius:1px;background:#c5ccd6;transform-origin:bottom center;}}
-  .bgm-toggle[aria-pressed="true"] .eq i{{
-    background:#7A9BB8;animation:eq-bounce .9s ease-in-out infinite;
-  }}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(1){{animation-delay:0s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(2){{animation-delay:.15s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(3){{animation-delay:.35s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(4){{animation-delay:.22s;}}
-  .bgm-toggle[aria-pressed="false"] .eq i{{height:35%;opacity:.55;}}
-  @keyframes eq-bounce{{0%,100%{{height:30%;}}50%{{height:100%;}}}}
-</style></head>
-<body>
+    src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
+
+    bgm_html = ""
+    if with_bgm:
+        bgm_html = f"""
 <button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="BGM OFF">
   <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
 </button>
 <audio id="a" src="{src}" loop preload="auto" playsinline></audio>
-<script>
+"""
+    bgm_script = ""
+    if with_bgm:
+        bgm_script = f"""
 (function(){{
   const a=document.getElementById("a");
   const btn=document.getElementById("bgmToggle");
+  if(!a||!btn) return;
   const VOL=0.06;
   let userMuted={muted_js};
   let audible=false;
@@ -579,11 +701,79 @@ def _inject_game_bgm(*, muted: bool = False, force_play: bool = False) -> None:
     }});
   }}
 }})();
+"""
+
+    dock_w = 220 if with_bgm else 148
+    st.markdown(
+        '<div class="game-bgm-dock-mark" aria-hidden="true"></div>',
+        unsafe_allow_html=True,
+    )
+    components.html(
+        f"""<!DOCTYPE html>
+<html><head><meta charset="utf-8" />
+<style>
+  html,body{{margin:0;padding:0;background:transparent;overflow:hidden;}}
+  .dock{{
+    display:flex;align-items:center;justify-content:flex-end;gap:0.4rem;
+    height:44px;padding:4px 0;box-sizing:border-box;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  }}
+  .stamina-chip{{
+    display:inline-flex;align-items:center;gap:0.35rem;
+    height:2.15rem;padding:0 0.6rem;box-sizing:border-box;
+    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.28);
+    background:rgba(18,22,30,0.92);color:#e8e4dc;
+    white-space:nowrap;
+  }}
+  .stamina-chip .lbl{{
+    font-size:0.62rem;letter-spacing:0.06em;text-transform:uppercase;
+    color:rgba(180,186,196,0.9);
+  }}
+  .stamina-chip .hearts{{
+    font-size:0.85rem;font-weight:700;letter-spacing:0.05em;color:#e8eef4;
+  }}
+  .bgm-toggle{{
+    margin:0;width:2.5rem;height:2.15rem;padding:0;flex:0 0 auto;
+    box-sizing:border-box;
+    display:inline-grid;place-items:center;
+    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.35);
+    background:rgba(18,22,30,0.9);color:#e8e4dc;cursor:pointer;
+  }}
+  .bgm-toggle:hover{{border-color:#fff;}}
+  .bgm-toggle[aria-pressed="true"]{{border-color:#7A9BB8;}}
+  .eq{{display:flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:12px;}}
+  .eq i{{display:block;width:2px;height:40%;border-radius:1px;background:#c5ccd6;transform-origin:bottom center;}}
+  .bgm-toggle[aria-pressed="true"] .eq i{{
+    background:#7A9BB8;animation:eq-bounce .9s ease-in-out infinite;
+  }}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(1){{animation-delay:0s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(2){{animation-delay:.15s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(3){{animation-delay:.35s;}}
+  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(4){{animation-delay:.22s;}}
+  .bgm-toggle[aria-pressed="false"] .eq i{{height:35%;opacity:.55;}}
+  @keyframes eq-bounce{{0%,100%{{height:30%;}}50%{{height:100%;}}}}
+</style></head>
+<body>
+<div class="dock">
+  <div class="stamina-chip" title="수사 권한 {stamina}/{stamina_max}">
+    <span class="lbl">수사 권한</span>
+    <span class="hearts">{hearts_esc}</span>
+  </div>
+  {bgm_html}
+</div>
+<script>
+{bgm_script}
 </script>
 </body></html>""",
-        height=36,
-        width=44,
+        height=44,
+        width=dock_w,
     )
+
+
+def _inject_game_bgm(*, muted: bool = False, force_play: bool = False) -> None:
+    """하위 호환 — 게임 상태에서 우상단 독(수사 권한+BGM)."""
+    game = st.session_state.get("game") or {}
+    _inject_top_dock(game, with_bgm=True, muted=muted, force_play=force_play)
 
 
 def _sync_ops_rail_width() -> None:
@@ -630,6 +820,86 @@ def _evidence_label(eid: str) -> str:
     return CLUE_LABELS.get(eid, eid)
 
 
+def _execute_search(
+    sid: str,
+    query: str,
+    *,
+    game: dict,
+    force_miss: bool = False,
+    force_evidence_id: str | None = None,
+) -> str | None:
+    """POST /search. 성공 시 session 갱신 후 None, 실패 시 에러 문자열."""
+    q = str(query or "").strip()
+    if not q or game.get("ended"):
+        return None
+    payload: dict = {
+        "query": q,
+        "force_miss": bool(force_miss),
+    }
+    if force_evidence_id:
+        payload["force_evidence_id"] = str(force_evidence_id)
+    try:
+        resp = requests.post(
+            f"{_api()}/api/v1/session/{sid}/search",
+            json=payload,
+            timeout=60,
+        )
+    except requests.RequestException as exc:
+        return f"수색 요청 실패: {exc}"
+    if resp.status_code != 200:
+        if resp.status_code == 409:
+            return "세션이 종료되었습니다. 새 수사를 시작해 주세요."
+        if resp.status_code == 404:
+            return "세션을 찾을 수 없습니다. 새 수사를 시작해 주세요."
+        detail = ""
+        try:
+            detail = str((resp.json() or {}).get("detail") or "")
+        except Exception:
+            detail = (resp.text or "")[:200]
+        return detail or f"수색 실패 ({resp.status_code})"
+    data = resp.json()
+    st.session_state["game"] = data.get("state", game)
+    st.session_state["hits"] = data.get("hits", [])
+    _queue_clues(data.get("new_clues") or [])
+    if data.get("useless_search"):
+        st.session_state.setdefault("log", []).append(
+            f"헛수색 — 수사 권한 {data.get('stamina', '?')}/{data.get('stamina_max', 3)}"
+        )
+        st.session_state["desk_flash"] = {
+            "kind": "warn",
+            "text": "헛수색 — 관련 단서를 찾지 못했습니다.",
+        }
+        if data.get("authority_revoked"):
+            st.session_state["last_ending"] = data.get("ending")
+            st.session_state["last_ending_ok"] = False
+    elif data.get("already_owned"):
+        st.session_state["desk_flash"] = {
+            "kind": "info",
+            "text": "이미 확보한 증거입니다.",
+        }
+    elif data.get("new_clues"):
+        title = (data["new_clues"][0] or {}).get("title") or "증거 확보"
+        st.session_state["desk_flash"] = {
+            "kind": "ok",
+            "text": f"증거 확보 — {title}",
+        }
+    else:
+        # force_evidence 등 new_clues 없이 hits만 온 경우
+        hit0 = (data.get("hits") or [{}])[0] or {}
+        title = hit0.get("snippet") or hit0.get("evidence_id") or "수색 완료"
+        if isinstance(title, str) and (title.count(",") >= 3 or "\n" in title):
+            title = CLUE_LABELS.get(str(hit0.get("evidence_id") or ""), "수색 완료")
+        st.session_state["desk_flash"] = {
+            "kind": "ok",
+            "text": f"수색 완료 — {title}" if title != "수색 완료" else "수색 완료",
+        }
+    # 턴 타이머는 게임 시작 후에만 리셋 (미시작 시 deadline 오염 방지)
+    if st.session_state.get("game_started"):
+        _reset_timer()
+    return None
+
+
+
 @st.cache_data(show_spinner=False)
 def _file_data_uri(path_str: str, mtime_ns: int = 0) -> str:
     """초상 base64 캐시 — 파일 변경(mtime) 시 자동 무효화."""
@@ -649,6 +919,228 @@ def _portrait_data_uri(path: Path | None) -> str | None:
     except OSError:
         mtime_ns = 0
     return _file_data_uri(str(path), mtime_ns)
+
+
+def _desk_asset_url(filename: str) -> str | None:
+    """evidence_desk 에셋 URL — 파일 없으면 None (플레이스홀더)."""
+    path = EVIDENCE_DESK_DIR / filename
+    if not path.is_file():
+        return None
+    try:
+        ver = path.stat().st_mtime_ns
+    except OSError:
+        ver = 0
+    return f"{_browser_asset_url(f'ui/evidence_desk/{filename}')}?v={ver}"
+
+
+def _desk_bg_url() -> str | None:
+    for name in ("desk_bg.jpg", "desk_bg.png"):
+        url = _desk_asset_url(name)
+        if url:
+            return url
+    return None
+
+
+def _consume_desk_click() -> str | None:
+    """책상 이미지 링크(?desk_item=) 클릭을 세션 클릭으로 변환."""
+    pending = st.session_state.pop("_desk_click_id", None)
+    if pending:
+        return str(pending)
+    raw = st.query_params.get("desk_item")
+    if not raw:
+        return None
+    item_id = raw[0] if isinstance(raw, (list, tuple)) else str(raw)
+    st.session_state["_desk_click_id"] = item_id
+    try:
+        del st.query_params["desk_item"]
+    except Exception:
+        try:
+            st.query_params.from_dict(
+                {k: v for k, v in st.query_params.items() if k != "desk_item"}
+            )
+        except Exception:
+            pass
+    st.rerun()
+    return None
+
+
+def _apply_desk_click(sid: str, game: dict, clicked_id: str) -> None:
+    """책상 클릭 1건 처리 — 핵심은 force_evidence_id, decoy는 force_miss."""
+    item = next((c for c in EVIDENCE_DESK_ITEMS if c["id"] == clicked_id), None)
+    if not item or game.get("ended"):
+        return
+    owned = set(game.get("evidence_ids") or [])
+    inspected = set(st.session_state.get("desk_inspected") or [])
+    eid = item.get("evidence_id")
+    decoy = bool(item.get("decoy"))
+    if eid and eid in owned:
+        st.session_state["desk_flash"] = {
+            "kind": "info",
+            "text": "이미 확보한 증거입니다.",
+        }
+        return
+    if decoy and item["id"] in inspected:
+        return
+    err = _execute_search(
+        sid,
+        str(item["query"]),
+        game=game,
+        force_miss=decoy,
+        force_evidence_id=None if decoy else (str(eid) if eid else None),
+    )
+    if err:
+        st.session_state["desk_flash"] = {"kind": "error", "text": err}
+        st.rerun()
+        return
+    if decoy:
+        inspected_list = list(st.session_state.setdefault("desk_inspected", []))
+        if item["id"] not in inspected_list:
+            inspected_list.append(item["id"])
+            st.session_state["desk_inspected"] = inspected_list
+        st.session_state["desk_flash"] = {
+            "kind": "warn",
+            "text": f"헛수색 — 「{item.get('short')}」에서는 단서를 찾지 못했습니다.",
+        }
+    st.session_state["ops_prefer_search_tab"] = True
+    st.rerun()
+
+
+def _render_evidence_desk_board(
+    items: list[dict],
+    *,
+    owned_set: set[str],
+    inspected: set[str],
+    ended: bool = False,
+) -> str | None:
+    """책상 보드 — Streamlit 버튼에 증거 이미지를 입혀 직접 클릭."""
+    bg = _desk_bg_url()
+    bg_css = (
+        f"background-image:url('{html.escape(bg, quote=True)}');"
+        if bg
+        else "background-color:#8a7f6e;"
+    )
+    css_bits: list[str] = [
+        f"""
+        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
+          {bg_css}
+          background-size: cover !important;
+          background-position: center !important;
+          border-radius: 10px !important;
+          border: 1px solid rgba(200, 210, 220, 0.22) !important;
+          box-shadow: inset 0 0 28px rgba(40, 32, 24, 0.12) !important;
+          padding: 1.1rem 0.65rem 1rem !important;
+          margin: 0 0 0.75rem !important;
+          min-height: 26rem !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.evidence-desk-live-mark) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        """
+    ]
+    for item in items:
+        key = f"desk_item_{item['id']}"
+        img_url = _desk_asset_url(str(item.get("file") or ""))
+        if img_url:
+            safe = html.escape(img_url, quote=True)
+            bg_layer = f"transparent url('{safe}') center 18% / 70% auto no-repeat"
+            bg_hover = f"rgba(255,252,245,0.16) url('{safe}') center 18% / 70% auto no-repeat"
+        else:
+            bg_layer = "rgba(20,24,30,0.35)"
+            bg_hover = "rgba(255,252,245,0.16)"
+        css_bits.append(
+            f"""
+            div.st-key-{key} button,
+            div.st-key-{key} .stButton > button,
+            .st-key-{key} button {{
+              min-height: 10rem !important;
+              height: 10rem !important;
+              padding: 0.3rem 0.2rem 0.4rem !important;
+              border: none !important;
+              border-radius: 10px !important;
+              box-shadow: none !important;
+              background: {bg_layer} !important;
+              color: #f4f1ea !important;
+              font-weight: 700 !important;
+              font-size: 0.74rem !important;
+              letter-spacing: 0 !important;
+              line-height: 1.15 !important;
+              white-space: normal !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: flex-end !important;
+              align-items: center !important;
+              text-shadow: 0 1px 2px rgba(0,0,0,0.75) !important;
+            }}
+            div.st-key-{key} button:hover:not(:disabled),
+            .st-key-{key} button:hover:not(:disabled) {{
+              background: {bg_hover} !important;
+              border: none !important;
+              transform: translateY(-2px) scale(1.03) !important;
+            }}
+            div.st-key-{key} button:disabled,
+            .st-key-{key} button:disabled {{
+              opacity: 0.42 !important;
+              background: {bg_layer} !important;
+            }}
+            div.st-key-{key} button p,
+            .st-key-{key} button p {{
+              margin: 0 !important;
+              padding: 0.12rem 0.4rem !important;
+              border-radius: 999px !important;
+              background: rgba(12, 14, 18, 0.62) !important;
+              color: #f4f1ea !important;
+              font-size: 0.74rem !important;
+              font-weight: 700 !important;
+            }}
+            @media (max-width: 900px) {{
+              div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
+                min-height: 20rem !important;
+              }}
+              div.st-key-{key} button,
+              .st-key-{key} button {{
+                min-height: 7.2rem !important;
+                height: 7.2rem !important;
+                font-size: 0.6rem !important;
+              }}
+            }}
+            """
+        )
+    st.markdown(f"<style>{''.join(css_bits)}</style>", unsafe_allow_html=True)
+
+    clicked_id: str | None = None
+    with st.container():
+        st.markdown(
+            '<div class="evidence-desk-live-mark" aria-hidden="true"></div>',
+            unsafe_allow_html=True,
+        )
+        for row_i in range(0, len(items), 5):
+            row = items[row_i : row_i + 5]
+            cols = st.columns(5)
+            for col, item in zip(cols, row):
+                eid = item.get("evidence_id")
+                decoy = bool(item.get("decoy"))
+                collected = bool(eid and eid in owned_set)
+                already = collected or (decoy and item["id"] in inspected)
+                label = (
+                    f"✓ {item['short']}"
+                    if collected
+                    else (f"· {item['short']}" if already else str(item["short"]))
+                )
+                with col:
+                    if st.button(
+                        label,
+                        key=f"desk_item_{item['id']}",
+                        disabled=already or ended,
+                        use_container_width=True,
+                        help=str(item.get("hint") or item.get("query") or ""),
+                        type="secondary",
+                    ):
+                        clicked_id = str(item["id"])
+    return clicked_id
+
 
 
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
@@ -800,7 +1292,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           opacity: 0 !important;
           pointer-events: none !important;
         }}
-        /* BGM 토글 — 예전 Streamlit 개발 알림(우상단) 자리 */
+        /* BGM+수사권한 독 — 예전 Streamlit 개발 알림(우상단) 자리 */
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark) {{
           position: absolute !important;
           width: 0 !important;
@@ -812,24 +1304,25 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           pointer-events: none !important;
         }}
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark)
-          + div[data-testid="stElementContainer"],
-        div[data-testid="stElementContainer"]:has(iframe[height="36"]) {{
+          + div[data-testid="stElementContainer"] {{
           position: fixed !important;
-          top: 0.4rem !important;
+          top: 0.28rem !important;
           right: 0.75rem !important;
           z-index: 1000025 !important;
-          width: 2.75rem !important;
-          height: 2.25rem !important;
+          width: auto !important;
+          min-width: 9rem !important;
+          max-width: 15rem !important;
+          height: 2.85rem !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: visible !important;
           background: transparent !important;
         }}
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark)
-          + div[data-testid="stElementContainer"] iframe,
-        div[data-testid="stElementContainer"]:has(iframe[height="36"]) iframe {{
-          width: 44px !important;
-          height: 36px !important;
+          + div[data-testid="stElementContainer"] iframe {{
+          width: 220px !important;
+          max-width: 100% !important;
+          height: 44px !important;
           border: 0 !important;
           background: transparent !important;
         }}
@@ -1028,46 +1521,49 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           max-width: 100% !important;
           min-width: 0 !important;
           height: 100% !important;
-          min-height: 100% !important;
+          min-height: 0 !important;
           max-height: 100% !important;
           display: flex !important;
           flex-direction: column !important;
           box-sizing: border-box !important;
           padding: 0 !important;
           margin: 0 !important;
+          overflow: hidden !important;
         }}
         [data-testid="stSidebar"] [data-testid="stSidebarContent"] {{
           flex: 1 1 auto !important;
           width: 100% !important;
-          height: 100% !important;
+          height: auto !important;
           min-height: 0 !important;
-          max-height: 100% !important;
+          max-height: none !important;
           overflow-x: hidden !important;
           overflow-y: auto !important;
           overscroll-behavior: contain !important;
+          -webkit-overflow-scrolling: touch !important;
           box-sizing: border-box !important;
-          /* 헤더·본문 패딩을 분리 — Content 자체는 0 */
           padding: 0 !important;
-          padding-left: 0 !important;
-          padding-right: 0 !important;
-          padding-top: 0 !important;
-          padding-bottom: 0 !important;
+          scrollbar-gutter: stable !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"]::-webkit-scrollbar {{
+          width: 6px !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"]::-webkit-scrollbar-thumb {{
+          background: rgba(160, 168, 180, 0.35) !important;
+          border-radius: 999px !important;
         }}
         [data-testid="stSidebar"] [data-testid="stSidebarContent"],
-        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
-          gap: 0.35rem !important;
+        [data-testid="stSidebar"] [data-testid="stSidebarUserContent"]
+          > div[data-testid="stVerticalBlock"] {{
+          gap: 0.28rem !important;
         }}
-        /* 사이드바 본문(헤더 아래) — 좌우·상단 여백 */
+        /* 사이드바 본문(헤더 아래) — 좌우·상단 여백 · 하단은 스크롤 여유 */
         [data-testid="stSidebar"] [data-testid="stSidebarUserContent"],
         section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
           box-sizing: border-box !important;
           width: 100% !important;
-          padding: 0.85rem 0.95rem 1.35rem !important;
-          padding-top: 0.9rem !important;
-          padding-left: 0.95rem !important;
-          padding-right: 0.95rem !important;
-          padding-bottom: 1.35rem !important;
+          padding: 0.75rem 0.85rem 2.5rem !important;
           margin: 0 !important;
+          overflow: visible !important;
         }}
         [data-testid="stSidebar"] [data-testid="stSidebarUserContent"]
           > div[data-testid="stVerticalBlock"],
@@ -1133,6 +1629,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           align-items: center !important;
           justify-content: flex-start !important;
           gap: 0 !important;
+          flex: 0 0 auto !important;
+          flex-shrink: 0 !important;
           /* static → 닫기 버튼 absolute 기준을 사이드바(fixed)로 */
           position: static !important;
           z-index: 2 !important;
@@ -1271,7 +1769,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         /* 사이드바 블록 간격 — 부제↔버튼(기존 넓은 간격) 기준으로 통일 */
         [data-testid="stSidebar"],
         section[data-testid="stSidebar"] {{
-          --side-block-gap: 2.2rem;
+          --side-block-gap: 1.15rem;
           --side-auth-h: 2.35rem;
         }}
         .side-nav-brand {{
@@ -1315,6 +1813,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           display: flex;
           flex-direction: column;
           justify-content: center;
+        }}
+        .side-status-card-timeout {{
+          margin: 0 0 0.55rem !important;
         }}
         .side-status-row {{
           display: flex;
@@ -1529,7 +2030,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           border-radius: 8px !important;
           border: 0 !important;
           background: transparent !important;
-          padding: 0.5rem 0.55rem !important;
+          padding: 0.35rem 0.45rem !important;
           white-space: normal !important;
         }}
         [data-testid="stSidebar"] .golden-step.is-done {{
@@ -1554,6 +2055,106 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           margin: 0.45rem 0.15rem 0 !important;
           font-size: 0.75rem !important;
           color: rgba(212,175,105,0.88) !important;
+          font-weight: 550 !important;
+        }}
+        /* 사이드바 인벤토리 보관함 — 세로 슬롯 · 우측 레일 폭(--ops-rail-width) 상속 차단 */
+        [data-testid="stSidebar"] .inventory-sidebar,
+        [data-testid="stSidebar"] .inventory-session {{
+          margin: 0.15rem 0 0.35rem !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+          backdrop-filter: none !important;
+          box-shadow: none !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          box-sizing: border-box !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session),
+        [data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session) {{
+          display: block !important;
+          justify-content: unset !important;
+          align-items: stretch !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          overflow: visible !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session) > div,
+        [data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session) > div,
+        section[data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session) {{
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .panel-title {{
+          display: none !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot-meta {{
+          margin: 0.35rem 0 !important;
+          font-size: 0.72rem !important;
+          white-space: normal !important;
+          text-align: center !important;
+          width: 100% !important;
+          color: rgba(160, 168, 180, 0.85) !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slots {{
+          flex-direction: column !important;
+          flex-wrap: nowrap !important;
+          gap: 0.28rem !important;
+          width: 100% !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot {{
+          flex: 0 0 auto !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          flex-direction: row !important;
+          justify-content: flex-start !important;
+          align-items: center !important;
+          gap: 0.55rem !important;
+          min-height: 1.95rem !important;
+          padding: 0.32rem 0.5rem !important;
+          border-radius: 8px !important;
+          box-sizing: border-box !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot.is-empty {{
+          min-height: 1.65rem !important;
+          padding: 0.22rem 0.5rem !important;
+          opacity: 0.42 !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot-num {{
+          flex: 0 0 auto !important;
+          font-size: 0.68rem !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot-name {{
+          flex: 1 1 auto !important;
+          text-align: left !important;
+          font-size: 0.8rem !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }}
+        [data-testid="stSidebar"] .inventory-sidebar .inv-slot.is-filled .inv-slot-name {{
+          color: #e8eef4 !important;
           font-weight: 550 !important;
         }}
         .sidebar-hud-title,
@@ -2159,6 +2760,89 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           font-size: 0.84rem !important;
           font-weight: 500 !important;
         }}
+        /* 최종 지목: 확정 버튼 ↔ 용의자 선택 양쪽 끝 정렬 */
+        div[data-testid="stElementContainer"]:has(.ops-accuse-row-mark),
+        div[data-testid="stElementContainer"]:has(.ops-accuse-btn-mark),
+        div[data-testid="stElementContainer"]:has(.ops-accuse-select-mark) {{
+          display: none !important;
+          height: 0 !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          pointer-events: none !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-btn-mark),
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-select-mark) {{
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          justify-content: space-between !important;
+          align-items: center !important;
+          gap: 0.75rem !important;
+          width: 100% !important;
+          margin: 0.55rem 0 0.15rem !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-select-mark)
+          > div[data-testid="column"]:first-child,
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-select-mark)
+          > div[data-testid="stColumn"]:first-child {{
+          flex: 0 0 auto !important;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          display: flex !important;
+          justify-content: flex-start !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-btn-mark)
+          > div[data-testid="column"]:last-child,
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stHorizontalBlock"]:has(.ops-accuse-btn-mark)
+          > div[data-testid="stColumn"]:last-child {{
+          flex: 0 0 auto !important;
+          width: auto !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          display: flex !important;
+          justify-content: flex-end !important;
+          margin-left: auto !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stElementContainer"]:has(.ops-accuse-select-mark)
+          + div[data-testid="stElementContainer"] {{
+          width: fit-content !important;
+          max-width: 12rem !important;
+          margin: 0 !important;
+          margin-right: auto !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stElementContainer"]:has(.ops-accuse-select-mark)
+          + div[data-testid="stElementContainer"] [data-baseweb="select"] > div {{
+          background: rgba(30, 36, 48, 0.7) !important;
+          border: 1px solid var(--line) !important;
+          border-radius: 999px !important;
+          min-height: 2.1rem !important;
+          box-shadow: none !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stElementContainer"]:has(.ops-accuse-select-mark)
+          + div[data-testid="stElementContainer"] [data-baseweb="select"] {{
+          min-width: 7.5rem !important;
+        }}
+        .stTabs [data-baseweb="tab-panel"]:has(.ops-accuse-row-mark)
+          div[data-testid="stElementContainer"]:has(.ops-accuse-select-mark)
+          + div[data-testid="stElementContainer"]
+          [data-baseweb="select"] span {{
+          color: #f0f0f0 !important;
+          font-size: 0.84rem !important;
+          font-weight: 500 !important;
+        }}
         /* 드롭다운 메뉴 (역할 설정 스타일) */
         div[data-baseweb="popover"] [role="listbox"] {{
           background: rgba(22, 26, 34, 0.98) !important;
@@ -2725,6 +3409,224 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         .inv-id {{ font-size: 0.68rem; color: var(--muted); }}
         .inv-name {{ font-weight: 600; margin-top: 0.1rem; font-size: 0.9rem; }}
+        /* 명탐정S형 증거물 슬롯 */
+        .inv-slot-meta {{
+          margin: 0 0 0.55rem !important;
+          font-size: 0.72rem !important;
+          letter-spacing: 0.08em !important;
+          color: rgba(160, 168, 180, 0.85) !important;
+        }}
+        .inv-slots {{
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          gap: 0.35rem !important;
+          width: 100% !important;
+        }}
+        .inv-slot {{
+          flex: 1 1 0 !important;
+          min-width: 0 !important;
+          box-sizing: border-box !important;
+          border-radius: 8px !important;
+          border: 1px solid rgba(200, 210, 220, 0.16) !important;
+          background: rgba(12, 16, 22, 0.55) !important;
+          padding: 0.4rem 0.3rem 0.45rem !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          gap: 0.2rem !important;
+          min-height: 3.4rem !important;
+        }}
+        .inv-slot.is-filled {{
+          border-color: rgba(122, 155, 184, 0.45) !important;
+          background: rgba(30, 40, 52, 0.72) !important;
+        }}
+        .inv-slot.is-empty {{
+          opacity: 0.55 !important;
+          border-style: dashed !important;
+        }}
+        .inv-slot-num {{
+          font-size: 0.62rem !important;
+          letter-spacing: 0.1em !important;
+          color: rgba(150, 158, 170, 0.9) !important;
+        }}
+        .inv-slot-name {{
+          font-size: 0.68rem !important;
+          line-height: 1.25 !important;
+          text-align: center !important;
+          color: #e8eef4 !important;
+          word-break: keep-all !important;
+          overflow: hidden !important;
+          display: -webkit-box !important;
+          -webkit-line-clamp: 3 !important;
+          -webkit-box-orient: vertical !important;
+        }}
+        .inv-slot.is-empty .inv-slot-name {{
+          color: rgba(150, 158, 170, 0.7) !important;
+        }}
+        .search-catalog-kicker {{
+          margin: 0 0 0.35rem !important;
+          font-size: 0.78rem !important;
+          letter-spacing: 0.1em !important;
+          text-transform: uppercase !important;
+          color: var(--accent) !important;
+          font-weight: 500 !important;
+        }}
+        /* 책상 수색 보드 */
+        .evidence-desk {{
+          position: relative !important;
+          width: 100% !important;
+          aspect-ratio: 16 / 9 !important;
+          max-height: 28rem !important;
+          margin: 0 0 0.75rem !important;
+          border-radius: 10px !important;
+          border: 1px solid rgba(200, 210, 220, 0.22) !important;
+          background-color: #8a7f6e !important;
+          background-size: cover !important;
+          background-position: center !important;
+          overflow: hidden !important;
+          box-shadow: inset 0 0 28px rgba(40, 32, 24, 0.12) !important;
+        }}
+        .evidence-desk::before {{
+          content: "" !important;
+          position: absolute !important;
+          inset: 0 !important;
+          background: linear-gradient(
+            180deg,
+            rgba(255, 252, 245, 0.08) 0%,
+            rgba(255, 252, 245, 0) 45%,
+            rgba(40, 32, 24, 0.12) 100%
+          ) !important;
+          pointer-events: none !important;
+        }}
+        .evidence-desk-grid {{
+          position: relative !important;
+          z-index: 1 !important;
+          display: grid !important;
+          grid-template-columns: repeat(5, 1fr) !important;
+          grid-template-rows: repeat(2, 1fr) !important;
+          gap: 0.35rem 0.4rem !important;
+          height: 100% !important;
+          padding: 3.5% 2.5% 4.5% !important;
+          box-sizing: border-box !important;
+        }}
+        .desk-item {{
+          position: relative !important;
+          display: flex !important;
+          flex-direction: column !important;
+          align-items: center !important;
+          justify-content: center !important;
+          gap: 0.28rem !important;
+          min-height: 0 !important;
+        }}
+        .desk-item-img {{
+          width: min(92%, 6.6rem) !important;
+          height: auto !important;
+          max-height: 82% !important;
+          object-fit: contain !important;
+          filter: drop-shadow(0 5px 10px rgba(0, 0, 0, 0.45)) !important;
+          transition: transform 0.15s ease, opacity 0.15s ease !important;
+        }}
+        .desk-item-ph {{
+          display: grid !important;
+          place-items: center !important;
+          width: min(92%, 5.8rem) !important;
+          aspect-ratio: 1 !important;
+          border-radius: 8px !important;
+          border: 1px dashed rgba(60, 50, 40, 0.35) !important;
+          background: rgba(255, 252, 245, 0.72) !important;
+          color: rgba(40, 36, 32, 0.78) !important;
+          font-size: 0.85rem !important;
+          font-weight: 600 !important;
+          letter-spacing: 0.04em !important;
+        }}
+        .desk-item-name {{
+          font-size: 0.74rem !important;
+          line-height: 1.2 !important;
+          color: #1a1e26 !important;
+          text-align: center !important;
+          text-shadow: 0 1px 2px rgba(255, 252, 245, 0.85) !important;
+          font-weight: 700 !important;
+          max-width: 100% !important;
+          overflow: hidden !important;
+          white-space: nowrap !important;
+          text-overflow: ellipsis !important;
+        }}
+        .desk-item-badge {{
+          position: absolute !important;
+          top: 0 !important;
+          right: 8% !important;
+          width: 1.25rem !important;
+          height: 1.25rem !important;
+          border-radius: 50% !important;
+          display: grid !important;
+          place-items: center !important;
+          font-size: 0.7rem !important;
+          background: rgba(122, 155, 184, 0.95) !important;
+          color: #0c1016 !important;
+          font-weight: 700 !important;
+        }}
+        .desk-item-badge.is-miss {{
+          background: rgba(90, 98, 110, 0.9) !important;
+          color: #c8ced8 !important;
+        }}
+        .desk-item.is-collected .desk-item-img,
+        .desk-item.is-collected .desk-item-ph,
+        .desk-item.is-checked .desk-item-img,
+        .desk-item.is-checked .desk-item-ph {{
+          opacity: 0.42 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.search-cand-mark),
+        div[data-testid="stElementContainer"]:has(.desk-hotspot-mark) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        @media (max-width: 900px) {{
+          .inv-slots {{
+            gap: 0.28rem !important;
+          }}
+          .inv-slot {{
+            min-height: 3.1rem !important;
+            padding: 0.35rem 0.2rem !important;
+          }}
+          .inv-slot-name {{
+            font-size: 0.6rem !important;
+            -webkit-line-clamp: 2 !important;
+          }}
+          .evidence-desk {{
+            max-height: 20rem !important;
+            aspect-ratio: 16 / 10 !important;
+          }}
+          .evidence-desk-grid {{
+            gap: 0.22rem 0.25rem !important;
+            padding: 3% 2% 4% !important;
+          }}
+          .desk-item-name {{
+            font-size: 0.58rem !important;
+          }}
+          .desk-item-img {{
+            width: min(94%, 5.2rem) !important;
+            max-height: 78% !important;
+          }}
+          .desk-item-ph {{
+            width: min(94%, 4.4rem) !important;
+            font-size: 0.68rem !important;
+          }}
+          /* 책상 핫스팟 버튼 — 좁은 화면 라벨 축소 */
+          div[data-testid="stHorizontalBlock"]:has(.desk-hotspot-mark)
+            .stButton > button,
+          div[data-testid="stHorizontalBlock"]:has(.desk-hotspot-mark)
+            .stButton > button p {{
+            font-size: 0.58rem !important;
+            letter-spacing: 0 !important;
+            padding: 0.3rem 0.1rem !important;
+            min-height: 2.2rem !important;
+            line-height: 1.15 !important;
+            white-space: normal !important;
+          }}
+        }}
 
         /* 마커 DOM은 선택자용 — 세로 간격에 끼지 않게 완전 제거 */
         .suspect-session-marker,
@@ -3138,6 +4040,37 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-width: var(--ops-rail-width) !important;
           max-width: var(--ops-rail-width) !important;
         }}
+        /* 사이드바 인벤토리: 우측 레일 폭/우측 정렬 무력화 (왼쪽 잘림 방지) */
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session),
+        [data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session) {{
+          display: block !important;
+          justify-content: flex-start !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session) > div,
+        [data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.inventory-session) > div,
+        section[data-testid="stSidebar"]
+          div[data-testid="stMarkdownContainer"]:has(.inventory-session),
+        [data-testid="stSidebar"] .inventory-session,
+        [data-testid="stSidebar"] .inventory-sidebar {{
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }}
         /* Golden Route: 사이드바 보조 HUD 안 세로 스택 */
         div[data-testid="stElementContainer"]:has(.golden-route),
         div[data-testid="stMarkdownContainer"]:has(.golden-route) {{
@@ -3230,6 +4163,52 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
             rgba(10, 6, 10, 0.55)
           );
           box-shadow: inset 0 0 40px rgba(160, 30, 40, 0.4);
+        }}
+        /* 검거 도장 — 초상 중앙 slam */
+        .arrest-stamp {{
+          position: absolute;
+          inset: 0;
+          z-index: 6;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          pointer-events: none;
+        }}
+        .arrest-stamp img {{
+          width: min(88%, 15rem);
+          height: auto;
+          max-height: 72%;
+          object-fit: contain;
+          display: block;
+          filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+          opacity: 0.94;
+        }}
+        .arrest-stamp.is-static img {{
+          transform: scale(1);
+          opacity: 0.94;
+        }}
+        .arrest-stamp.is-slam img {{
+          animation: arrest-stamp-slam 0.52s cubic-bezier(0.12, 0.82, 0.22, 1.18) forwards;
+        }}
+        @keyframes arrest-stamp-slam {{
+          0% {{
+            transform: scale(2.55) translateY(-8%);
+            opacity: 0;
+            filter: drop-shadow(0 0 0 transparent) blur(1.5px);
+          }}
+          58% {{
+            transform: scale(0.9) translateY(0);
+            opacity: 1;
+            filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.6)) blur(0);
+          }}
+          74% {{
+            transform: scale(1.08);
+          }}
+          100% {{
+            transform: scale(1);
+            opacity: 0.94;
+            filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.55));
+          }}
         }}
         .stress-chip {{
           position: absolute;
@@ -4240,15 +5219,32 @@ def _golden_step_meta(evidence_id: str) -> dict | None:
     return None
 
 
-def _render_clue_banner() -> None:
-    pending = list(st.session_state.get("pending_clues") or [])
-    if not pending:
-        return
-    c = pending[0]
+def _clue_snippet_for_banner(eid: str, raw_snippet: str) -> str:
+    """단서 배너용 요약 — RAG 원문(CSV/로그 덤프)은 숨기고 플레이 카피로 대체."""
+    flavor = CLUE_FLAVOR.get(eid, "결정적 단서가 확보되었습니다.")
+    snip = str(raw_snippet or "").strip()
+    if not snip:
+        return ""
+    title = CLUE_LABELS.get(eid) or _evidence_label(eid)
+    if snip == title or snip == flavor:
+        return ""
+    # 원문 덤프 휴리스틱: 콤마 다수 · 개행 · 과도한 길이
+    if snip.count(",") >= 3 or "\n" in snip or len(snip) > 120:
+        return ""
+    return snip[:140]
+
+
+def _clue_banner_html(c: dict) -> str:
+    """단서 배너 HTML — 상단 배너·수색 성공 모달 공용."""
     eid = str(c.get("evidence_id") or "")
     title = html.escape(str(c.get("title") or _evidence_label(eid)))
-    snip = html.escape(str(c.get("snippet") or CLUE_FLAVOR.get(eid, ""))[:140])
     flavor = html.escape(CLUE_FLAVOR.get(eid, "결정적 단서가 확보되었습니다."))
+    snip_raw = _clue_snippet_for_banner(eid, str(c.get("snippet") or ""))
+    snip_html = (
+        f'<p class="clue-snip" style="margin-top:0.3rem;">{html.escape(snip_raw)}</p>'
+        if snip_raw
+        else ""
+    )
     meta = _golden_step_meta(eid)
     smoking = bool(c.get("smoking_gun")) or meta is not None
     kicker = "Evidence Secured"
@@ -4262,20 +5258,33 @@ def _render_clue_banner() -> None:
     elif smoking:
         kicker = "Smoking Gun"
     banner_cls = "clue-banner is-smoking" if smoking else "clue-banner"
-    st.markdown(
-        f"""
-        <div class="{banner_cls}">
-          <div class="clue-kicker">{kicker}</div>
-          <div class="clue-title">{title}</div>
-          <p class="clue-snip">{flavor}</p>
-          <p class="clue-snip" style="margin-top:0.3rem;">{snip}</p>
-          {route_line}
-        </div>
-        """,
-        unsafe_allow_html=True,
+    return (
+        f'<div class="{banner_cls}">'
+        f'<div class="clue-kicker">{kicker}</div>'
+        f'<div class="clue-title">{title}</div>'
+        f'<p class="clue-snip">{flavor}</p>'
+        f"{snip_html}"
+        f"{route_line}"
+        f"</div>"
     )
-    if st.button("단서 확인 · 인벤토리에 보관", type="primary", key="dismiss_clue"):
+
+
+def _confirm_pending_clue() -> None:
+    pending = list(st.session_state.get("pending_clues") or [])
+    if pending:
         st.session_state["pending_clues"] = pending[1:]
+    st.session_state.pop("suppress_clue_banner", None)
+
+
+def _render_clue_banner() -> None:
+    if st.session_state.get("suppress_clue_banner"):
+        return
+    pending = list(st.session_state.get("pending_clues") or [])
+    if not pending:
+        return
+    st.markdown(_clue_banner_html(pending[0]), unsafe_allow_html=True)
+    if st.button("단서 확인 · 인벤토리에 보관", type="primary", key="dismiss_clue"):
+        _confirm_pending_clue()
         st.rerun()
 
 
@@ -4351,22 +5360,26 @@ def _render_golden_route(owned: list[str], *, ended: bool = False, won: bool = F
 
 
 def _render_ending_banner() -> None:
+    """오답·권한 소진 등 패배 엔딩만 상단 배너로 표시 (정답은 모달만)."""
     text = st.session_state.get("last_ending")
     if not text:
         return
-    ok = bool(st.session_state.get("last_ending_ok"))
-    cls = "ending-banner is-win" if ok else "ending-banner is-lose"
-    kicker = "CASE CLOSED · GOLDEN ROUTE" if ok else "JUDGEMENT FAILED"
-    title = "진실이 밝혀졌습니다" if ok else "지목이 빗나갔습니다"
-    st.markdown(
-        f"""
-        <div class="{cls}">
-          <div class="ending-kicker">{kicker}</div>
-          <div class="ending-title">{html.escape(title)}</div>
-          <p class="ending-body">{html.escape(str(text))}</p>
-        </div>
-        """,
-        unsafe_allow_html=True,
+    if bool(st.session_state.get("last_ending_ok")):
+        return
+    st.markdown(_ending_card_html(str(text), won=False), unsafe_allow_html=True)
+
+
+def _ending_card_html(body: str, *, won: bool) -> str:
+    """엔딩 배너·지목 모달 공통 카드 마크업."""
+    cls = "ending-banner is-win" if won else "ending-banner is-lose"
+    kicker = "CASE CLOSED · GOLDEN ROUTE" if won else "JUDGEMENT FAILED"
+    title = "진실이 밝혀졌습니다" if won else "지목이 빗나갔습니다"
+    return (
+        f'<div class="{cls}">'
+        f'<div class="ending-kicker">{kicker}</div>'
+        f'<div class="ending-title">{html.escape(title)}</div>'
+        f'<p class="ending-body">{html.escape(str(body))}</p>'
+        f"</div>"
     )
 
 
@@ -4386,21 +5399,10 @@ def _render_hud_brand(game: dict) -> None:
 
 def _render_sidebar_hud(game: dict, *, sid: str) -> None:
     """보조 HUD — 뤼튼형 사이드 메뉴 레이아웃."""
-    stamina = int(game.get("stamina") or 0)
-    stamina_max = int(game.get("stamina_max") or 3)
-    hearts = "♥" * stamina + "♡" * max(0, stamina_max - stamina)
     strikes = int(game.get("timeout_strikes") or 0)
     strike_max = int(game.get("timeout_strike_max") or 3)
     case_title = html.escape(str(game.get("title") or "진실의 방"))
     timer_on_hud = TIMER_FEATURE_ENABLED and bool(game.get("timer_enabled", False))
-    timeout_html = ""
-    if timer_on_hud:
-        timeout_html = (
-            f'<div class="side-status-row">'
-            f'<span class="side-status-label">타임아웃</span>'
-            f'<span class="side-status-value">{strikes}/{strike_max}</span>'
-            f"</div>"
-        )
 
     st.markdown('<div class="sidebar-hud-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
     st.markdown(
@@ -4414,33 +5416,30 @@ def _render_sidebar_hud(game: dict, *, sid: str) -> None:
         unsafe_allow_html=True,
     )
 
-    auth_l, auth_r = st.columns([1.05, 1], gap="small")
-    with auth_l:
-        st.markdown('<div class="side-auth-row-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    if timer_on_hud:
         st.markdown(
             f"""
-            <div class="side-status-card">
+            <div class="side-status-card side-status-card-timeout">
               <div class="side-status-row">
-                <span class="side-status-label">수사 권한</span>
-                <span class="side-status-hearts">{hearts}</span>
+                <span class="side-status-label">타임아웃</span>
+                <span class="side-status-value">{strikes}/{strike_max}</span>
               </div>
-              {timeout_html}
             </div>
             """,
             unsafe_allow_html=True,
         )
-    with auth_r:
-        st.markdown('<div class="hud-restart-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
-        if st.button(
-            "새 수사 개시",
-            type="primary",
-            key="btn_restart_hud",
-            use_container_width=True,
-        ):
-            try:
-                _start_new_investigation(with_tab_intro=False)
-            except requests.RequestException as exc:
-                st.error(f"세션 생성 실패: {exc}")
+
+    st.markdown('<div class="hud-restart-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    if st.button(
+        "새 수사 개시",
+        type="primary",
+        key="btn_restart_hud",
+        use_container_width=True,
+    ):
+        try:
+            _start_new_investigation(with_tab_intro=False)
+        except requests.RequestException as exc:
+            st.error(f"세션 생성 실패: {exc}")
 
     st.markdown(
         '<p class="side-section-label">메뉴</p>',
@@ -4460,8 +5459,17 @@ def _render_sidebar_hud(game: dict, *, sid: str) -> None:
     _render_golden_route(
         list(game.get("evidence_ids") or []),
         ended=bool(game.get("ended")),
-        won=bool(st.session_state.get("last_ending_ok")),
+        won=bool(
+            st.session_state.get("case_won")
+            or st.session_state.get("last_ending_ok")
+        ),
     )
+
+    st.markdown(
+        '<p class="side-section-label side-section-gap-before">인벤토리 보관함</p>',
+        unsafe_allow_html=True,
+    )
+    _render_inventory(list(game.get("evidence_ids") or []), sidebar=True)
 
 
 def _render_hud(game: dict) -> None:
@@ -4469,27 +5477,65 @@ def _render_hud(game: dict) -> None:
     _render_hud_brand(game)
 
 
-def _render_inventory(owned: list[str]) -> None:
-    if not owned:
-        body = (
-            '<div class="inventory-body is-empty">'
-            '<p class="inv-empty">아직 확보한 단서가 없습니다.</p>'
-            "</div>"
-        )
-    else:
-        blocks = []
-        for eid in owned:
-            name = html.escape(_evidence_label(eid))
-            blocks.append(
-                f'<div class="inv-item"><div class="inv-id">{html.escape(eid)}</div>'
-                f'<div class="inv-name">{name}</div></div>'
+def _render_inventory(owned: list[str], *, sidebar: bool = False) -> None:
+    """확보 증거를 명탐정S형 1~N 슬롯으로 표시."""
+    owned_list = [str(x) for x in (owned or []) if x][:INVENTORY_SLOT_COUNT]
+    filled = len(owned_list)
+
+    if sidebar:
+        # 사이드바: 확보분만 표시 (카운트/빈 슬롯 요약 문구 없음)
+        if not owned_list:
+            st.markdown(
+                '<div class="inventory-session inventory-sidebar">'
+                '<p class="inv-slot-meta">아직 확보한 증거가 없습니다.</p>'
+                "</div>",
+                unsafe_allow_html=True,
             )
-        body = f'<div class="inventory-body">{"".join(blocks)}</div>'
+            return
+        cells: list[str] = []
+        for i, eid in enumerate(owned_list, start=1):
+            name = html.escape(_evidence_label(eid))
+            cells.append(
+                f'<div class="inv-slot is-filled" title="{html.escape(eid)}">'
+                f'<span class="inv-slot-num">{i}</span>'
+                f'<span class="inv-slot-name">{name}</span>'
+                f"</div>"
+            )
+        st.markdown(
+            f'<div class="inventory-session inventory-sidebar">'
+            f'<div class="inv-slots">{"".join(cells)}</div>'
+            f"</div>",
+            unsafe_allow_html=True,
+        )
+        return
+
+    slots: list[str | None] = list(owned_list)
+    while len(slots) < INVENTORY_SLOT_COUNT:
+        slots.append(None)
+
+    cells = []
+    for i, eid in enumerate(slots, start=1):
+        if eid:
+            name = html.escape(_evidence_label(eid))
+            cells.append(
+                f'<div class="inv-slot is-filled" title="{html.escape(eid)}">'
+                f'<span class="inv-slot-num">{i}</span>'
+                f'<span class="inv-slot-name">{name}</span>'
+                f"</div>"
+            )
+        else:
+            cells.append(
+                f'<div class="inv-slot is-empty">'
+                f'<span class="inv-slot-num">{i}</span>'
+                f'<span class="inv-slot-name">빈 슬롯</span>'
+                f"</div>"
+            )
 
     st.markdown(
         '<div class="inventory-session">'
-        '<p class="panel-title">증거 인벤토리</p>'
-        f"{body}"
+        '<p class="panel-title">증거물</p>'
+        f'<p class="inv-slot-meta">{filled}/{INVENTORY_SLOT_COUNT} 확보</p>'
+        f'<div class="inv-slots">{"".join(cells)}</div>'
         "</div>",
         unsafe_allow_html=True,
     )
@@ -4712,8 +5758,9 @@ def _render_howto_body() -> None:
         ),
         (
             "03 증거 수색",
-            "「증거 수색」 탭에서 쿼리를 입력하거나 Golden Route 추천 칩을 누른 뒤 수색 실행. "
-            "새로 찾은 Smoking Gun은 단서 배너 → 인벤토리에 보관됩니다.",
+            "「증거 수색」 탭의 책상 보드에서 증거 후보를 골라 수색합니다. "
+            "서류·로그·전표가 섞여 있으며, 헛수색 1회마다 수사 권한이 1 감소합니다. "
+            "확보한 Smoking Gun은 단서 배너 → 증거물 슬롯에 보관됩니다.",
         ),
         (
             "04 최종 지목",
@@ -4722,7 +5769,7 @@ def _render_howto_body() -> None:
         ),
         (
             "05 Golden Route",
-            "우측 Golden Route 패널은 데모용 정석 루트 힌트입니다. "
+            "사이드바 Golden Route는 데모용 정석 루트 힌트입니다. "
             "법인카드 → 슬랙 → 네트워크 → 조합 지목 순을 따라가면 클리어에 가깝습니다.",
         ),
     ]
@@ -4737,6 +5784,111 @@ def _open_howto() -> None:
     st.markdown(
         '<div class="dossier-foot-pad" aria-hidden="true">&nbsp;</div>',
         unsafe_allow_html=True,
+    )
+
+
+@st.dialog("수색 결과", dismissible=False)
+def _open_desk_clue_alert(clue: dict) -> None:
+    """증거 확보 성공 — 단서 배너 + 인벤토리 보관을 모달에 표시."""
+    st.markdown(_clue_banner_html(clue), unsafe_allow_html=True)
+    st.caption("인벤토리는 왼쪽 사이드바(☰)에서 확인할 수 있습니다.")
+    if st.button(
+        "단서 확인 · 인벤토리에 보관",
+        type="primary",
+        use_container_width=True,
+        key="btn_desk_clue_store",
+    ):
+        _confirm_pending_clue()
+        _resume_timer()
+        st.rerun()
+
+
+@st.dialog("수색 결과", dismissible=False)
+def _open_desk_alert(message: str, *, kind: str = "warn") -> None:
+    text = str(message or "").strip() or "수색 결과를 확인하세요."
+    if kind == "error":
+        st.error(text)
+    elif kind == "ok":
+        st.success(text)
+    elif kind == "info":
+        st.info(text)
+    else:
+        st.warning(text)
+        st.caption("헛수색 1회마다 수사 권한이 1 감소합니다.")
+    if st.button("확인", type="primary", use_container_width=True, key="btn_desk_alert_ok"):
+        _resume_timer()
+        st.rerun()
+
+
+@st.dialog("지목 결과", dismissible=False)
+def _open_accuse_alert(
+    message: str, *, won: bool = False, revoked: bool = False
+) -> None:
+    text = str(message or "").strip()
+    if won:
+        body = text or "미션 클리어."
+        st.markdown(_ending_card_html(body, won=True), unsafe_allow_html=True)
+    else:
+        st.error(text or "지목이 빗나갔습니다.")
+        if revoked:
+            st.caption("수사 권한이 모두 소진되어 수사가 종료됩니다.")
+        else:
+            st.caption("오답 지목 1회마다 수사 권한이 1 감소합니다. 조합을 다시 검토하세요.")
+    if st.button("확인", type="primary", use_container_width=True, key="btn_accuse_alert_ok"):
+        if won:
+            st.session_state["case_won"] = True
+            st.session_state["arrest_stamp"] = True
+            st.session_state["arrest_stamp_suspect"] = str(
+                st.session_state.get("suspect_id") or ""
+            )
+            st.session_state["arrest_stamp_slam"] = True
+        _resume_timer()
+        st.rerun()
+
+
+def _request_desk_alert(message: str, *, kind: str = "warn") -> None:
+    _pause_timer()
+    _open_desk_alert(message, kind=kind)
+
+
+def _request_accuse_alert(
+    message: str, *, won: bool = False, revoked: bool = False
+) -> None:
+    _pause_timer()
+    _open_accuse_alert(message, won=won, revoked=revoked)
+
+
+def _request_desk_clue_alert(clue: dict) -> None:
+    st.session_state["suppress_clue_banner"] = True
+    _pause_timer()
+    _open_desk_clue_alert(clue)
+
+
+def _consume_desk_flash_modal() -> None:
+    """수색 결과 모달 — 성공+단서는 배너 내용, 그 외는 단순 알림."""
+    flash = st.session_state.get("desk_flash")
+    if not isinstance(flash, dict) or not flash.get("text"):
+        return
+    kind = str(flash.get("kind") or "info")
+    pending = list(st.session_state.get("pending_clues") or [])
+    if kind == "ok" and pending:
+        st.session_state.pop("desk_flash", None)
+        _request_desk_clue_alert(pending[0])
+        return
+    st.session_state.pop("desk_flash", None)
+    _request_desk_alert(str(flash.get("text")), kind=kind)
+
+
+def _consume_accuse_flash_modal() -> None:
+    """최종 지목 결과 모달 (정답·오답)."""
+    flash = st.session_state.get("accuse_flash")
+    if not isinstance(flash, dict) or not flash.get("text"):
+        return
+    st.session_state.pop("accuse_flash", None)
+    _request_accuse_alert(
+        str(flash.get("text")),
+        won=bool(flash.get("won")),
+        revoked=bool(flash.get("revoked")),
     )
 
 
@@ -4874,6 +6026,20 @@ def _pick_suspect(
         f"</div></div>"
     )
 
+    stamp_html = ""
+    stamp_sid = str(st.session_state.get("arrest_stamp_suspect") or "")
+    if st.session_state.get("arrest_stamp") and (not stamp_sid or stamp_sid == sid):
+        stamp_path = ROOT / "assets" / "ui" / "arrest_stamp.png"
+        stamp_uri = _portrait_data_uri(stamp_path)
+        if stamp_uri:
+            slam = bool(st.session_state.pop("arrest_stamp_slam", False))
+            stamp_cls = "arrest-stamp is-slam" if slam else "arrest-stamp is-static"
+            stamp_html = (
+                f'<div class="{stamp_cls}" aria-hidden="true">'
+                f'<img alt="검거" src="{stamp_uri}" />'
+                f"</div>"
+            )
+
     # 단일 카드 — 초상+프로필 hit를 같은 relative 스택에 둠
     with st.container():
         st.markdown(
@@ -4887,6 +6053,7 @@ def _pick_suspect(
             f"{img_html}"
             f"{chip_html}"
             f"{gauge_html}"
+            f"{stamp_html}"
             f'<span class="profile-pill">프로필</span>'
             f"</div></div>",
             unsafe_allow_html=True,
@@ -5026,6 +6193,11 @@ if not game:
     st.stop()  # _start_new_investigation가 rerun하지만, 실패 경로 외 안전망
 
 sid = game["session_id"]
+# 책상 딥링크(?desk_item=)는 탭 진입 전에 처리
+_desk_q = _consume_desk_click()
+if _desk_q:
+    _apply_desk_click(sid, game, _desk_q)
+
 status = game.get("status") or "playing"
 mental = status == "mental_break" or bool(game.get("mental_break_suspects"))
 revoked = status == "authority_revoked" or (
@@ -5040,14 +6212,18 @@ st.session_state["show_intro"] = False
 if "game_started" not in st.session_state:
     st.session_state["game_started"] = False
 
-# 스타트 클릭 이후 BGM (인트로 셸 iframe은 부모에서 재생)
-if st.session_state.get("game_started"):
+# 우상단 독: 수사 권한 (+ 스타트 이후 BGM)
+_force_bgm = False
+_with_bgm = bool(st.session_state.get("game_started"))
+if _with_bgm:
     _force_bgm = bool(st.session_state.pop("bgm_should_play", False))
-    _inject_game_bgm(muted=False, force_play=_force_bgm)
+_inject_top_dock(game, with_bgm=_with_bgm, muted=False, force_play=_force_bgm)
 
 _render_hud_brand(game)
 with st.sidebar:
     _render_sidebar_hud(game, sid=sid)
+_consume_desk_flash_modal()
+_consume_accuse_flash_modal()
 _render_clue_banner()
 
 # 진입 시 사건개요 팝업 + 스타트 (닫아도 미시작이면 다시 염)
@@ -5122,20 +6298,39 @@ if st.session_state.get("last_ending"):
 suspects = game.get("suspects") or []
 broken = list(game.get("mental_break_suspects") or [])
 g = st.session_state["game"]
-# 심문 탭 select → 초상 동기화 (위젯이 다른 탭에서 사라져도 suspect_id 유지)
-_ask_sel = st.session_state.get("ask_suspect_select")
-if _ask_sel and any(str(s.get("id")) == str(_ask_sel) for s in suspects):
-    st.session_state["suspect_id"] = str(_ask_sel)
+# 용의자 선택 단일 소스 — 초상 / 심문 select / 지목 select 동기화
+# (위젯 key는 생성 전에만 갱신 가능)
+_id_options_all = [str(s.get("id") or "") for s in (game.get("suspects") or []) if s.get("id")]
+_pending_ask = st.session_state.pop("pending_ask_suspect_select", None)
+_mirror = st.session_state.get("_suspect_id_mirror")
+_ask_val = st.session_state.get("ask_suspect_select")
+_accuse_val = st.session_state.get("accuse_suspect_select")
+_sid_now = str(st.session_state.get("suspect_id") or "")
 
-# 현장 로그 미리 수집 (우측 빈 레일이 본문을 찌르지 않게)
-field_log: list[str] = []
-for line in st.session_state.get("log") or []:
-    text = str(line or "")
-    if any(
-        key in text
-        for key in ("단서 획득", "타임아웃", "턴 패스", "헛수색", "수사 권한")
-    ):
-        field_log.append(text)
+if _pending_ask and str(_pending_ask) in _id_options_all:
+    _sid_now = str(_pending_ask)
+elif (
+    _accuse_val is not None
+    and str(_accuse_val) != str(_mirror)
+    and str(_accuse_val) in _id_options_all
+):
+    # 최종 지목 select가 이번 런을 유발
+    _sid_now = str(_accuse_val)
+elif (
+    _ask_val is not None
+    and str(_ask_val) != str(_mirror)
+    and str(_ask_val) in _id_options_all
+):
+    # 심문 select가 이번 런을 유발
+    _sid_now = str(_ask_val)
+elif _sid_now not in _id_options_all and _id_options_all:
+    _sid_now = _id_options_all[0]
+
+if _sid_now in _id_options_all:
+    st.session_state["suspect_id"] = _sid_now
+    st.session_state["ask_suspect_select"] = _sid_now
+    st.session_state["accuse_suspect_select"] = _sid_now
+    st.session_state["_suspect_id_mirror"] = _sid_now
 
 st.markdown(
     '<div class="suspect-session-marker" aria-hidden="true"></div>',
@@ -5181,8 +6376,10 @@ with col_ops:
         if id_options:
             if st.session_state.get("suspect_id") not in id_options:
                 st.session_state["suspect_id"] = id_options[0]
-            if st.session_state.get("ask_suspect_select") not in id_options:
-                st.session_state["ask_suspect_select"] = st.session_state["suspect_id"]
+            # 위젯 생성 전 — 초상(suspect_id)과 심문 select 맞춤
+            _sid = str(st.session_state["suspect_id"])
+            if st.session_state.get("ask_suspect_select") != _sid:
+                st.session_state["ask_suspect_select"] = _sid
             st.markdown(
                 '<div class="ops-suspect-select-mark" aria-hidden="true"></div>',
                 unsafe_allow_html=True,
@@ -5196,6 +6393,7 @@ with col_ops:
             )
             suspect_id = str(chosen)
             st.session_state["suspect_id"] = suspect_id
+            st.session_state["_suspect_id_mirror"] = suspect_id
         _suspect_name = name_by_id.get(suspect_id, suspect_id)
         _render_interrogation_chat()
         # Streamlit 네이티브 채팅 입력 — Enter 전송·한글 IME를 프레임워크가 처리
@@ -5294,96 +6492,45 @@ with col_ops:
     with tab_search:
         owned_now = list(game.get("evidence_ids") or [])
         owned_set = set(owned_now)
-        st.caption("Golden Route 추천 수색 — 카드 → 슬랙 → 네트워크")
-        chip_cols = st.columns(len(GOLDEN_ROUTE_STEPS))
-        for col, step in zip(chip_cols, GOLDEN_ROUTE_STEPS):
-            eid = step["evidence_id"]
-            done = eid in owned_set
-            label = f"✓ {step['short']}" if done else step["short"]
-            with col:
-                if st.button(
-                    label,
-                    key=f"golden_q_{eid}",
-                    disabled=done or bool(game.get("ended")),
-                    use_container_width=True,
-                    help=step["query"],
-                ):
-                    st.session_state["search_q"] = step["query"]
-                    st.rerun()
-        query = st.text_input(
-            "수색 쿼리",
-            placeholder="법인카드 룸살롱 / Wi-Fi 100GB",
-            key="search_q",
-            label_visibility="collapsed",
+        ended = bool(game.get("ended"))
+        inspected = set(st.session_state.setdefault("desk_inspected", []))
+        desk_items = _desk_items_for_session()
+        st.markdown(
+            '<p class="search-catalog-kicker">증거물 수색 · 책상 위 단서를 조사하세요</p>',
+            unsafe_allow_html=True,
         )
-        _sq_l, _sq_r = st.columns([5, 1.2])
-        with _sq_r:
-            search_go = st.button(
-                "수색",
-                type="primary",
-                key="btn_search",
-                use_container_width=True,
-            )
-        if search_go and query and not game.get("ended"):
-            resp = requests.post(
-                f"{_api()}/api/v1/session/{sid}/search",
-                json={"query": query},
-                timeout=60,
-            )
-            if resp.status_code == 200:
-                data = resp.json()
-                st.session_state["game"] = data.get("state", game)
-                st.session_state["hits"] = data.get("hits", [])
-                _queue_clues(data.get("new_clues") or [])
-                if data.get("useless_search"):
-                    st.session_state.setdefault("log", []).append(
-                        f"헛수색 — 수사 권한 {data.get('stamina', '?')}/{data.get('stamina_max', 3)}"
-                    )
-                    if data.get("authority_revoked"):
-                        st.session_state["last_ending"] = data.get("ending")
-                        st.session_state["last_ending_ok"] = False
-                _reset_timer()
-                st.rerun()
-            else:
-                st.error(resp.text)
-        hits = st.session_state.get("hits") or []
-        if hits:
-            st.caption("최근 검색 히트")
-            for h in hits[:4]:
-                eid = h.get("evidence_id") or "—"
-                snip = str(h.get("snippet") or "")[:100]
-                st.markdown(f"**{eid}** — {snip}")
+        st.caption(
+            "책상 위 증거를 클릭해 수색합니다. "
+            "이미 확보했거나 조사한 항목은 다시 고를 수 없습니다."
+        )
+        # query 딥링크 잔여분 + 버튼 클릭
+        q_click = _consume_desk_click()
+        if q_click:
+            _apply_desk_click(sid, game, q_click)
+        btn_click = _render_evidence_desk_board(
+            desk_items,
+            owned_set=owned_set,
+            inspected=inspected,
+            ended=ended,
+        )
+        if btn_click:
+            _apply_desk_click(sid, game, btn_click)
 
     with tab_accuse:
         owned = list(game.get("evidence_ids") or [])
-        owned_set = set(owned)
-        guns_ready = (
-            "ev_net_01" in owned_set
-            and ("ev_card_03" in owned_set or "ev_msg_12" in owned_set)
-        )
-        if guns_ready and not game.get("ended"):
-            st.info(
-                f"Golden Route 준비됨 — {GOLDEN_ROUTE_ACCUSE['beat']}. "
-                "대상 용의자를 선택한 뒤 증거 2장을 조합하세요."
-            )
-            target = next(
-                (
-                    s
-                    for s in suspects
-                    if str(s.get("name") or "") == GOLDEN_ROUTE_ACCUSE["suspect_name"]
-                ),
-                None,
-            )
-            if target and str(st.session_state.get("suspect_id") or "") != str(target.get("id")):
-                if st.button(
-                    f"데모 · {GOLDEN_ROUTE_ACCUSE['suspect_name']} 선택",
-                    key="btn_golden_pick_suspect",
-                ):
-                    st.session_state["suspect_id"] = target["id"]
-                    st.session_state["ask_suspect_select"] = target["id"]
-                    st.rerun()
-        else:
-            st.caption("용의자 1명 + 결정적 증거 정확히 2장")
+        id_options = [str(s.get("id") or "") for s in suspects if s.get("id")]
+        name_by_id = {
+            str(s.get("id") or ""): str(s.get("name") or s.get("id") or "")
+            for s in suspects
+        }
+        if not game.get("ended"):
+            if len(owned) >= 2:
+                st.caption(
+                    "확보한 증거 중 결정적 조합 2장을 고르고, "
+                    "지목할 용의자를 선택한 뒤 확정하세요."
+                )
+            else:
+                st.caption("용의자 1명 + 결정적 증거 정확히 2장")
         ev_options = {_evidence_label(e): e for e in owned}
         selected_labels = st.multiselect(
             "인벤토리에서 증거 2장",
@@ -5391,8 +6538,51 @@ with col_ops:
             max_selections=2,
             key="accuse_ev",
         )
-        ready = len(selected_labels) == 2 and not game.get("ended")
-        if st.button("지목 확정", type="primary", disabled=not ready, key="btn_accuse"):
+        ready = len(selected_labels) == 2 and not game.get("ended") and bool(id_options)
+
+        st.markdown(
+            '<div class="ops-accuse-row-mark" aria-hidden="true"></div>',
+            unsafe_allow_html=True,
+        )
+        col_accuse_sel, col_accuse_btn = st.columns([1, 1], gap="small")
+        with col_accuse_sel:
+            if id_options:
+                if st.session_state.get("suspect_id") not in id_options:
+                    st.session_state["suspect_id"] = id_options[0]
+                # 위젯 생성 전 — 초상(suspect_id)과 지목 select 맞춤
+                _sid = str(st.session_state["suspect_id"])
+                if st.session_state.get("accuse_suspect_select") != _sid:
+                    st.session_state["accuse_suspect_select"] = _sid
+                st.markdown(
+                    '<div class="ops-accuse-select-mark" aria-hidden="true"></div>',
+                    unsafe_allow_html=True,
+                )
+                chosen_accuse = st.selectbox(
+                    "지목 대상",
+                    options=id_options,
+                    format_func=lambda i: name_by_id.get(str(i), str(i)),
+                    key="accuse_suspect_select",
+                    label_visibility="collapsed",
+                )
+                suspect_id = str(chosen_accuse)
+                st.session_state["suspect_id"] = suspect_id
+                st.session_state["_suspect_id_mirror"] = suspect_id
+                # 심문 select는 이미 생성된 뒤라 pending으로 다음 런에 맞춤
+                if st.session_state.get("ask_suspect_select") != suspect_id:
+                    st.session_state["pending_ask_suspect_select"] = suspect_id
+        with col_accuse_btn:
+            st.markdown(
+                '<div class="ops-accuse-btn-mark" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
+            accuse_clicked = st.button(
+                "지목 확정",
+                type="primary",
+                disabled=not ready,
+                key="btn_accuse",
+            )
+
+        if accuse_clicked and ready:
             eids = [ev_options[lab] for lab in selected_labels]
             resp = requests.post(
                 f"{_api()}/api/v1/session/{sid}/accuse",
@@ -5402,38 +6592,32 @@ with col_ops:
             if resp.status_code == 200:
                 data = resp.json()
                 st.session_state["game"] = data.get("state", game)
-                st.session_state["last_ending"] = data.get("ending")
-                st.session_state["last_ending_ok"] = bool(data.get("correct"))
+                ending_text = str(data.get("ending") or "").strip()
                 if data.get("correct"):
-                    st.balloons()
+                    win_msg = ending_text or "미션 클리어."
+                    # 배너는 모달 확인 후에 표시 (중복 방지)
+                    st.session_state["last_ending"] = None
+                    st.session_state.pop("last_ending_ok", None)
+                    st.session_state["accuse_flash"] = {
+                        "text": win_msg,
+                        "won": True,
+                    }
+                else:
+                    revoked_now = bool(data.get("authority_revoked"))
+                    fail_msg = ending_text or "지목이 빗나갔습니다. 조합을 다시 검토하세요."
+                    st.session_state["accuse_flash"] = {
+                        "text": fail_msg,
+                        "revoked": revoked_now,
+                    }
+                    if revoked_now:
+                        st.session_state["last_ending"] = fail_msg
+                        st.session_state["last_ending_ok"] = False
+                    else:
+                        st.session_state["last_ending"] = None
+                        st.session_state.pop("last_ending_ok", None)
                 st.rerun()
             else:
                 st.error(resp.text)
-
-if field_log:
-    entries = list(field_log[-8:])
-    parts = ['<div class="log-block"><p class="panel-title">현장 로그</p>']
-    for i, line in enumerate(entries, start=1):
-        text = str(line or "")
-        kind = "LOG"
-        row_cls = "log-row"
-        if "타임아웃" in text or "턴 패스" in text:
-            kind = "TIMEOUT"
-            row_cls += " is-alert"
-        elif "단서 획득" in text:
-            kind = "CLUE"
-        elif "헛수색" in text or "수사 권한" in text:
-            kind = "SEARCH"
-            row_cls += " is-alert"
-        parts.append(
-            f'<div class="{row_cls}">'
-            f'<div class="log-row-meta"><span>{kind}</span>'
-            f"<span>#{i:02d}</span></div>"
-            f'<p class="log-row-body">{html.escape(text)}</p>'
-            f"</div>"
-        )
-    parts.append("</div>")
-    st.markdown("".join(parts), unsafe_allow_html=True)
 
 st.markdown(
     '<p class="app-footer-sig">© 2026 어쩌다 팀 · All rights reserved.</p>',

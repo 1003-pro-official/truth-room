@@ -55,6 +55,26 @@ def test_session_flow(api_available: str) -> None:
     assert search.status_code == 200
     assert search.json().get("hits")
 
+    miss = requests.post(
+        f"{api_available}/api/v1/session/{sid}/search",
+        json={"query": "책상 머그컵", "force_miss": True},
+        timeout=10,
+    )
+    assert miss.status_code == 200
+    mbody = miss.json()
+    assert mbody.get("useless_search") is True
+    assert mbody.get("hits") == []
+
+    grant = requests.post(
+        f"{api_available}/api/v1/session/{sid}/search",
+        json={"query": "법인카드", "force_evidence_id": "ev_card_03"},
+        timeout=10,
+    )
+    assert grant.status_code == 200
+    gbody = grant.json()
+    assert gbody.get("useless_search") is False
+    assert "ev_card_03" in (gbody.get("evidence_ids") or [])
+
     tool = requests.post(
         f"{api_available}/api/v1/session/{sid}/tool",
         json={"name": "request_cctv_log", "args": {"location": "lounge"}},

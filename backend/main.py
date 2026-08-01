@@ -7,11 +7,9 @@ backend/main.py — Phase 2 FastAPI (진실의 방으로)
   http://localhost:8000/docs
 """
 
-from __future__ import annotations
-
 import os
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
@@ -30,7 +28,7 @@ INTRO_DIR = ROOT / "web" / "intro"
 ASSETS_DIR = ROOT / "assets"
 
 
-def _cors_origins() -> list[str]:
+def _cors_origins() -> List[str]:
     # Docker / Cloudflare Containers — Streamlit이 같은 오리진 또는 workers.dev
     if os.environ.get("CORS_ALLOW_ALL", "").strip() in ("1", "true", "yes"):
         return ["*"]
@@ -65,11 +63,19 @@ class AskBody(BaseModel):
 
 class SearchBody(BaseModel):
     query: str = Field(min_length=1)
+    force_miss: bool = Field(
+        default=False,
+        description="책상 decoy 등 — RAG 생략·강제 헛수색",
+    )
+    force_evidence_id: Optional[str] = Field(
+        default=None,
+        description="책상 핵심 증거 클릭 — RAG 생략·해당 evidence_id 지급",
+    )
 
 
 class AccuseBody(BaseModel):
     suspect_id: str
-    evidence_ids: list[str] = Field(
+    evidence_ids: List[str] = Field(
         ...,
         min_length=2,
         max_length=2,
@@ -82,28 +88,28 @@ class ToolBody(BaseModel):
         min_length=1,
         description="check_card_history | run_forensic | search_messenger | request_cctv_log",
     )
-    args: dict[str, Any] = Field(default_factory=dict)
+    args: Dict[str, Any] = Field(default_factory=dict)
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> Dict[str, str]:
     return {"status": "ok"}
 
 
 @app.get("/api/v1/case/public")
-def get_public_case() -> dict[str, Any]:
+def get_public_case() -> Dict[str, Any]:
     """세션 없이 공개 사건개요·인트로 씬 (culprit 미포함). 스크롤 인트로용."""
     return engine.public_case_overview()
 
 
 @app.post("/api/v1/session")
-def create_session() -> dict[str, Any]:
+def create_session() -> Dict[str, Any]:
     session = engine.create_session()
     return engine.public_state(session)
 
 
 @app.get("/api/v1/session/{session_id}")
-def get_session(session_id: str) -> dict[str, Any]:
+def get_session(session_id: str) -> Dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
@@ -111,7 +117,7 @@ def get_session(session_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/v1/session/{session_id}/case")
-def get_case_overview(session_id: str) -> dict[str, Any]:
+def get_case_overview(session_id: str) -> Dict[str, Any]:
     """공개 사건개요 (culprit_id 미포함)."""
     session = engine.get_session(session_id)
     if not session:
@@ -120,7 +126,7 @@ def get_case_overview(session_id: str) -> dict[str, Any]:
 
 
 @app.get("/api/v1/session/{session_id}/suspects/{suspect_id}/profile")
-def get_suspect_profile(session_id: str, suspect_id: str) -> dict[str, Any]:
+def get_suspect_profile(session_id: str, suspect_id: str) -> Dict[str, Any]:
     """용의자 공개 프로필 + 사건개요. secrets/role/culprit 미포함."""
     session = engine.get_session(session_id)
     if not session:
@@ -132,7 +138,7 @@ def get_suspect_profile(session_id: str, suspect_id: str) -> dict[str, Any]:
 
 
 @app.post("/api/v1/session/{session_id}/ask")
-def ask(session_id: str, body: AskBody) -> dict[str, Any]:
+def ask(session_id: str, body: AskBody) -> Dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
@@ -146,18 +152,23 @@ def ask(session_id: str, body: AskBody) -> dict[str, Any]:
 
 
 @app.post("/api/v1/session/{session_id}/search")
-def search(session_id: str, body: SearchBody) -> dict[str, Any]:
+def search(session_id: str, body: SearchBody) -> Dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
-    result = engine.search(session, body.query)
+    result = engine.search(
+        session,
+        body.query,
+        force_miss=bool(body.force_miss),
+        force_evidence_id=body.force_evidence_id,
+    )
     if result.get("error") == "session_ended":
         raise HTTPException(status_code=409, detail="session already ended")
     return {**result, "state": engine.public_state(session)}
 
 
 @app.post("/api/v1/session/{session_id}/tool")
-def tool(session_id: str, body: ToolBody) -> dict[str, Any]:
+def tool(session_id: str, body: ToolBody) -> Dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
@@ -168,7 +179,7 @@ def tool(session_id: str, body: ToolBody) -> dict[str, Any]:
 
 
 @app.post("/api/v1/session/{session_id}/accuse")
-def accuse(session_id: str, body: AccuseBody) -> dict[str, Any]:
+def accuse(session_id: str, body: AccuseBody) -> Dict[str, Any]:
     session = engine.get_session(session_id)
     if not session:
         raise HTTPException(status_code=404, detail="session not found")
@@ -179,7 +190,7 @@ def accuse(session_id: str, body: AccuseBody) -> dict[str, Any]:
 
 
 @app.post("/api/v1/session/{session_id}/pass_turn")
-def pass_turn(session_id: str) -> dict[str, Any]:
+def pass_turn(session_id: str) -> Dict[str, Any]:
     """타임어택 만료 등 — break/pressure 미증가 (docs/GAME_RULES.md)."""
     session = engine.get_session(session_id)
     if not session:
