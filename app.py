@@ -152,20 +152,169 @@ st.markdown(
     <style>
     :root {
       --primary-color: #7A9BB8 !important;
+      --app-topbar-h: 3.15rem;
     }
-    /* 게임 UI — 사이드바·접기 버튼 비표시 */
-    [data-testid="stSidebar"],
-    [data-testid="stSidebarCollapsedControl"],
-    [data-testid="collapsedControl"],
-    section[data-testid="stSidebar"] {
+    /* ST 1.50+: 사이드바 열기 버튼은 stToolbar 안 stExpandSidebarButton.
+       툴바 전체를 숨기면 햄버거도 사라지므로 상태 위젯만 숨김. */
+    [data-testid="stStatusWidget"],
+    [data-testid="stDecoration"],
+    #MainMenu {
       display: none !important;
-      width: 0 !important;
-      min-width: 0 !important;
       visibility: hidden !important;
       pointer-events: none !important;
     }
-    [data-testid="stAppViewContainer"] {
-      margin-left: 0 !important;
+    header[data-testid="stHeader"],
+    [data-testid="stToolbar"] {
+      display: flex !important;
+      visibility: visible !important;
+      background: transparent !important;
+      pointer-events: none !important;
+      min-height: var(--app-topbar-h) !important;
+      height: var(--app-topbar-h) !important;
+    }
+    [data-testid="stExpandSidebarButton"],
+    [data-testid="stSidebarCollapsedControl"],
+    [data-testid="collapsedControl"] {
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      visibility: visible !important;
+      pointer-events: auto !important;
+      /* 탑바보다 위 — 헤더 스택을 탑바 위로 끌어올림 */
+      z-index: 1000040 !important;
+    }
+    /* 헤더 전체를 탑바 위로 — 자식 z-index가 탑바에 가려지지 않게 */
+    header[data-testid="stHeader"] {
+      z-index: 1000035 !important;
+      background: transparent !important;
+    }
+    /* 뤼튼형 상단: 투명 히트영역(실제 클릭) + 탑바 안 시각 햄버거 */
+    [data-testid="stExpandSidebarButton"] {
+      position: fixed !important;
+      top: 0.4rem !important;
+      left: 0.45rem !important;
+      width: 2.4rem !important;
+      height: 2.4rem !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border-radius: 6px !important;
+      border: 0 !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      opacity: 1 !important;
+      color: #e8eef4 !important;
+    }
+    [data-testid="stExpandSidebarButton"] span,
+    [data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"] {
+      font-size: 0 !important;
+      line-height: 0 !important;
+      color: transparent !important;
+      opacity: 0 !important;
+    }
+    .app-topbar {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      height: var(--app-topbar-h) !important;
+      z-index: 1000020 !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: flex-start !important;
+      gap: 0.55rem !important;
+      padding: 0 3.4rem 0 0.45rem !important;
+      box-sizing: border-box !important;
+      pointer-events: none !important;
+      background: rgba(13, 16, 22, 0.94) !important;
+      border-bottom: 1px solid rgba(122, 155, 184, 0.18) !important;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+    }
+    .app-topbar-burger {
+      flex: 0 0 2.4rem !important;
+      width: 2.4rem !important;
+      height: 2.4rem !important;
+      display: inline-flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      overflow: visible !important;
+    }
+    .app-topbar-burger::before {
+      content: "" !important;
+      display: block !important;
+      width: 1.15rem !important;
+      height: 2px !important;
+      border-radius: 1px !important;
+      background: #e8eef4 !important;
+      box-shadow:
+        0 6px 0 #e8eef4,
+        0 12px 0 #e8eef4 !important;
+      transform: translateY(-6px) !important;
+    }
+    .app-topbar-brand {
+      font-size: 1.05rem !important;
+      font-weight: 700 !important;
+      letter-spacing: 0.04em !important;
+      color: #e8eef4 !important;
+      line-height: 1 !important;
+      white-space: nowrap !important;
+      text-align: left !important;
+    }
+    div[data-testid="stElementContainer"]:has(.app-topbar),
+    div[data-testid="stMarkdownContainer"]:has(.app-topbar) {
+      position: absolute !important;
+      width: 0 !important;
+      height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      overflow: visible !important;
+      opacity: 1 !important;
+      pointer-events: none !important;
+    }
+    [data-testid="stMainBlockContainer"],
+    .stMainBlockContainer,
+    .stMain .block-container,
+    .main .block-container {
+      padding-top: calc(var(--app-topbar-h) + 0.35rem) !important;
+      margin-top: 0 !important;
+    }
+    /* st.markdown(<style>) 빈 박스가 flex gap(16px)을 쌓아 상단 여백을 만듦 → 레이아웃 제외 */
+    div[data-testid="stElementContainer"]:has(style),
+    div[data-testid="stElementContainer"]:has(.stMarkdownContainer > style) {
+      display: none !important;
+      height: 0 !important;
+      max-height: 0 !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      border: 0 !important;
+      overflow: hidden !important;
+      position: absolute !important;
+      pointer-events: none !important;
+    }
+    @media (max-width: 900px) {
+      [data-testid="stMainBlockContainer"],
+      .stMainBlockContainer,
+      .stMain .block-container,
+      .main .block-container {
+        padding-top: calc(var(--app-topbar-h) + 30px) !important;
+        margin-top: 0 !important;
+      }
+    }
+    @media (min-width: 901px) {
+      [data-testid="stMainBlockContainer"],
+      .stMainBlockContainer,
+      .stMain .block-container,
+      .main .block-container {
+        margin-top: auto !important;
+      }
+    }
+    /* 사이드바 본문 여백 — 조기 적용 (헤더와 분리된 UserContent) */
+    [data-testid="stSidebarContent"] {
+      padding: 0 !important;
+    }
+    [data-testid="stSidebarUserContent"] {
+      padding: 0.9rem 0.95rem 1.35rem !important;
+      box-sizing: border-box !important;
     }
     button[kind="primary"],
     [data-testid="baseButton-primary"],
@@ -530,6 +679,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           --profile-pill-h: 25px;
           --font-ui: "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", "Segoe UI", sans-serif;
           --font-display: "Apple SD Gothic Neo", "Malgun Gothic", "Black Han Sans", sans-serif;
+          --app-topbar-h: 3.15rem;
         }}
 
         .stApp {{
@@ -588,7 +738,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .stMainBlockContainer,
         .stMain .block-container,
         .main .block-container {{
-          padding-top: 0.75rem !important;
+          padding-top: calc(var(--app-topbar-h, 3.15rem) + 0.35rem) !important;
           padding-bottom: 0.75rem !important;
           /* 맥북 등 좁은 화면: 좌우 최소 여백 / 광폭 모니터: max-width 가운데 정렬 */
           padding-left: clamp(1.25rem, 3.5vw, 2.25rem) !important;
@@ -599,11 +749,21 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           ) !important;
           margin-left: auto !important;
           margin-right: auto !important;
-          /* 짧으면 세로 중앙, 길면 auto→0 으로 상단 스크롤 가능 */
-          margin-top: auto !important;
-          margin-bottom: auto !important;
+          /* 기본은 상단 고정 — PC에서만 세로 중앙 */
+          margin-top: 0 !important;
+          margin-bottom: 0.5rem !important;
           width: 100% !important;
           box-sizing: border-box !important;
+        }}
+        @media (min-width: 901px) {{
+          [data-testid="stMainBlockContainer"],
+          .stMainBlockContainer,
+          .stMain .block-container,
+          .main .block-container {{
+            /* 짧으면 세로 중앙, 길면 auto→0 으로 상단 스크롤 가능 */
+            margin-top: auto !important;
+            margin-bottom: auto !important;
+          }}
         }}
         /* height=0 components.html 이 남기는 세로 틈 제거 */
         div[data-testid="stElementContainer"]:has(iframe[height="0"]),
@@ -611,6 +771,22 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         div[data-testid="element-container"]:has(iframe[height="0"]),
         iframe[height="0"],
         iframe[height="0px"] {{
+          display: none !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          width: 0 !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }}
+        /* st.markdown(<style>) 빈 박스가 VerticalBlock flex gap을 누적 → 상단 여백 주범 */
+        div[data-testid="stElementContainer"]:has(style),
+        div[data-testid="stElementContainer"]:has(.stMarkdownContainer > style) {{
           display: none !important;
           height: 0 !important;
           max-height: 0 !important;
@@ -639,9 +815,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           + div[data-testid="stElementContainer"],
         div[data-testid="stElementContainer"]:has(iframe[height="36"]) {{
           position: fixed !important;
-          top: 0.55rem !important;
-          right: 1rem !important;
-          z-index: 1000010 !important;
+          top: 0.4rem !important;
+          right: 0.75rem !important;
+          z-index: 1000025 !important;
           width: 2.75rem !important;
           height: 2.25rem !important;
           margin: 0 !important;
@@ -786,29 +962,700 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: #c8ced8 !important;
         }}
         [data-testid="stHeader"] {{ background: transparent; }}
-        /* File change · Rerun · Always rerun 상태 바 숨김 */
+        /* File change · Rerun 등 — 툴바 전체 숨김 금지(ST1.50 사이드바 열기 버튼이 툴바 안) */
         [data-testid="stStatusWidget"],
-        [data-testid="stToolbar"],
         [data-testid="stDecoration"],
         #MainMenu {{
           display: none !important;
           visibility: hidden !important;
           pointer-events: none !important;
         }}
-        [data-testid="stSidebar"],
-        [data-testid="stSidebarCollapsedControl"],
-        [data-testid="collapsedControl"] {{
-          display: none !important;
+        header[data-testid="stHeader"],
+        [data-testid="stToolbar"] {{
+          display: flex !important;
+          visibility: visible !important;
+          background: transparent !important;
+          pointer-events: none !important;
+        }}
+        /* 사이드바 — 헤더/탑바보다 위 (닫기 X가 가려지지 않게) */
+        section[data-testid="stSidebar"],
+        [data-testid="stSidebar"] {{
+          position: fixed !important;
+          left: 0 !important;
+          top: 0 !important;
+          bottom: 0 !important;
+          z-index: 1000100 !important;
+          background: #0e1014 !important;
+          border-right: 1px solid rgba(255,255,255,0.08) !important;
+          height: 100dvh !important;
+          min-height: 100dvh !important;
+          max-height: 100dvh !important;
+          box-sizing: border-box !important;
+          /* 폭은 항상 동일 — 접을 때 width:0 이면 골든루트 등 레이아웃이 리플로우됨 */
+          width: min(78vw, 19.5rem) !important;
+          min-width: min(78vw, 19.5rem) !important;
+          max-width: min(78vw, 19.5rem) !important;
+          transition: transform 280ms ease !important;
+        }}
+        section[data-testid="stSidebar"][aria-expanded="true"],
+        [data-testid="stSidebar"][aria-expanded="true"] {{
+          transform: none !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          overflow: hidden !important;
+          border-right: 1px solid rgba(255,255,255,0.08) !important;
+        }}
+        /* 접힘: 폭 유지한 채 화면 밖으로만 이동 (내용 레이아웃 = 펼침과 동일) */
+        section[data-testid="stSidebar"][aria-expanded="false"],
+        [data-testid="stSidebar"][aria-expanded="false"] {{
+          transform: translateX(-105%) !important;
           visibility: hidden !important;
           pointer-events: none !important;
+          overflow: hidden !important;
+          border-right: 0 !important;
+          box-shadow: none !important;
+        }}
+        /* 사이드바 열림 시 탑바·햄버거가 닫기(X)를 가리지 않게 */
+        .stApp:has([data-testid="stSidebar"][aria-expanded="true"]) .app-topbar,
+        .stApp:has([data-testid="stSidebar"][aria-expanded="true"]) [data-testid="stExpandSidebarButton"],
+        .stApp:has([data-testid="stSidebar"][aria-expanded="true"]) header[data-testid="stHeader"] {{
+          z-index: 1 !important;
+        }}
+        [data-testid="stSidebar"] > div:first-child {{
+          background: transparent !important;
+          position: relative !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          min-width: 0 !important;
+          height: 100% !important;
+          min-height: 100% !important;
+          max-height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          box-sizing: border-box !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"] {{
+          flex: 1 1 auto !important;
+          width: 100% !important;
+          height: 100% !important;
+          min-height: 0 !important;
+          max-height: 100% !important;
+          overflow-x: hidden !important;
+          overflow-y: auto !important;
+          overscroll-behavior: contain !important;
+          box-sizing: border-box !important;
+          /* 헤더·본문 패딩을 분리 — Content 자체는 0 */
+          padding: 0 !important;
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          padding-top: 0 !important;
+          padding-bottom: 0 !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarContent"],
+        [data-testid="stSidebar"] [data-testid="stVerticalBlock"] {{
+          gap: 0.35rem !important;
+        }}
+        /* 사이드바 본문(헤더 아래) — 좌우·상단 여백 */
+        [data-testid="stSidebar"] [data-testid="stSidebarUserContent"],
+        section[data-testid="stSidebar"] [data-testid="stSidebarUserContent"] {{
+          box-sizing: border-box !important;
+          width: 100% !important;
+          padding: 0.85rem 0.95rem 1.35rem !important;
+          padding-top: 0.9rem !important;
+          padding-left: 0.95rem !important;
+          padding-right: 0.95rem !important;
+          padding-bottom: 1.35rem !important;
+          margin: 0 !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarUserContent"]
+          > div[data-testid="stVerticalBlock"],
+        [data-testid="stSidebar"] [data-testid="stSidebarUserContent"]
+          [data-testid="stVerticalBlockBorderWrapper"] {{
+          padding-left: 0 !important;
+          padding-right: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+        }}
+        [data-testid="stSidebar"] .side-nav-shell {{
+          box-sizing: border-box !important;
+          width: 100% !important;
+          padding: 0 !important;
+          margin: 0 !important;
+        }}
+        /* 골든 루트: 접힘/펼침 모두 펼침 레이아웃 고정 */
+        [data-testid="stSidebar"] .side-section-label {{
+          margin: 0 0 0.55rem !important;
+          position: static !important;
+          transform: none !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.side-section-gap-before) {{
+          margin-top: var(--side-block-gap, 2.2rem) !important;
+        }}
+        [data-testid="stSidebar"] .golden-route,
+        [data-testid="stSidebar"] .golden-steps,
+        [data-testid="stSidebar"] .golden-step,
+        [data-testid="stSidebar"] .golden-hint {{
+          position: static !important;
+          transform: none !important;
+          transition: none !important;
+        }}
+        @media (max-width: 900px) {{
+          section[data-testid="stSidebar"],
+          [data-testid="stSidebar"] {{
+            height: 100dvh !important;
+            min-height: 100dvh !important;
+            max-height: 100dvh !important;
+            width: min(78vw, 19.5rem) !important;
+            min-width: min(78vw, 19.5rem) !important;
+            max-width: min(78vw, 19.5rem) !important;
+          }}
+          /* 모바일: 탑바 직후 본문 밀착 */
+          [data-testid="stMainBlockContainer"],
+          .stMainBlockContainer,
+          .stMain .block-container,
+          .main .block-container {{
+            margin-top: 0 !important;
+            margin-bottom: 0.35rem !important;
+            padding-top: calc(var(--app-topbar-h, 3.15rem) + 30px) !important;
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }}
+          div[data-testid="stElementContainer"]:has(.status-banner) {{
+            margin-top: 0.1rem !important;
+            margin-bottom: 0.65rem !important;
+          }}
+        }}
+        [data-testid="stSidebarHeader"] {{
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 0 !important;
+          /* static → 닫기 버튼 absolute 기준을 사이드바(fixed)로 */
+          position: static !important;
+          z-index: 2 !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+          max-width: 100% !important;
+          height: var(--app-topbar-h, 3.15rem) !important;
+          min-height: var(--app-topbar-h, 3.15rem) !important;
+          max-height: var(--app-topbar-h, 3.15rem) !important;
+          padding: 0 2.75rem 0 0.95rem !important;
+          margin: 0 !important;
+          margin-bottom: 0 !important;
+          border-bottom: 1px solid rgba(122, 155, 184, 0.18) !important;
+          background: rgba(13, 16, 22, 0.94) !important;
+          flex-shrink: 0 !important;
+        }}
+        [data-testid="stSidebarHeader"]::before {{
+          content: "진실의 방" !important;
+          flex: 1 1 auto !important;
+          min-width: 0 !important;
+          font-family: var(--font-display) !important;
+          font-size: 1.05rem !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.04em !important;
+          color: #e8eef4 !important;
+          line-height: 1 !important;
+          white-space: nowrap !important;
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+        }}
+        [data-testid="stSidebarHeader"] [data-testid="stLogoSpacer"],
+        [data-testid="stSidebarHeader"] [data-testid="stSidebarLogo"] {{
+          display: none !important;
+          height: 0 !important;
+          min-height: 0 !important;
           width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }}
-        /* 헤더 호버 전에는 툴바 버튼이 흐려지는 기본 동작 완화 */
+        /* 닫기 X — 히트영역·아이콘 동일 정사각, 정중앙 */
+        [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"],
+        section[data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] {{
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          position: absolute !important;
+          top: calc(var(--app-topbar-h, 3.15rem) / 2) !important;
+          right: 0.25rem !important;
+          left: auto !important;
+          bottom: auto !important;
+          transform: translateY(-50%) !important;
+          z-index: 5 !important;
+          box-sizing: border-box !important;
+          width: 2.4rem !important;
+          min-width: 2.4rem !important;
+          max-width: 2.4rem !important;
+          height: 2.4rem !important;
+          min-height: 2.4rem !important;
+          max-height: 2.4rem !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          background-image: none !important;
+          opacity: 1 !important;
+          color: #e8eef4 !important;
+          box-shadow: none !important;
+          overflow: hidden !important;
+        }}
+        [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] > button,
+        [data-testid="stSidebar"] [data-testid="stSidebarCollapseButton"] [data-testid="stBaseButton-headerNoPadding"],
+        [data-testid="stSidebar"] button[kind="headerNoPadding"],
+        section[data-testid="stSidebar"] button[kind="headerNoPadding"],
+        [data-testid="stSidebar"] [data-testid="stBaseButton-headerNoPadding"] {{
+          position: absolute !important;
+          inset: 0 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          box-sizing: border-box !important;
+          width: 100% !important;
+          min-width: 0 !important;
+          max-width: none !important;
+          height: 100% !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          border-radius: 6px !important;
+          background: transparent !important;
+          background-image: none !important;
+          box-shadow: none !important;
+          transform: none !important;
+        }}
+        /* Streamlit 리사이즈 핸들 — 헤더가 좁아 보이는 원인 */
+        [data-testid="stSidebar"] > div[style*="cursor"],
+        [data-testid="stSidebar"] [class*="resize-handle"],
+        .stSidebar [data-testid="StyledResizeHandle"],
+        [data-testid="stSidebar"] > div > div[style*="width: 6px"],
+        [data-testid="stSidebar"] > div > div[style*="width:6px"] {{
+          display: none !important;
+          width: 0 !important;
+          pointer-events: none !important;
+        }}
+        [data-testid="stSidebarCollapseButton"] span,
+        [data-testid="stSidebarCollapseButton"] [data-testid="stIconMaterial"],
+        [data-testid="stSidebar"] button[kind="headerNoPadding"] span,
+        [data-testid="stSidebar"] button[kind="headerNoPadding"] [data-testid="stIconMaterial"] {{
+          display: none !important;
+          font-size: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
+          opacity: 0 !important;
+        }}
+        [data-testid="stSidebarCollapseButton"]::before {{
+          content: "×" !important;
+          position: absolute !important;
+          left: 50% !important;
+          top: 50% !important;
+          transform: translate(-50%, -50%) !important;
+          display: block !important;
+          width: auto !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          font-size: 1.55rem !important;
+          line-height: 1 !important;
+          color: #e8eef4 !important;
+          font-weight: 300 !important;
+          opacity: 1 !important;
+          pointer-events: none !important;
+        }}
+        /* 사이드바 블록 간격 — 부제↔버튼(기존 넓은 간격) 기준으로 통일 */
+        [data-testid="stSidebar"],
+        section[data-testid="stSidebar"] {{
+          --side-block-gap: 2.2rem;
+          --side-auth-h: 2.35rem;
+        }}
+        .side-nav-brand {{
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+          padding: 0 !important;
+          border-bottom: 0;
+          margin: 0 !important;
+        }}
+        .side-nav-brand-name {{
+          display: none !important;
+        }}
+        .side-nav-case {{
+          font-size: 0.78rem;
+          color: rgba(180, 186, 196, 0.78);
+          line-height: 1.35;
+          margin: 0 !important;
+        }}
+        /* 1) 부제 → 수사 권한/새 수사 개시 (기존 넓은 간격 ≈ 1.75+0.45) */
+        div[data-testid="stElementContainer"]:has(.side-nav-shell) {{
+          margin: 0 0 var(--side-block-gap, 2.2rem) !important;
+          padding: 0 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.side-auth-row-mark) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        .side-status-card {{
+          margin: 0 !important;
+          padding: 0.4rem 0.55rem;
+          border-radius: 10px;
+          background: rgba(255,255,255,0.04);
+          border: 1px solid rgba(255,255,255,0.07);
+          height: var(--side-auth-h, 2.35rem);
+          min-height: var(--side-auth-h, 2.35rem);
+          max-height: var(--side-auth-h, 2.35rem);
+          box-sizing: border-box;
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+        }}
+        .side-status-row {{
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          gap: 0.45rem;
+        }}
+        .side-status-row + .side-status-row {{
+          margin-top: 0.35rem;
+          padding-top: 0.35rem;
+          border-top: 1px solid rgba(255,255,255,0.06);
+        }}
+        .side-status-label {{
+          font-size: 0.65rem;
+          letter-spacing: 0.08em;
+          text-transform: uppercase;
+          color: rgba(160, 168, 180, 0.85);
+        }}
+        .side-status-hearts,
+        .side-status-value {{
+          font-size: 0.9rem;
+          color: #e8eef4;
+          font-weight: 600;
+          letter-spacing: 0.06em;
+        }}
+        /* 수사 권한 | 새 수사 개시 한 줄 + 2) 버튼행 → 메뉴
+           (모바일에서도 Streamlit 기본 세로 스택 방지) */
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.side-auth-row-mark),
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark),
+        section[data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark) {{
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          align-items: center !important;
+          gap: 0.45rem !important;
+          margin: 0 0 var(--side-block-gap, 2.2rem) !important;
+          width: 100% !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark)
+          > div[data-testid="column"],
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark)
+          > div[data-testid="stColumn"],
+        section[data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark)
+          > div[data-testid="column"],
+        section[data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-restart-mark)
+          > div[data-testid="stColumn"] {{
+          flex: 1 1 0 !important;
+          min-width: 0 !important;
+          width: auto !important;
+          max-width: none !important;
+          height: var(--side-auth-h, 2.35rem) !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="column"]:has(.hud-restart-mark),
+        [data-testid="stSidebar"]
+          div[data-testid="stColumn"]:has(.hud-restart-mark) {{
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="column"]:has(.hud-restart-mark)
+          > div,
+        [data-testid="stSidebar"]
+          div[data-testid="stColumn"]:has(.hud-restart-mark)
+          > div {{
+          height: 100% !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+        }}
+        .side-section-label {{
+          margin: 0 0 0.55rem !important;
+          padding: 0 0.1rem !important;
+          font-size: 0.7rem !important;
+          letter-spacing: 0.1em !important;
+          text-transform: uppercase !important;
+          color: rgba(150, 158, 170, 0.8) !important;
+          font-weight: 600 !important;
+        }}
+        /* 3) 사건개요 → 골든 루트 (부제↔버튼과 동일) + 구분선 */
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.side-section-gap-before) {{
+          margin-top: var(--side-block-gap, 2.2rem) !important;
+          margin-bottom: 0.55rem !important;
+          padding-top: 1.1rem !important;
+          border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.side-section-label):not(:has(.side-section-gap-before)) {{
+          margin-top: 0 !important;
+          margin-bottom: 0.55rem !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark) {{
+          margin-top: 0 !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] {{
+          margin-top: 0 !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          margin-top: 0 !important;
+        }}
+        /* 사이드바 CTA · 메뉴 버튼 — 수사 권한 카드와 동일 높이 */
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"],
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] {{
+          height: var(--side-auth-h, 2.35rem) !important;
+          min-height: var(--side-auth-h, 2.35rem) !important;
+          max-height: var(--side-auth-h, 2.35rem) !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: flex !important;
+          align-items: stretch !important;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton,
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton {{
+          width: 100% !important;
+          height: 100% !important;
+          margin: 0 !important;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          background: #3d5568 !important;
+          border: 1px solid #4a657a !important;
+          border-radius: 10px !important;
+          width: 100% !important;
+          min-height: var(--side-auth-h, 2.35rem) !important;
+          height: var(--side-auth-h, 2.35rem) !important;
+          max-height: var(--side-auth-h, 2.35rem) !important;
+          font-size: 0.82rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+          color: #eef3f8 !important;
+          box-shadow: none !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          padding: 0 0.35rem !important;
+          white-space: nowrap !important;
+          box-sizing: border-box !important;
+          line-height: 1 !important;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton > button p {{
+          font-size: 0.82rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+          margin: 0 !important;
+          white-space: nowrap !important;
+          line-height: 1 !important;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.case-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          background: transparent !important;
+          border: 0 !important;
+          border-radius: 8px !important;
+          box-shadow: none !important;
+          min-height: 2.55rem !important;
+          justify-content: flex-start !important;
+          padding: 0.55rem 0.7rem !important;
+          color: #e8eef4 !important;
+          font-size: 0.92rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+        }}
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button:hover,
+        [data-testid="stSidebar"] div[data-testid="stElementContainer"]:has(.case-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button:hover {{
+          background: rgba(255,255,255,0.06) !important;
+          transform: none !important;
+        }}
+        [data-testid="stSidebar"] .golden-route {{
+          margin: 0.25rem 0 0.5rem !important;
+          padding: 0.35rem 0 !important;
+          border: 0 !important;
+          background: transparent !important;
+          backdrop-filter: none !important;
+          gap: 0.25rem !important;
+        }}
+        [data-testid="stSidebar"] .golden-route .panel-title {{
+          display: none !important;
+        }}
+        [data-testid="stSidebar"] .golden-steps {{
+          gap: 0.2rem !important;
+        }}
+        [data-testid="stSidebar"] .golden-step {{
+          width: 100% !important;
+          max-width: 100% !important;
+          border-radius: 8px !important;
+          border: 0 !important;
+          background: transparent !important;
+          padding: 0.5rem 0.55rem !important;
+          white-space: normal !important;
+        }}
+        [data-testid="stSidebar"] .golden-step.is-done {{
+          background: rgba(122,155,184,0.1) !important;
+        }}
+        [data-testid="stSidebar"] .golden-step.is-next {{
+          background: rgba(212,175,105,0.12) !important;
+        }}
+        [data-testid="stSidebar"] .golden-step.is-locked {{
+          opacity: 0.45 !important;
+        }}
+        [data-testid="stSidebar"] .golden-step-body strong {{
+          font-size: 0.88rem !important;
+          color: #e8eef4 !important;
+          font-weight: 550 !important;
+        }}
+        [data-testid="stSidebar"] .golden-step-desc {{
+          font-size: 0.72rem !important;
+          color: rgba(180, 186, 196, 0.85) !important;
+        }}
+        [data-testid="stSidebar"] .golden-hint {{
+          margin: 0.45rem 0.15rem 0 !important;
+          font-size: 0.75rem !important;
+          color: rgba(212,175,105,0.88) !important;
+          font-weight: 550 !important;
+        }}
+        .sidebar-hud-title,
+        .sidebar-case-sub {{
+          display: none !important;
+        }}
+        [data-testid="stExpandSidebarButton"],
+        [data-testid="stSidebarCollapsedControl"],
+        [data-testid="collapsedControl"] {{
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          visibility: visible !important;
+          pointer-events: auto !important;
+          z-index: 1000040 !important;
+        }}
         header[data-testid="stHeader"] {{
+          z-index: 1000035 !important;
+          background: transparent !important;
           opacity: 1 !important;
         }}
-        header[data-testid="stHeader"] * {{
+        [data-testid="stExpandSidebarButton"] {{
+          position: fixed !important;
+          top: 0.4rem !important;
+          left: 0.45rem !important;
+          width: 2.4rem !important;
+          height: 2.4rem !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border-radius: 6px !important;
+          border: 0 !important;
+          background: transparent !important;
+          color: #e8eef4 !important;
+          box-shadow: none !important;
           opacity: 1 !important;
+        }}
+        [data-testid="stExpandSidebarButton"] span,
+        [data-testid="stExpandSidebarButton"] [data-testid="stIconMaterial"] {{
+          font-size: 0 !important;
+          line-height: 0 !important;
+          color: transparent !important;
+          opacity: 0 !important;
+        }}
+        .app-topbar {{
+          position: fixed !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: 0 !important;
+          height: var(--app-topbar-h, 3.15rem) !important;
+          z-index: 1000020 !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: flex-start !important;
+          gap: 0.55rem !important;
+          padding: 0 3.4rem 0 0.45rem !important;
+          box-sizing: border-box !important;
+          pointer-events: none !important;
+          background: rgba(13, 16, 22, 0.94) !important;
+          border-bottom: 1px solid rgba(122, 155, 184, 0.18) !important;
+          backdrop-filter: blur(10px);
+          -webkit-backdrop-filter: blur(10px);
+        }}
+        .app-topbar-burger {{
+          flex: 0 0 2.4rem !important;
+          width: 2.4rem !important;
+          height: 2.4rem !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+          overflow: visible !important;
+        }}
+        .app-topbar-burger::before {{
+          content: "" !important;
+          display: block !important;
+          width: 1.15rem !important;
+          height: 2px !important;
+          border-radius: 1px !important;
+          background: #e8eef4 !important;
+          box-shadow:
+            0 6px 0 #e8eef4,
+            0 12px 0 #e8eef4 !important;
+          transform: translateY(-6px) !important;
+        }}
+        .app-topbar-brand {{
+          font-family: var(--font-display) !important;
+          font-size: 1.05rem !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.04em !important;
+          color: #e8eef4 !important;
+          line-height: 1 !important;
+          white-space: nowrap !important;
+          text-align: left !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.app-topbar),
+        div[data-testid="stMarkdownContainer"]:has(.app-topbar) {{
+          position: absolute !important;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          pointer-events: none !important;
         }}
 
         .stButton > button {{
@@ -852,6 +1699,68 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           background: rgba(18, 24, 34, 0.78) !important;
           border-color: rgba(200,210,220,0.22) !important;
           color: #c5ccd6 !important;
+        }}
+        /* 사이드바 메뉴 버튼 — 일반 secondary 스타일보다 우선 */
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.case-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button,
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.case-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          background: transparent !important;
+          background-image: none !important;
+          border: 0 !important;
+          border-radius: 8px !important;
+          box-shadow: none !important;
+          min-height: 2.55rem !important;
+          justify-content: flex-start !important;
+          text-align: left !important;
+          padding: 0.55rem 0.7rem !important;
+          color: #e8eef4 !important;
+          font-size: 0.92rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.howto-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button p,
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.case-hud-mark)
+          + div[data-testid="stElementContainer"] .stButton > button p {{
+          text-align: left !important;
+          font-size: 0.92rem !important;
+          color: #e8eef4 !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton > button {{
+          background: #3d5568 !important;
+          background-image: none !important;
+          border: 1px solid #4a657a !important;
+          border-radius: 10px !important;
+          min-height: var(--side-auth-h, 2.35rem) !important;
+          height: var(--side-auth-h, 2.35rem) !important;
+          max-height: var(--side-auth-h, 2.35rem) !important;
+          justify-content: center !important;
+          box-shadow: none !important;
+          color: #eef3f8 !important;
+          font-size: 0.82rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"] .stButton > button p {{
+          font-size: 0.82rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+          margin: 0 !important;
         }}
 
         div[data-baseweb="select"] > div,
@@ -957,6 +1866,17 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           -webkit-backdrop-filter: blur(10px);
           box-shadow: 0 14px 36px rgba(0, 0, 0, 0.22) !important;
         }}
+        @media (max-width: 900px) {{
+          .stTabs [data-baseweb="tab-panel"] {{
+            padding: 0.55rem 0.85rem 0.75rem !important;
+          }}
+          .stTabs [data-baseweb="tab-panel"]:has(.ops-composer-mark)
+            div[data-testid="stElementContainer"]:has(.ops-suspect-select-mark)
+            + div[data-testid="stElementContainer"] {{
+            margin-top: 0 !important;
+            margin-bottom: 0.45rem !important;
+          }}
+        }}
         .stTabs [data-baseweb="tab-panel"] .stTextInput label,
         .stTabs [data-baseweb="tab-panel"] .stTextArea label,
         .stTabs [data-baseweb="tab-panel"] .stMultiSelect label,
@@ -1026,12 +1946,16 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           border-color: rgba(255, 255, 255, 0.22) !important;
           color: #ffffff !important;
         }}
-        /* 심문 composer: 채팅 입력(Enter 전송) */
+        /* 심문 composer: 채팅 입력(Enter 전송) — 마커는 flex gap을 먹지 않게 제외 */
         div[data-testid="stElementContainer"]:has(.ops-composer-mark) {{
+          display: none !important;
           margin: 0 !important;
           padding: 0 !important;
           height: 0 !important;
           min-height: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          pointer-events: none !important;
         }}
         .ops-composer-meta {{
           display: flex;
@@ -1043,10 +1967,14 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         /* 심문 채팅 스레드 — 목록만 스크롤 (입력창과 분리) */
         div[data-testid="stElementContainer"]:has(.interrogation-chat-mark) {{
+          display: none !important;
           margin: 0 !important;
           padding: 0 !important;
           height: 0 !important;
           min-height: 0 !important;
+          overflow: hidden !important;
+          position: absolute !important;
+          pointer-events: none !important;
         }}
         .stTabs [data-baseweb="tab-panel"]:has(.ops-composer-mark)
           [data-testid="stChatMessage"] {{
@@ -1192,11 +2120,14 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           display: none;
         }}
         div[data-testid="stElementContainer"]:has(.ops-suspect-select-mark) {{
+          display: none !important;
           height: 0 !important;
           min-height: 0 !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: hidden !important;
+          position: absolute !important;
+          pointer-events: none !important;
         }}
         /* 심문 대상 select — 필 형태 */
         .stTabs [data-baseweb="tab-panel"]:has(.ops-composer-mark)
@@ -1294,6 +2225,171 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           width: auto !important;
           max-width: none !important;
           min-width: 0 !important;
+        }}
+        /* 태블릿·아이패드(가로/세로 공통): 뷰포트 가로폭 기준 스택
+           ※ orientation 조건은 DevTools 세로(1024×1366)에서 안 걸려 제외 */
+        @media (max-width: 1200px) {{
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark) {{
+            display: flex !important;
+            flex-direction: column !important;
+            flex-wrap: nowrap !important;
+            align-items: stretch !important;
+            gap: 1.35rem !important;
+            row-gap: 1.35rem !important;
+            column-gap: 0 !important;
+          }}
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="column"],
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="stColumn"] {{
+            flex: 0 0 auto !important;
+            flex-basis: 100% !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            min-width: 0 !important;
+          }}
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="column"]:first-child,
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="stColumn"]:first-child {{
+            width: min(380px, 100%) !important;
+            max-width: 420px !important;
+            align-self: center !important;
+          }}
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="column"]:last-child,
+          div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
+            > div[data-testid="stColumn"]:last-child {{
+            width: 100% !important;
+            max-width: 100% !important;
+            align-self: stretch !important;
+            margin-top: 20px !important;
+          }}
+        }}
+        /* HOW TO / CASE FILE 마커 — 레이아웃에서 제거 */
+        div[data-testid="stElementContainer"]:has(.howto-hud-mark),
+        div[data-testid="stElementContainer"]:has(.case-hud-mark),
+        div[data-testid="stElementContainer"]:has(.nav-hud-row-mark) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
+        /* HOW TO · CASE FILE 한 줄 */
+        div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark) {{
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          align-items: stretch !important;
+          gap: 0.5rem !important;
+          width: 100% !important;
+        }}
+        div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark)
+          > div[data-testid="column"],
+        div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark)
+          > div[data-testid="stColumn"] {{
+          flex: 1 1 0 !important;
+          width: 50% !important;
+          max-width: 50% !important;
+          min-width: 0 !important;
+        }}
+        /* 데스크톱: 예전 [1,1,3]처럼 좌측 ~40%만 사용 — 메인은 사이드바로 이전, 사이드바는 전체 폭 */
+        section[data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark),
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark) {{
+          max-width: 100% !important;
+          margin-right: 0 !important;
+        }}
+        @media (max-width: 900px) {{
+          div[data-testid="stHorizontalBlock"]:has(.howto-hud-mark) {{
+            max-width: 100% !important;
+            flex-wrap: nowrap !important;
+            flex-direction: row !important;
+          }}
+        }}
+        /* 아이패드 에어 세로(~820) 등: HUD·안내 버튼 폰트 축소 + 세로 중앙
+           (사이드바 수사 권한 행은 --side-auth-h 고정이므로 제외) */
+        @media (max-width: 900px) {{
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button,
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button p {{
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.62rem !important;
+            letter-spacing: 0.01em !important;
+            min-height: 2.6rem !important;
+            height: 2.6rem !important;
+            padding: 0 0.4rem !important;
+            line-height: 1.2 !important;
+            text-align: center !important;
+          }}
+          [data-testid="stSidebar"]
+            div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button,
+          [data-testid="stSidebar"]
+            div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button p,
+          section[data-testid="stSidebar"]
+            div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button,
+          section[data-testid="stSidebar"]
+            div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+            + div[data-testid="stElementContainer"]
+            .stButton > button p {{
+            font-size: 0.82rem !important;
+            min-height: var(--side-auth-h, 2.35rem) !important;
+            height: var(--side-auth-h, 2.35rem) !important;
+            max-height: var(--side-auth-h, 2.35rem) !important;
+            padding: 0 0.35rem !important;
+            line-height: 1 !important;
+          }}
+          div[data-testid="column"]:has(.howto-hud-mark) .stButton > button,
+          div[data-testid="stColumn"]:has(.howto-hud-mark) .stButton > button,
+          div[data-testid="column"]:has(.case-hud-mark) .stButton > button,
+          div[data-testid="stColumn"]:has(.case-hud-mark) .stButton > button {{
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            font-size: 0.62rem !important;
+            letter-spacing: 0.01em !important;
+            line-height: 1.2 !important;
+            white-space: normal !important;
+            min-height: 2.6rem !important;
+            height: auto !important;
+            padding: 0.4rem 0.35rem !important;
+            text-align: center !important;
+          }}
+          div[data-testid="column"]:has(.howto-hud-mark) .stButton > button p,
+          div[data-testid="stColumn"]:has(.howto-hud-mark) .stButton > button p,
+          div[data-testid="column"]:has(.case-hud-mark) .stButton > button p,
+          div[data-testid="stColumn"]:has(.case-hud-mark) .stButton > button p {{
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            font-size: 0.62rem !important;
+            line-height: 1.25 !important;
+            text-align: center !important;
+            min-height: 0 !important;
+            height: auto !important;
+          }}
+          .hud-stat {{
+            min-height: 2.6rem;
+            padding: 0.3rem 0.4rem;
+          }}
+          .hud-stat .stat-label {{
+            font-size: 0.52rem;
+          }}
+          .hud-stat .stat-value {{
+            font-size: 0.88rem;
+          }}
         }}
         /* Ops 열 안 채팅/탭은 가로 전체 사용 */
         div[data-testid="stColumn"]:has(.ops-kicker),
@@ -1406,9 +2502,48 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         div[data-testid="stElementContainer"]:has(.hud-stats-mark)
           > div[data-testid="stHorizontalBlock"],
         div[data-testid="column"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"],
+        div[data-testid="stColumn"]:has(.hud-stats-mark)
           div[data-testid="stHorizontalBlock"] {{
           align-items: stretch !important;
           gap: 0.5rem !important;
+          display: flex !important;
+          flex-direction: row !important;
+          flex-wrap: nowrap !important;
+          width: 100% !important;
+        }}
+        /* 사이드바: 수사 권한·새 수사 개시 전체 폭 */
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-stats-mark)
+          > div[data-testid="stHorizontalBlock"],
+        section[data-testid="stSidebar"]
+          div[data-testid="column"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"],
+        section[data-testid="stSidebar"]
+          div[data-testid="stColumn"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"],
+        [data-testid="stSidebar"]
+          div[data-testid="stHorizontalBlock"]:has(.hud-stats-mark),
+        [data-testid="stSidebar"]
+          div[data-testid="column"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"],
+        [data-testid="stSidebar"]
+          div[data-testid="stColumn"]:has(.hud-stats-mark)
+          div[data-testid="stHorizontalBlock"] {{
+          max-width: 100% !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          width: 100% !important;
+        }}
+        .sidebar-hud-title,
+        .sidebar-case-sub {{
+          display: none !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.sidebar-hud-mark) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
         }}
         .hud-brand {{
           padding: 0 !important;
@@ -1473,15 +2608,37 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           + div[data-testid="stElementContainer"]
           .stButton > button {{
           width: 100% !important;
-          min-height: 3.5rem !important;
-          height: 3.5rem !important;
+          min-height: 2.7rem !important;
+          height: auto !important;
           margin: 0 !important;
           white-space: nowrap !important;
-          font-size: 0.82rem !important;
-          letter-spacing: 0.04em !important;
+          font-size: 0.92rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
           padding-top: 0 !important;
           padding-bottom: 0 !important;
           box-sizing: border-box !important;
+        }}
+        [data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"]
+          .stButton > button,
+        section[data-testid="stSidebar"]
+          div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"]
+          .stButton > button {{
+          min-height: var(--side-auth-h, 2.35rem) !important;
+          height: var(--side-auth-h, 2.35rem) !important;
+          max-height: var(--side-auth-h, 2.35rem) !important;
+          font-size: 0.82rem !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.hud-restart-mark)
+          + div[data-testid="stElementContainer"]
+          .stButton > button p {{
+          font-size: 0.92rem !important;
+          font-weight: 500 !important;
+          letter-spacing: 0.01em !important;
+          margin: 0 !important;
         }}
         .brand-title {{
           font-size: clamp(1.35rem, 2.4vw, 1.85rem); line-height: 1.15;
@@ -1707,9 +2864,10 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           max-width: 100% !important;
           box-sizing: border-box;
           display: flex;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 0.45rem 0.75rem;
+          flex-direction: column;
+          flex-wrap: nowrap;
+          align-items: stretch;
+          gap: 0.45rem;
         }}
         .golden-route .panel-title {{
           margin: 0;
@@ -1722,11 +2880,13 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         .golden-steps {{
           display: flex;
+          flex-direction: column;
           flex: 1 1 auto;
-          flex-wrap: wrap;
-          align-items: center;
-          gap: 0.3rem;
+          flex-wrap: nowrap;
+          align-items: stretch;
+          gap: 0.35rem;
           min-width: 0;
+          width: 100%;
         }}
         .golden-step {{
           display: inline-flex;
@@ -1737,6 +2897,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           border: 1px solid transparent;
           white-space: nowrap;
           line-height: 1.2;
+          width: 100%;
+          max-width: 100%;
+          box-sizing: border-box;
         }}
         .golden-step.is-done {{
           border-color: rgba(122,155,184,0.28);
@@ -1800,15 +2963,23 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         .golden-step.is-next .golden-step-desc {{
           display: inline;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: unset;
         }}
         .golden-step.is-next {{
-          max-width: min(28rem, 100%);
+          max-width: 100%;
+          white-space: normal;
+          align-items: flex-start;
+        }}
+        .golden-step.is-next .golden-step-body {{
+          flex-wrap: wrap;
         }}
         .golden-hint,
         .golden-route .golden-hint,
         div[data-testid="stMarkdownContainer"] .golden-hint {{
-          display: inline !important;
-          margin: 0 0 0 auto !important;
+          display: block !important;
+          margin: 0.25rem 0 0 !important;
           padding: 0 !important;
           border: 0 !important;
           flex: 0 1 auto;
@@ -1817,9 +2988,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           font-weight: 600 !important;
           color: rgba(212,175,105,0.92) !important;
           line-height: 1.25 !important;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
+          white-space: normal;
+          overflow: visible;
+          text-overflow: unset;
         }}
         .ending-banner {{
           margin: 0 0 1rem;
@@ -1840,8 +3011,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           border-color: rgba(180, 90, 90, 0.45);
         }}
         .app-footer-sig {{
-          /* top 이동은 레이아웃 높이를 남기므로 음수 margin으로 올림 */
-          margin: -1.25rem 0 0.35rem !important;
+          /* 음수 margin으로만 살짝 올림 (레이아웃 높이 유지) */
+          margin: -0.35rem 0 0.35rem !important;
           padding: 0 !important;
           text-align: center !important;
           font-size: 0.72rem !important;
@@ -1967,14 +3138,14 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-width: var(--ops-rail-width) !important;
           max-width: var(--ops-rail-width) !important;
         }}
-        /* Golden Route: HOW TO ↔ 대상 용의자 사이 풀폭 스트립 */
+        /* Golden Route: 사이드바 보조 HUD 안 세로 스택 */
         div[data-testid="stElementContainer"]:has(.golden-route),
         div[data-testid="stMarkdownContainer"]:has(.golden-route) {{
           display: block !important;
           width: 100% !important;
           max-width: 100% !important;
           justify-content: unset !important;
-          margin-bottom: calc(1.15rem - 5px) !important;
+          margin-bottom: 0.5rem !important;
           padding-bottom: 0 !important;
         }}
         div[data-testid="stElementContainer"]:has(.golden-route) > div,
@@ -3199,76 +4370,103 @@ def _render_ending_banner() -> None:
     )
 
 
-def _render_hud(game: dict) -> None:
+def _render_hud_brand(game: dict) -> None:
+    """상단 고정 바: 햄버거 옆 「진실의 방」(본문 타이틀 제거)."""
+    case_title = html.escape(str(game.get("title") or "진실의 방"))
+    st.markdown(
+        f"""
+        <div class="app-topbar" data-case-title="{case_title}">
+          <span class="app-topbar-burger" aria-hidden="true"></span>
+          <span class="app-topbar-brand">진실의 방</span>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_sidebar_hud(game: dict, *, sid: str) -> None:
+    """보조 HUD — 뤼튼형 사이드 메뉴 레이아웃."""
     stamina = int(game.get("stamina") or 0)
     stamina_max = int(game.get("stamina_max") or 3)
     hearts = "♥" * stamina + "♡" * max(0, stamina_max - stamina)
     strikes = int(game.get("timeout_strikes") or 0)
     strike_max = int(game.get("timeout_strike_max") or 3)
-    title = html.escape(str(game.get("title") or "진실의 방"))
-    # 시작 화면과 같이 '첫 콘텐츠 위젯'이 바로 HUD가 되도록 marker 없이 시작
-    try:
-        hud_wrap = st.container(key="game_hud_lift")
-    except TypeError:
-        hud_wrap = st.container()
-    with hud_wrap:
-        brand_col, stats_col = st.columns([1.4, 1.4], gap="small")
-        with brand_col:
-            st.markdown(
-                f"""
-                <div class="hud-brand">
-                  <div class="brand-title">진실의 방</div>
-                  <div class="brand-gap" style="height:10px;min-height:10px;" aria-hidden="true">&nbsp;</div>
-                  <div class="brand-sub">{title}</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with stats_col:
-            st.markdown('<div class="hud-stats-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
-            timer_on_hud = TIMER_FEATURE_ENABLED and bool(game.get("timer_enabled", False))
-            if timer_on_hud:
-                _, s1, s2, s3 = st.columns([3, 1, 1, 1], gap="small")
-            else:
-                # 수사 권한 · 새 수사 개시: 폭 절반 + 우측 정렬
-                _, s1, s3 = st.columns([2, 1, 1], gap="small")
-                s2 = None
-            with s1:
-                st.markdown(
-                    f"""
-                    <div class="hud-stat">
-                      <span class="stat-label">수사 권한</span>
-                      <div class="stat-value hearts">{hearts}</div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-            if s2 is not None:
-                with s2:
-                    st.markdown(
-                        f"""
-                        <div class="hud-stat">
-                          <span class="stat-label">타임아웃</span>
-                          <div class="stat-value">{strikes}/{strike_max}</div>
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-            with s3:
-                st.markdown(
-                    '<div class="hud-restart-mark" aria-hidden="true"></div>',
-                    unsafe_allow_html=True,
-                )
-                if st.button(
-                    "새 수사 개시",
-                    type="primary",
-                    key="btn_restart_hud",
-                    use_container_width=True,
-                ):
-                    try:
-                        _start_new_investigation(with_tab_intro=False)
-                    except requests.RequestException as exc:
-                        st.error(f"세션 생성 실패: {exc}")
+    case_title = html.escape(str(game.get("title") or "진실의 방"))
+    timer_on_hud = TIMER_FEATURE_ENABLED and bool(game.get("timer_enabled", False))
+    timeout_html = ""
+    if timer_on_hud:
+        timeout_html = (
+            f'<div class="side-status-row">'
+            f'<span class="side-status-label">타임아웃</span>'
+            f'<span class="side-status-value">{strikes}/{strike_max}</span>'
+            f"</div>"
+        )
+
+    st.markdown('<div class="sidebar-hud-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <div class="side-nav-shell">
+          <div class="side-nav-brand">
+            <span class="side-nav-case">{case_title}</span>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    auth_l, auth_r = st.columns([1.05, 1], gap="small")
+    with auth_l:
+        st.markdown('<div class="side-auth-row-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+        st.markdown(
+            f"""
+            <div class="side-status-card">
+              <div class="side-status-row">
+                <span class="side-status-label">수사 권한</span>
+                <span class="side-status-hearts">{hearts}</span>
+              </div>
+              {timeout_html}
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+    with auth_r:
+        st.markdown('<div class="hud-restart-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+        if st.button(
+            "새 수사 개시",
+            type="primary",
+            key="btn_restart_hud",
+            use_container_width=True,
+        ):
+            try:
+                _start_new_investigation(with_tab_intro=False)
+            except requests.RequestException as exc:
+                st.error(f"세션 생성 실패: {exc}")
+
+    st.markdown(
+        '<p class="side-section-label">메뉴</p>',
+        unsafe_allow_html=True,
+    )
+    st.markdown('<div class="howto-hud-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    if st.button("게임 방법", type="secondary", use_container_width=True, key="btn_howto_hud"):
+        _request_howto()
+    st.markdown('<div class="case-hud-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
+    if st.button("사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
+        _request_case_info(sid, title_fallback=str(game.get("title") or "사건개요"))
+
+    st.markdown(
+        '<p class="side-section-label side-section-gap-before">골든 루트</p>',
+        unsafe_allow_html=True,
+    )
+    _render_golden_route(
+        list(game.get("evidence_ids") or []),
+        ended=bool(game.get("ended")),
+        won=bool(st.session_state.get("last_ending_ok")),
+    )
+
+
+def _render_hud(game: dict) -> None:
+    """하위 호환 — 메인 브랜드만."""
+    _render_hud_brand(game)
 
 
 def _render_inventory(owned: list[str]) -> None:
@@ -3847,22 +5045,10 @@ if st.session_state.get("game_started"):
     _force_bgm = bool(st.session_state.pop("bgm_should_play", False))
     _inject_game_bgm(muted=False, force_play=_force_bgm)
 
-_render_hud(game)
-_howto_btn, _case_btn, _ = st.columns([1, 1, 3])
-with _howto_btn:
-    if st.button("HOW TO · 게임 방법", type="secondary", use_container_width=True, key="btn_howto_hud"):
-        _request_howto()
-with _case_btn:
-    if st.button("CASE FILE · 사건개요", type="secondary", use_container_width=True, key="btn_case_info_hud"):
-        _request_case_info(sid, title_fallback=str(game.get("title") or "사건개요"))
+_render_hud_brand(game)
+with st.sidebar:
+    _render_sidebar_hud(game, sid=sid)
 _render_clue_banner()
-
-# HOW TO / CASE FILE ↔ 대상 용의자 사이 — Golden Route 스트립
-_render_golden_route(
-    list(game.get("evidence_ids") or []),
-    ended=bool(game.get("ended")),
-    won=bool(st.session_state.get("last_ending_ok")),
-)
 
 # 진입 시 사건개요 팝업 + 스타트 (닫아도 미시작이면 다시 염)
 if (
