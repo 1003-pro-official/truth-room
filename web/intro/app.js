@@ -525,6 +525,10 @@
         sessionId = data.session_id;
       }
 
+      // 인트로→게임 진입 표시(폴백). 새로고침 복귀는 nginx 스크립트가 담당.
+      try {
+        sessionStorage.setItem("truth_room_enter", "1");
+      } catch (e) {}
       // iframe embed 없이 Streamlit 전체 페이지로 이동
       window.location.href = gameUrl(sessionId);
     } catch (err) {

@@ -290,43 +290,6 @@ st.set_page_config(
     initial_sidebar_state="collapsed",
 )
 
-
-def _redirect_game_reload_to_intro() -> None:
-    """브라우저 새로고침(/game/) → 인트로(/)로 복귀. 위젯 rerun은 제외."""
-    # nginx 인트로가 있는 배포(Docker/Railway)에서만
-    if not (
-        os.environ.get("RAILWAY_ENVIRONMENT")
-        or Path("/.dockerenv").exists()
-        or os.environ.get("INTRO_REDIRECT_ON_RELOAD") == "1"
-    ):
-        return
-    components.html(
-        """
-        <script>
-        (function () {
-          try {
-            var topWin = window.top || window;
-            var path = String((topWin.location && topWin.location.pathname) || "");
-            if (path.indexOf("/game") !== 0) return;
-            var nav = (performance.getEntriesByType &&
-              performance.getEntriesByType("navigation")[0]) || null;
-            var isReload = !!(nav && nav.type === "reload");
-            if (!isReload && performance.navigation) {
-              isReload = performance.navigation.type === 1;
-            }
-            if (!isReload) return;
-            topWin.location.replace("/");
-          } catch (e) {}
-        })();
-        </script>
-        """,
-        height=0,
-        width=0,
-    )
-
-
-_redirect_game_reload_to_intro()
-
 # Streamlit 기본 primary(빨강) flash 방지 — 어떤 위젯보다 먼저 주입
 st.markdown(
     """
