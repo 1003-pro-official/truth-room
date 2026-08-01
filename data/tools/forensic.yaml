@@ -8,9 +8,9 @@ devices:
     findings:
       - type: deleted_messages
         items:
-          - ts: "2024-07-29T22:40:00+09:00"
+          - ts: "2026-07-29T22:40:00+09:00"
             text: "[삭제됨] 계좌 확인했어. 절반 선입금 오면 바로 넘겨."
-          - ts: "2024-07-29T23:26:00+09:00"
+          - ts: "2026-07-29T23:26:00+09:00"
             text: "[삭제됨] 전송 완료. 로그 지우는 중."
       - type: network_hint
         text: "동일 MAC이 23:25 라운지 AP(192.168.1.15) bulk transfer와 매칭됨 (ev_net_01)"

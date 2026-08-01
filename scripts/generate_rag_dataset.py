@@ -75,15 +75,15 @@ def _pad_to(text: str, min_chars: int, extras: list[str]) -> str:
 
 
 def write_statements() -> None:
-    kim = """# 김팀장 진술서 (2024-07-30 오전 청취)
+    kim = """# 김팀장 진술서 (2026-07-30 오전 청취)
 
-저는 인프라와 기획을 총괄하는 김팀장입니다. 사건 당일(2024년 7월 29일) 일정을 정리하면, 오후 2시부터 5시까지는 경영진 브리핑용 차기 로드맵 슬라이드를 수정했고, 저녁 식사 뒤에는 사무실로 돌아와 **23시부터 자정까지 자기 자리에서 발표용 기획안을 꼼꼼히 검토**했다고 기억합니다. PC 문서 자동저장·버전 히스토리만 보시면 아실 겁니다. 나 때는 야근이 미덕이었고, 팀원들이 흔들리면 안 되니까 자리를 지키는 시늉이라도 해야 한다고 생각했습니다. 책임은 위에서 지는 척하면서 실무는 아래로 미루는 문화가 문제인데, 그걸 제가 만들었다고 몰아가진 마십시오. 그날 비도 많이 와서 외출할 마음도 없었습니다.
+저는 인프라와 기획을 총괄하는 김팀장입니다. 사건 당일(2026년 7월 29일) 일정을 정리하면, 오후 2시부터 5시까지는 경영진 브리핑용 차기 로드맵 슬라이드를 수정했고, 저녁 식사 뒤에는 사무실로 돌아와 **23시부터 자정까지 자기 자리에서 발표용 기획안을 꼼꼼히 검토**했다고 기억합니다. PC 문서 자동저장·버전 히스토리만 보시면 아실 겁니다. 나 때는 야근이 미덕이었고, 팀원들이 흔들리면 안 되니까 자리를 지키는 시늉이라도 해야 한다고 생각했습니다. 책임은 위에서 지는 척하면서 실무는 아래로 미루는 문화가 문제인데, 그걸 제가 만들었다고 몰아가진 마십시오. 그날 비도 많이 와서 외출할 마음도 없었습니다.
 
 이대리에 대해서는 실력은 인정하지만 태도가 까칠하고, 공로를 혼자 가져가려 한다는 불만이 팀에 있습니다. 보너스 시즌마다 마찰이 있었고, 제가 학습 파이프라인 성과를 기획 관점에서 요약했다고 해서 도둑질이라고 부르는 건 과합니다. 박신입은 입사 3개월이라 실수가 잦고, 그날도 배가 아프다며 자주 자리를 비웠습니다. 서버실 출입은 원칙상 팀장급 승인인데, 제가 23시 전후에 서버실에 들어간 기억은 없습니다. 지문·배지 로그에 제 이름이 찍혀 있다면 기기 오류이거나 누군가 제 배지를 쓴 것일 수 있습니다. 법인카드는 제가 관리하는 공용 카드라 평소 소지합니다만, 그날 밤 사용 내역은 업무 접대 관련으로 설명할 수 있는 범위라고만 하겠습니다. 세부 상호는 회계 쪽에 맡기겠습니다. 카드 분실 신고는 하지 않았고, 책상 서랍에 두었을 가능성도 있습니다.
 
 Omega 가중치 파일을 훔칠 기술적 동기나 외부 접촉은 제게 없습니다. 저는 모델 학습 코드를 직접 돌리지 않고, 인프라 권한과 일정 관리가 주입니다. 경쟁사와 접촉했다는 루머는 사실무근입니다. 범인은 외부 침투이거나, 실무 접근 권한이 큰 쪽을 먼저 보셔야 합니다. CCTV가 결측이라고 해서 저를 용의선에 오래 묶어 두는 것은 시간 낭비입니다. 조사에 협조할 의향은 있으나, 추측성 압박에는 응하지 않겠습니다. 필요한 자료는 법무·보안 팀과 협의해 제공하겠습니다.
 """
-    lee = """# 이대리 진술서 (2024-07-30 오전 청취)
+    lee = """# 이대리 진술서 (2026-07-30 오전 청취)
 
 저는 Omega 학습 파이프라인과 체크포인트 관리를 담당한 이대리입니다. 7월 29일 저녁 10시 30분경 코딩을 마무리했고, **23시부터 자정까지는 3층 라운지에서 노이즈캔슬링 헤드폰을 끼고 넷플릭스**를 봤습니다. 라운지 CCTV와 AP 연결 기록을 확인하시면 됩니다. 서버실 출입 로그(지문)를 보시면 제 이름은 없을 겁니다. 그 시간대 기록에 김팀장 배지·지문이 찍혀 있다면, 그쪽을 먼저 조사하는 게 맞습니다. 저는 흔적을 안 남기는 쪽으로 일하지, 바보같이 로그에 이름을 남기지 않습니다—이건 비유입니다. 오해하지 마십시오. 라운지에서 자리를 옮긴 적은 거의 없고, 커피를 뽑으러 간 정도입니다.
 
@@ -91,7 +91,7 @@ Omega 가중치 파일을 훔칠 기술적 동기나 외부 접촉은 제게 없
 
 네트워크 로그를 들이밀기 전에는 추측으로 몰아가지 마십시오. 기술적으로 Omega 가중치를 빼내려면 학습 노드와 내부망 권한이 필요한데, 그 권한은 저와 일부 인프라만 갖고 있습니다. 그렇다고 제가 범인이라는 뜻은 절대 아닙니다. 권한과 범행은 다릅니다. 증거 없이 압박하지 마세요. 필요하다면 라운지 체류 시간과 시청 기록을 제출할 수 있습니다. 동기 면에서도 회사를 배신할 이유는 없습니다—불만은 있어도 유출은 아닙니다.
 """
-    park = """# 박신입 진술서 (2024-07-30 오전 청취)
+    park = """# 박신입 진술서 (2026-07-30 오전 청취)
 
 입사 3개월 차 박입니다. 솔직히 너무 무섭고 혼란스럽습니다. 저녁에 마라탕을 먹어서 배가 아팠고, **처음에는 11시부터 계속 3층 남자 화장실에 있었다**고 말했습니다. 사실… 불안해서 서버실 쪽을 몰래 보러 간 적이 있습니다. 문 근처에서 타이핑 소리 같은 게 들렸고, 누군가 더 있는 것 같았습니다. 손이 떨려서 동료 윤사원에게 슬랙으로 짧게 알렸는데, 화장실 알리바이랑 안 맞는 거 압니다. 죄송합니다. 거짓말을 하려던 게 아니라 혼날까 봐 줄였습니다. 다시 진술할 기회를 주셔서 감사합니다. 그날 팀 분위기가 이상해서 호기심과 공포가 동시에 있었습니다.
 
@@ -125,13 +125,13 @@ Omega 가중치 파일을 훔칠 기술적 동기나 외부 접촉은 제게 없
 def write_forensics() -> None:
     cctv = """# 현장 CCTV / 복도 영상 기술서 (포렌식)
 
-작성: 외부 디지털 포렌식 감사관 보조 기록 · 대상일 2024-07-29 · 작성일 2024-07-30
+작성: 외부 디지털 포렌식 감사관 보조 기록 · 대상일 2026-07-29 · 작성일 2026-07-30
 
 23:00~24:00 구간 로비·서버실 전용 카메라는 폭우와 순간 정전으로 다수 결측이다. NVR 타임라인상 결측은 대략 23:02~23:18, 23:27~23:40에 집중된다. UPS 이벤트와 카메라 채널 드롭 시각이 초 단위로 근접한다. 복구된 3층 복도 카메라 partial 프레임을 기술하면 다음과 같다. **23:05경, 우산으로 얼굴을 가린 미확인 인물이 서버실 전면 복도를 빠른 걸음으로 통과**했다. 성별·신장은 특정 불가하며, 우산 각도 때문에 얼굴 ROI가 확보되지 않았다. 상의는 어두운 색으로 보이며 배지 인식은 불가하다. 우산은 접히지 않은 상태로 얼굴 전면을 가렸다. 23:19경에는 후드티 차림의 신입 추정 인물이 서버실 방향에서 서성이다 이탈했다. 23:31경 엘리베이터 홀에서 중년 남성(김팀장 외형과 유사)이 하차 후 건물 외출하는 장면이 있다. 라운지 방향 카메라는 23시 전후 좌석에 헤드폰 착용 인물이 장시간 앉아 있는 장면이 일부 남아 있으나, 얼굴은 하향이라 확정 불가하다. 본 기술서는 시각 증거 요약이며, 출입·네트워크 로그와 교차검증할 것. 원본 영상은 증거물 목록 F-CCTV-01로 봉인한다.
 """
     scene = """# 현장 초동 임장 메모 (포렌식 보조)
 
-임장 시각: 2024-07-30 01:10 · 장소: 3층 서버실·라운지·복도 · 기상: 호우 잔여
+임장 시각: 2026-07-30 01:10 · 장소: 3층 서버실·라운지·복도 · 기상: 호우 잔여
 
 Omega 학습 랙 앞 콘솔에 미완료 세션 흔적이 남아 있었고, 마지막 입력 시각은 시스템 시계 기준 23시대로 추정된다. 바닥 케이블 정리 상태는 양호하며 물리적 침입 흔적(문짝 손상·강제 개방)은 없다. 서버실 보안문 지문 리더 외관 이상 없음. 리더 주변 습기 흔적은 있으나 조작 흔적으로 단정할 수준은 아니다. 라운지 AP(lounge-ap-01) LED 정상, 전원 재부팅 흔적은 없다. 사건 창은 23:00~24:00, 잔류 인원 공식 명단은 김팀장·이대리·박신입이다. 정전 로그와 CCTV 결측 구간이 겹친다. 추가 압수수색 대상: 이대리 개인 노트북, 김팀장 법인카드 영수증, 박신입 휴대폰 슬랙 캐시. 샘플링한 먼지·지문은 연구소로 이첩한다. 현장 사진·스케치는 별첨 S-01~S-08.
 """
@@ -154,13 +154,13 @@ Omega 학습 랙 앞 콘솔에 미완료 세션 흔적이 남아 있었고, 마�
 def write_messenger(n_dense: int = 2200, n_noise: int = 2000) -> None:
     """사건±1주 밀도 + 나머지 노이즈 → 총 ~4200줄."""
     path = RAW / "messenger" / "slack_archive.jsonl"
-    start = datetime(2024, 7, 1, 9, 0, 0)
-    incident = datetime(2024, 7, 29, 0, 0, 0)
+    start = datetime(2026, 7, 1, 9, 0, 0)
+    incident = datetime(2026, 7, 29, 0, 0, 0)
     lines: list[str] = []
 
     # 7/1 ~ 7/21 노이즈 (성김)
     t = start
-    while t < datetime(2024, 7, 22) and len(lines) < n_noise // 2:
+    while t < datetime(2026, 7, 22) and len(lines) < n_noise // 2:
         if RNG.random() < 0.15:
             a, b = RNG.sample([e[1] for e in EMPLOYEES], 2)
             msg = {
@@ -174,8 +174,8 @@ def write_messenger(n_dense: int = 2200, n_noise: int = 2000) -> None:
         t += timedelta(minutes=RNG.randint(20, 180))
 
     # 7/22 ~ 8/5 밀도 (사건 전후)
-    t = datetime(2024, 7, 22, 8, 0, 0)
-    dense_end = datetime(2024, 8, 5, 22, 0, 0)
+    t = datetime(2026, 7, 22, 8, 0, 0)
+    dense_end = datetime(2026, 8, 5, 22, 0, 0)
     while t < dense_end and len(lines) < (n_noise // 2 + n_dense):
         a, b = RNG.sample([e[1] for e in EMPLOYEES], 2)
         text = RNG.choice(NOISE_CHAT)
@@ -196,7 +196,7 @@ def write_messenger(n_dense: int = 2200, n_noise: int = 2000) -> None:
         min(len(lines), 2500),
         json.dumps(
             {
-                "ts": "2024-07-29T23:20:11+09:00",
+                "ts": "2026-07-29T23:20:11+09:00",
                 "from": "박신입",
                 "to": "윤사원",
                 "channel": "dm",
@@ -210,7 +210,7 @@ def write_messenger(n_dense: int = 2200, n_noise: int = 2000) -> None:
         min(len(lines), 2501),
         json.dumps(
             {
-                "ts": "2024-07-29T23:21:03+09:00",
+                "ts": "2026-07-29T23:21:03+09:00",
                 "from": "윤사원",
                 "to": "박신입",
                 "channel": "dm",
@@ -245,7 +245,7 @@ def write_access_logs(n_lines: int = 15000) -> None:
     path = RAW / "logs" / "access_control.txt"
     doors = ["lobby", "office_floor3", "lounge", "server_room", "parking", "lab"]
     actions = ["ENTER", "EXIT", "DENIED", "PING"]
-    start = datetime(2024, 7, 28, 0, 0, 0)
+    start = datetime(2026, 7, 28, 0, 0, 0)
     lines: list[str] = [
         "# access control bulk log — generated",
         "# timezone: Asia/Seoul",
@@ -260,11 +260,11 @@ def write_access_logs(n_lines: int = 15000) -> None:
         # plant smoking gun near target time
         if (
             not smoking_written
-            and t >= datetime(2024, 7, 29, 23, 10, 0)
-            and t <= datetime(2024, 7, 29, 23, 11, 0)
+            and t >= datetime(2026, 7, 29, 23, 10, 0)
+            and t <= datetime(2026, 7, 29, 23, 11, 0)
         ):
             lines.append(
-                "2024-07-29T23:10:33+09:00 badge=E-A name=김팀장 auth=fingerprint "
+                "2026-07-29T23:10:33+09:00 badge=E-A name=김팀장 auth=fingerprint "
                 "door=server_room ACTION=ENTER  # evidence_id: ev_log_07"
             )
             smoking_written = True
@@ -281,12 +281,12 @@ def write_access_logs(n_lines: int = 15000) -> None:
         )
         lines.append(line)
         t += timedelta(seconds=RNG.randint(5, 45))
-        if t > datetime(2024, 7, 31, 23, 59, 0):
+        if t > datetime(2026, 7, 31, 23, 59, 0):
             t = start + timedelta(minutes=RNG.randint(0, 1000))
 
     if not smoking_written:
         lines.insert(100, (
-            "2024-07-29T23:10:33+09:00 badge=E-A name=김팀장 auth=fingerprint "
+            "2026-07-29T23:10:33+09:00 badge=E-A name=김팀장 auth=fingerprint "
             "door=server_room ACTION=ENTER  # evidence_id: ev_log_07"
         ))
 
@@ -308,7 +308,7 @@ def write_corporate_card(n_rows: int = 800) -> None:
         "강남역 룸살롱",
         "주유소",
     ]
-    start = datetime(2024, 5, 1, 12, 0, 0)
+    start = datetime(2026, 5, 1, 12, 0, 0)
     rows: list[dict[str, str]] = []
     t = start
     smoking = False
@@ -319,12 +319,12 @@ def write_corporate_card(n_rows: int = 800) -> None:
         note = "일반"
         if (
             not smoking
-            and t.date() >= datetime(2024, 7, 29).date()
+            and t.date() >= datetime(2026, 7, 29).date()
             and len(rows) > n_rows // 2
         ):
             rows.append(
                 {
-                    "datetime": "2024-07-29 23:30:00",
+                    "datetime": "2026-07-29 23:30:00",
                     "holder": "김팀장",
                     "employee_id": "E-A",
                     "merchant": "강남역 룸살롱",
@@ -345,13 +345,13 @@ def write_corporate_card(n_rows: int = 800) -> None:
             }
         )
         t += timedelta(hours=RNG.randint(1, 14), minutes=RNG.randint(0, 59))
-        if t > datetime(2024, 7, 31, 23, 0, 0):
+        if t > datetime(2026, 7, 31, 23, 0, 0):
             t = start + timedelta(days=RNG.randint(0, 40))
 
     if not smoking:
         rows.append(
             {
-                "datetime": "2024-07-29 23:30:00",
+                "datetime": "2026-07-29 23:30:00",
                 "holder": "김팀장",
                 "employee_id": "E-A",
                 "merchant": "강남역 룸살롱",
@@ -375,13 +375,13 @@ def write_network(n_extra: int = 2000) -> None:
     lines = [
         "# internal wifi / network transfer log",
         "# facility: office floor3 lounge AP",
-        "2024-07-29T23:05:12+09:00 event=ASSOC ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 note=device=이대리_개인노트북",
-        "2024-07-29T23:08:44+09:00 event=DNS q=netflix.com ip=192.168.1.15",
-        "2024-07-29T23:25:06+09:00 event=BULK_TRANSFER ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 "
+        "2026-07-29T23:05:12+09:00 event=ASSOC ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 note=device=이대리_개인노트북",
+        "2026-07-29T23:08:44+09:00 event=DNS q=netflix.com ip=192.168.1.15",
+        "2026-07-29T23:25:06+09:00 event=BULK_TRANSFER ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 "
         "bytes=107374182400 proto=HTTPS dest=ext-unknown direction=EGRESS status=COMPLETE  # evidence_id: ev_net_01",
-        "2024-07-29T23:25:07+09:00 event=ALERT rule=DATA_EXFIL_THRESHOLD msg=\"~100GB packet external transfer complete\"",
+        "2026-07-29T23:25:07+09:00 event=ALERT rule=DATA_EXFIL_THRESHOLD msg=\"~100GB packet external transfer complete\"",
     ]
-    t = datetime(2024, 7, 28, 0, 0, 0)
+    t = datetime(2026, 7, 28, 0, 0, 0)
     for _ in range(n_extra):
         emp = RNG.choice(EMPLOYEES)
         ip = f"192.168.1.{RNG.randint(2, 254)}"

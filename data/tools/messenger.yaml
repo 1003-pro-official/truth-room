@@ -4,7 +4,7 @@ entries:
   - suspect_keys: ["박신입", "suspect_c", "park"]
     keywords: ["서버", "서버실", "침입", "목격", "화장실", ""]
     facts:
-      - "2024-07-29 23:19 박신입→감사채널 DM: 서버실 쪽 움직임·타인 존재 암시. (evidence_id=ev_msg_12)"
+      - "2026-07-29 23:19 박신입→감사채널 DM: 서버실 쪽 움직임·타인 존재 암시. (evidence_id=ev_msg_12)"
   - suspect_keys: ["이대리", "suspect_b", "lee"]
     keywords: ["서버", "전송", "로그", "라운지", ""]
     facts:

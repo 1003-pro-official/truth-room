@@ -26,7 +26,7 @@ load_dotenv(ROOT / ".env")
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--data", default="data/sft/persona_sft.jsonl")
-    parser.add_argument("--model", default="gpt-4o-mini-2024-07-18")
+    parser.add_argument("--model", default="gpt-4o-mini-2026-07-18")
     parser.add_argument("--submit", action="store_true", help="실제 fine-tuning job 생성")
     parser.add_argument("--wait", action="store_true", help="submit 후 succeeded까지 대기")
     parser.add_argument("--poll-sec", type=int, default=20)

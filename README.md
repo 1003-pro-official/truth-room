@@ -7,7 +7,7 @@
 > **AIFFEL Peer Review(PRT):** [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md)  
 > **계획·스펙:** [MASTER_PLAN.md](MASTER_PLAN.md) · [TECH_SPEC.md](TECH_SPEC.md)
 
-**케이스 `case_01`:** 「100억의 야근자들」— 2024-07-29 야근 중 Omega 가중치 불법 반출.  
+**케이스 `case_01`:** 「100억의 야근자들」— 2026-07-29 야근 중 Omega 가중치 불법 반출.  
 용의자 3명(김팀장·이대리·박신입)을 심문하고, RAG·Function Calling으로 Smoking Gun을 모아 진범을 지목합니다.
 
 ```

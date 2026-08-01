@@ -3,7 +3,7 @@
 
   const FALLBACK_SCENES = [
     {
-      caption: "2024.07.29 · 밤",
+      caption: "2026.07.29 · 밤",
       image: "intro/scene_rain_cctv.webp",
       text: "폭우가 도시를 삼킨 밤.\n사내 건물 옥외·복도 CCTV가\n차례로 먹통이 된다.",
     },
