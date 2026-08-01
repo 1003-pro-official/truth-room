@@ -85,7 +85,7 @@
 | 작업 | 산출물 | 실행 |
 | :--- | :--- | :--- |
 | REST | `/api/v1/session*` | `uvicorn backend.main:app --port 8000` |
-| Demo | Streamlit → API only | `streamlit run app.py` |
+| Demo | Streamlit → API only · Railway 라이브 | `streamlit run app.py` · https://web-production-072b8.up.railway.app |
 
 **PR 전:** Swagger `/docs` · UI에서 LLM 직접 호출 없음 · 5분 데모 스크립트
 

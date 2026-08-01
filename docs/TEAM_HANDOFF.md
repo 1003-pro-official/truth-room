@@ -22,7 +22,7 @@ git pull origin main
 | 용의자 페르소나·공개 프로필 | `data/personas/suspect_*.yaml` |
 | 게임 룰 (3-Out·스태미나·조합 지목) | `docs/GAME_RULES.md` · `lib/game_rules.py` |
 | API 세션/심문/검색/지목/프로필 | `backend/main.py` · `backend/game_engine.py` |
-| Streamlit UI (초상·인벤·프로필 팝업·타이머) | `app.py` |
+| Streamlit UI (초상·인벤·프로필 팝업·증거 책상·지목 모달) | `app.py` · `assets/ui/evidence_desk/` |
 | API 계약 | `TECH_SPEC.md` §4 |
 | 역할·GitHub ID | `docs/ROLES.md` |
 
@@ -44,9 +44,10 @@ python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 python3 -m streamlit run app.py
 ```
 
-1. 사이드바 **새 수사 개시**
-2. 용의자 ○/● 선택 → **심문** / **증거 수색** / **최종 지목**
-3. **프로필** → 전신·페르소나·사건개요 (열리면 타이머 일시정지)
+1. 사이드바 **새 수사 개시** (또는 Railway `/` 인트로 → **입장하기**)
+2. 용의자 선택 → **심문** / **증거 수색**(책상 보드) / **최종 지목**
+3. **프로필** → 전신·페르소나·사건개요
+4. 정답 지목 → 결과 모달 → 초상 **검거** 도장
 
 인덱스/RAG까지 돌리려면: [GETTING_STARTED.md](../GETTING_STARTED.md) 의 `ingest` → `build_index` → `rag_pipeline`
 
@@ -60,20 +61,24 @@ python3 -m streamlit run app.py
 | 게임 룰 문서 · stamina · 조합 지목(용의자+증거 2) | ✅ | `docs/GAME_RULES.md`, `lib/game_rules.py` |
 | FastAPI 세션 / ask / search / tool / accuse / pass_turn | ✅ | `backend/` |
 | 공개 프로필 · 사건개요 API | ✅ | `GET .../suspects/{id}/profile`, `GET .../case` |
-| Streamlit: 초상 선택 · 인벤 · 단서 · 타임어택 · 프로필 dialog | ✅ | `app.py`, `assets/suspects/` |
+| Streamlit: 초상·인벤·단서·프로필 dialog · Golden Route | ✅ | `app.py`, `assets/suspects/` |
+| 증거 책상 보드 (10소품 · WebP · force_evidence/miss) | ✅ | `assets/ui/evidence_desk/` · `POST .../search` |
+| 지목 결과 모달 · 검거 도장 · `/game` 새로고침→인트로 | ✅ | `app.py` · `docker/nginx.conf` |
 | 프로필 열 때 타이머 pause / 닫으면 resume | ✅ | `app.py` (`_pause_timer` / `on_dismiss`) |
 | Smoke 테스트 | ✅ | `tests/smoke/` |
 | RAG baseline/advanced · Hit@5 **4/4** · soft routing · eval/RAGAS · 그래프 | ✅ | `runs/rag/` · `runs/eval/` · `report/assets/` · `scripts/plot_metrics.py` |
 | **LangGraph** StateGraph smoke | ✅ | `lib/langgraph_runtime.py` · `agent_graph.py --smoke` |
 | **AutoGen** ask 본선 | ✅ | `lib/autogen_runtime.py` · `scripts/smoke_autogen_ask.py` |
 | 로컬 LoRA ladder (≤3B) · 7B memory_limit | ✅ | `runs/sft/local_lora_qwen*` |
-| GM LLM 알리바이 판정 · Judge | ✅/⏳ | 로컬 판정 + 프롬프트 · live LLM 고도화는 선택 |
+| GM LLM 알리바이 판정 · Judge | ✅ | 룰 권위 + `accuse_template` public_summary |
+| Railway 라이브 배포 | ✅ | https://web-production-072b8.up.railway.app |
 
 최근 커밋 예:
 
-- `31b048e` — 게임 룰 · stamina/combo accuse · 수사 UI
-- `697708c` — 프로필 dossier · 전신 에셋 · 타이머 pause
-
+- `adb23ef` — `/game` 새로고침 시 인트로 복귀 (nginx)
+- `1c53712` — 배경·초상·인트로 WebP
+- `a10f828` — 증거 책상 WebP·CSS 경량화
+- `ccfca4e` — 증거 책상 · 지목 모달 · 검거 도장
 ---
 
 ## 4. 역할별로 “내 코드” 어디?
@@ -131,9 +136,9 @@ git push -u origin HEAD
 
 | 우선 | 내용 | 담당 힌트 |
 | :--- | :--- | :--- |
-| Golden Route UI 연출 · 5분 데모 리허설 | Streamlit · 라이브 URL | Service · PM |
-| 페르소나·알리바이 대사 폴리싱 | `system_prompt` / mental_break | Prompt |
-| PRT · 발표 슬라이드 확정 | `docs/PEER_REVIEW.md`, `PRESENTATION.md` | PM |
+| 5분 데모 **발표** 리허설 · 슬라이드 확정 | `PRESENTATION.md` · 라이브 URL | Service · PM |
+| PRT 과제 경로 복사 | `docs/PEER_REVIEW.md` | PM |
+| (선택) 페르소나 대사 추가 폴리싱 | `data/personas/` | Prompt |
 | (선택) 32GB+/QLoRA로 7B LoRA 재시도 | `scripts/local_lora_persona.py` | Agent |
 
 질문·이슈는 GitHub Issues 또는 팀 채널에, 코드 변경은 **PR**로.
@@ -142,7 +147,9 @@ git push -u origin HEAD
 
 ## 8. 클라우드 데모
 
-- **라이브 (Railway):** https://web-production-072b8.up.railway.app
+- **라이브 (Railway):** https://web-production-072b8.up.railway.app  
+  - `/` 스크롤 인트로 → `/game/` Streamlit  
+  - `/game/` **새로고침(F5)** → `/` 인트로 복귀
 - 가이드: [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
 - Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
 

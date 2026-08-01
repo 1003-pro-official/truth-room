@@ -324,6 +324,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | FastAPI `/health` · session/ask/search/**tool**/accuse · AutoGen ask | ✅ smoke (`scripts/smoke_autogen_ask.py`)   |
 | Streamlit → API only                                                 | ✅                                          |
 | Golden Route (카드→슬랙→네트워크→이대리 지목)                        | ✅ UI 연출 (트래커·수색 칩·단서 STEP·엔딩) |
+| Railway 라이브                                                       | ✅ https://web-production-072b8.up.railway.app |
 
 실행: [GETTING_STARTED.md](GETTING_STARTED.md)
 
@@ -354,7 +355,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 남은 작업
 
-_(핵심 개발 게이트 없음 — 발표 리허설·PRT·슬라이드 확정은 팀 Day 4)_
+_(핵심 개발·데모 게이트 완료 — 발표 리허설·PRT 과제 복사·슬라이드 확정은 팀 Day 4)_
 
 ---
 

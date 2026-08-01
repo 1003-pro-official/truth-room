@@ -16,33 +16,33 @@
 
 ## Phase 0 — 레포 · 팀
 
-- [ ] GitHub 레포 push (`truth-room`)
-- [ ] [docs/ROLES.md](docs/ROLES.md) 담당 · GitHub ID
-- [ ] `cp .env.example .env` · OPENAI_API_KEY
-- [ ] `configs/*.example` → `configs/*.yaml`
-- [ ] `.github/CODEOWNERS` 갱신
-- [ ] `main` PR 필수 · Smoke CI 녹색
-- [ ] [AI_CONVENTION.md](AI_CONVENTION.md) · [TECH_SPEC.md](TECH_SPEC.md) 팀 리뷰
+- [x] GitHub 레포 push (`truth-room`)
+- [x] [docs/ROLES.md](docs/ROLES.md) 담당 · GitHub ID
+- [x] `cp .env.example .env` · OPENAI_API_KEY
+- [x] `configs/*.example` → `configs/*.yaml`
+- [x] `.github/CODEOWNERS` 갱신
+- [x] `main` PR 필수 · Smoke CI 녹색
+- [x] [AI_CONVENTION.md](AI_CONVENTION.md) · [TECH_SPEC.md](TECH_SPEC.md) 팀 리뷰
 
 ---
 
 ## Phase 1a — Data / Scenario
 
-- [ ] `case_01` 시나리오 · 용의자 3 페르소나
-- [ ] raw 증거 샘플 (messenger / logs / corporate_card / **network**)
-- [ ] `data/tools/` CCTV·포렌식 페이로드 (해당 시)
-- [ ] `python3 ingest.py` → `runs/ingest/` · `data/processed/chunks.jsonl`
-- [ ] Data PR merge
+- [x] `case_01` 시나리오 · 용의자 3 페르소나
+- [x] raw 증거 샘플 (messenger / logs / corporate_card / **network**)
+- [x] `data/tools/` CCTV·포렌식 페이로드 (해당 시)
+- [x] `python3 ingest.py` → `runs/ingest/` · `data/processed/chunks.jsonl`
+- [x] Data PR merge
 
 ---
 
 ## Phase 1b — RAG
 
-- [ ] `python3 build_index.py`
-- [ ] Baseline `rag_pipeline.py --mode baseline`
-- [ ] Advanced (hybrid/RRF 또는 Self-RAG) 1회 이상
-- [ ] README 비교 표 초안
-- [ ] RAG PR merge
+- [x] `python3 build_index.py`
+- [x] Baseline `rag_pipeline.py --mode baseline`
+- [x] Advanced (hybrid/RRF 또는 Self-RAG) 1회 이상
+- [x] README 비교 표 초안
+- [x] RAG PR merge
 
 ---
 
@@ -60,29 +60,30 @@
 - [x] `python3 evaluate.py` (로컬 Faith)
 - [x] `python3 scripts/eval_ragas.py` (RAGAS py3.12 · n=30)
 - [x] `python3 scripts/plot_metrics.py` → `report/assets/`
-- [ ] 데모 스크립트 완주 테스트 (Golden Route UI)
+- [x] 데모 스크립트 완주 테스트 (Golden Route UI)
 - [x] Eval 수치 README 반영
 
 ---
 
 ## Phase 2 — API
 
-- [ ] session / ask / search / accuse
-- [ ] Swagger `/docs` 확인
-- [ ] `pytest tests/smoke`
+- [x] session / ask / search / accuse
+- [x] Swagger `/docs` 확인
+- [x] `pytest tests/smoke`
 
 ---
 
 ## Phase 3 — Demo
 
-- [ ] Streamlit「진실의 방」· API only
-- [ ] 5분 데모 리허설
+- [x] Streamlit「진실의 방」· API only
+- [x] Railway 라이브 · 인트로(`/`) → 게임(`/game/`) · 새로고침 시 인트로 복귀
+- [ ] 5분 데모 **발표** 리허설 (슬라이드·멘트)
 
 ---
 
 ## 제출
 
-- [ ] README 메트릭 채움
+- [x] README 메트릭 채움
 - [ ] [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md) → 과제 경로 복사
 - [ ] [PRESENTATION.md](PRESENTATION.md) 슬라이드화
 - [ ] D-3 Freeze

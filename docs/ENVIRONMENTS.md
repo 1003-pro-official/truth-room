@@ -51,10 +51,10 @@ python3 -m streamlit run app.py
 
 ---
 
-## 3b. 클라우드 데모 (선택)
+## 3b. 클라우드 데모 (본선)
 
-- **Railway (추천):** [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
-- Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
+- **Railway (라이브):** https://web-production-072b8.up.railway.app — [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
+- Cloudflare Containers (Paid·선택): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
 
 ```bash
 docker compose up --build          # http://localhost:8080

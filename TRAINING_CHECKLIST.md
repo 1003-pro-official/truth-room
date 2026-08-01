@@ -30,8 +30,8 @@
 
 ## Eval · Demo
 
-- [ ] `python3 evaluate.py`
-- [ ] `python3 scripts/eval_ragas.py` (n=30 · py≥3.10)
-- [ ] `python3 scripts/plot_metrics.py`
-- [ ] API + Streamlit Golden Route 1회 · 또는 Railway https://web-production-072b8.up.railway.app
-- [ ] `culprit_id` 클라이언트 미노출
+- [x] `python3 evaluate.py`
+- [x] `python3 scripts/eval_ragas.py` (n=30 · py≥3.10)
+- [x] `python3 scripts/plot_metrics.py`
+- [x] API + Streamlit Golden Route 1회 · 또는 Railway https://web-production-072b8.up.railway.app
+- [x] `culprit_id` 클라이언트 미노출

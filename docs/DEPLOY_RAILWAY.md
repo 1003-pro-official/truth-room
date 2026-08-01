@@ -75,6 +75,8 @@ docker compose up --build
 | 요금 | Hobby/Trial 한도 확인 · 데모 후 서비스 pause 가능 |
 | `.env` | 레포에 커밋 금지 · Railway Variables 사용 |
 | 포트 | Railway가 `PORT` 주입 — entrypoint가 자동 반영 |
+| `/` vs `/game/` | `/` = 스크롤 인트로 · `/game/` = Streamlit. **F5 on `/game/` → `/`** (nginx HTML inject) |
+| 에셋 | WebP 우선 (`assets/ui` · `suspects` · `intro` · `evidence_desk`) · `/assets/` 캐시 30d |
 
 ---
 

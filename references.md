@@ -80,7 +80,7 @@
 | Modular / Hybrid RAG | `lib/rag_core.py` · soft routing · Hit@5 4/4 · C-Prec 0.40 | 🟢 |
 | Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` | 🟢 LangGraph smoke |
 | AutoGen GroupChat ask | `lib/autogen_runtime.py` | 🟢 본선 |
-| Streamlit 심문 UI | `app.py` → FastAPI only | 🟢 |
+| Streamlit 심문 UI | `app.py` → FastAPI only · 증거 책상 · Golden Route | 🟢 |
 | RAGAS · 메트릭 그래프 | `scripts/eval_ragas.py` · `scripts/plot_metrics.py` · `report/assets/` | 🟢 |
 | 리포트 · Notion | `update_report.py` · `update_notion.py` | 🟢 |
 

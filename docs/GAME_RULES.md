@@ -57,8 +57,8 @@
 | :--- | :--- |
 | **신호** | API `public_state` / ask 응답에 `status`, `mental_break_suspects`, `break_count` |
 | **프론트** | `status == "mental_break"`(또는 선택 용의자가 mental 목록)일 때 일러스트·배경 전환 |
-| **연출** | 평온 초상 → 당황 초상 · 배경을 붉은 「진실의 방」톤으로 (에셋은 Front 담당) |
-| **에셋 경로(권장)** | `report/assets/ui/{suspect_id}_normal.png` · `{suspect_id}_break.png` (없으면 텍스트/색상 폴백) |
+| **연출** | 평온 초상 → 당황/균열/붕괴 초상 · 배경 톤 보정 |
+| **에셋** | `assets/suspects/{id}.webp` · `{id}_s1~s3.webp` (jpg 폴백) |
 
 ---
 
@@ -155,9 +155,10 @@ game:
 | 항목 | 내용 |
 | :--- | :--- |
 | **상태** | `stamina` / `stamina_max` (기본 **3**) |
-| **감소** | (1) RAG 검색이 **신규 `evidence_id` 0건** (헛수색) (2) 조합 지목 **오답** |
+| **감소** | (1) RAG/책상 수색이 **신규 `evidence_id` 0건** 또는 `force_miss` (헛수색) (2) 조합 지목 **오답** |
 | **감소 안 함** | 알리바이 붕괴 성공 · 유효 증거 획득 · 타임아웃(이미 `timeout_strikes`로 처리) |
 | **0** | `status: "authority_revoked"` · 세션 종료 · *"감사관, 수사 권한이 박탈되었습니다."* |
+| **UI** | 증거 수색 탭 **책상 보드** (`assets/ui/evidence_desk/`) · 핵심 4 + decoy 6 · 클릭 시 `force_evidence_id` / `force_miss` |
 
 ### 8.2 조합 지목 (클리어 조건)
 
@@ -165,8 +166,8 @@ game:
 | :--- | :--- |
 | **입력** | `suspect_id` + `evidence_ids` (길이 **2**, 세션에 보유한 ID만) |
 | **정답(스텁 Judge)** | `suspect_id == culprit_id` **AND** `ev_net_01 ∈ evidence_ids` **AND** 나머지 1장 ∈ `win_condition.min_evidence_ids` |
-| **오답** | `stamina -= 1` · 세션 유지(권한 남으면) · GM 판정 JSON 필드는 이후 LLM 고도화 |
-| **정답** | 자백 엔딩 · `ended=true` |
+| **오답** | `stamina -= 1` · 세션 유지(권한 남으면) · UI **지목 결과** 모달 |
+| **정답** | 자백 엔딩 · `ended=true` · UI 모달 후 초상 **검거** 도장 |
 
 ### 8.3 단서 획득 연출
 
@@ -192,9 +193,10 @@ game:
 | G8 | 조합 지목 (용의자+증거 2) | API/Front | ✅ |
 | G9 | 단서 획득 `new_clues` UI · 인벤토리 · HUD | Front | ✅ |
 | G5 | GM LLM `is_alibi_broken` JSON | Prompt+Agent | ✅ `lib/gm_judge.py` (로컬 스텁+스키마, LLM 훅 준비) |
-| G6 | 용의자 초상 에셋 · 라디오 선택 UI | Front | ✅ (스텁 일러스트) |
+| G6 | 용의자 초상 에셋 · 선택 UI | Front | ✅ WebP (`assets/suspects/`) |
 | G11 | 용의자 공개 프로필 · 수사 파일 dialog | API/Front | ✅ |
 | G10 | Judge LLM 조합 지목 JSON | Prompt+Agent | ✅ `lib/gm_judge.enrich_accuse_verdict` (룰 권위 + LLM 공개 요약) |
+| G12 | 증거 책상 보드 · 지목 모달 · 검거 도장 | Front/API | ✅ |
 
 ---
 

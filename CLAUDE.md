@@ -43,7 +43,9 @@
 - **Agent:** LangGraph smoke · AutoGen ask 본선
 - **레퍼런스 정본:** [references.md](references.md)
 - **GitHub:** https://github.com/toryhyeon80/truth-room
-- **Deploy:** https://web-production-072b8.up.railway.app
+- **Deploy:** https://web-production-072b8.up.railway.app (`/` 인트로 · `/game` 플레이 · F5→인트로)
+- **Demo UX (2026-08-01):** 증거 책상 · 지목 모달 · 검거 도장 · WebP 에셋 · Phase 0~3 완료
+- **남은 것:** 발표 리허설 · PRT 과제 복사 · 슬라이드 확정
 
 ---
 
@@ -57,7 +59,7 @@
 | Modular / Hybrid RAG | `lib/rag_core.py` · `rag_pipeline.py` | Routing·rerank·eval 개선 (RAG Survey 참고) |
 | Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `backend/game_engine.py` · pressure · **break_count** | Cyclic 분기 · `langgraph.enabled` · [docs/GAME_RULES.md](docs/GAME_RULES.md) |
 | AutoGen GroupChat 심문 | `lib/autogen_runtime.py` · `/ask` | `autogen.enabled` · max_round · timeout · 폴백 |
-| Streamlit 심문 UI | `app.py` | `st.chat_message` · transcript · 타이머 · **FastAPI만** |
+| Streamlit 심문 UI | `app.py` | 심문·증거 책상·지목 · `st.chat_message` · **FastAPI만** |
 | Function Calling | `lib/tools.py` · `/tool` | CCTV·포렌식 페이로드 확장 |
 | 리포트 자동화 | `update_report.py` · `update_notion.py` · `scripts/plot_metrics.py` | 실험 후 README/Notion/그래프 동기화 |
 

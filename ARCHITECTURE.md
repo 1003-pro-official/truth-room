@@ -38,7 +38,9 @@ Interactive Mystery · Advanced RAG · Multi-Agent(AutoGen 심문) DLthon 프로
             ↓
 [Eval]   evaluate (로컬 Faith) · RAGAS py3.12 n=30 · `scripts/plot_metrics.py`
             ↓
-[Service] FastAPI 세션/search/tool/ask → Streamlit UI (API only)
+[Service] FastAPI 세션/search/tool/ask/accuse → Streamlit UI (API only · 증거 책상·지목 모달)
+            ↓
+[Deploy] Railway `/` 인트로 · `/game` 플레이
             ↓
 [Docs]   README · PRT · 발표 · Notion
 ```
@@ -74,7 +76,8 @@ truth-room/
 
 ## Organization 체크리스트
 
-- [ ] GitHub 레포 push · 팀원 초대
+- [x] GitHub 레포 push · 팀원 초대
 - [ ] Branch protection on `main`
-- [ ] CODEOWNERS 실 ID
-- [ ] Smoke CI 녹색
+- [x] CODEOWNERS 실 ID
+- [x] Smoke CI 녹색
+- [x] Phase 0~3 개발 게이트 · Railway 라이브 데모

@@ -47,7 +47,8 @@ python3 -m uvicorn backend.main:app --port 8000
 python3 -m streamlit run app.py
 ```
 
-**라이브 데모:** https://web-production-072b8.up.railway.app
+**라이브 데모:** https://web-production-072b8.up.railway.app  
+(`/` 인트로 브리핑 → `/game/` 플레이 · `/game/` 새로고침 시 인트로로 복귀)
 
 ---
 
@@ -72,10 +73,12 @@ python3 -m streamlit run app.py
 
 | 구성 | 명령 | URL |
 | :--- | :--- | :--- |
-| API | `python3 -m uvicorn backend.main:app --port 8000` | http://localhost:8000/docs |
-| UI | `python3 -m streamlit run app.py` | http://localhost:8501 |
+| API | `python3 -m uvicorn backend.main:app --port 8000` | http://localhost:8000/docs · `/` 인트로 |
+| UI (로컬) | `python3 -m streamlit run app.py` | http://localhost:8501 |
+| Docker/Railway | `docker compose up --build` | http://localhost:8080 (`/`→`/game/`) |
 
-**단일 경로:** Streamlit → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))
+**단일 경로:** Streamlit → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))  
+**데모 게이트:** Phase 3 완료 — 심문 · 증거 책상 · 조합 지목 · Golden Route UI
 
 ---
 

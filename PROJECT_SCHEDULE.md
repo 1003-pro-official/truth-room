@@ -6,7 +6,7 @@
 > **발표 초안:** [PRESENTATION.md](PRESENTATION.md)  
 > **역할:** [docs/ROLES.md](docs/ROLES.md)  
 > **마일스톤 매핑:** Data(ingest) → RAG → Agent → Eval → API → Demo  
-> **현황 (2026-07-31):** RAG Hit@5 4/4 · LangGraph smoke · AutoGen ask · RAGAS n=30 · LoRA≤3B · Railway 라이브 · **남은 핵심은 Golden Route 데모 연출**
+> **현황 (2026-08-01):** Phase 0~3 🟢 · RAG Hit@5 4/4 · LangGraph smoke · AutoGen ask · RAGAS n=30 · LoRA≤3B · Railway 라이브 · **데모 UI(골든 루트·증거 책상·지목 모달) 완료** · 남은 것은 **발표 리허설·PRT·슬라이드**
 
 ---
 
@@ -29,7 +29,7 @@
 | **기획 / 데이터** | **Day 1** | 세계관·용의자 3 페르소나 기획 완료 · Smoking Gun(결정적 증거) 시나리오 확정 · 메신저/법인카드 등 가짜 데이터 대량 생성·정제 | 최병철 · 박정우 | |
 | **코어 조립** | **Day 2** | RAG 파이프라인 구축·검색 테스트 · 상태머신(스트레스·증거) 흐름 뼈대 · 페르소나 시스템 프롬프트 1차 | 이근목 · 최승현 · 박정우 | |
 | **통합 / 디버깅** | **Day 3** | Streamlit ↔ Backend(API/RAG/Agent) 연동 · 핑퐁 대화·프롬프트 미세조정 · 예외·로딩 | 천세문 · 전원 | |
-| **QA / 폴리싱** | **Day 4** | 전원 플레이어 QA · 발표용 Golden Route(항상 성공하는 데모 루트) 준비 · PPT 확정·데모 리허설 | 천세문 · 최승현 · 전원 | |
+| **QA / 폴리싱** | **Day 4** | 전원 플레이어 QA · Golden Route 데모 루트 ✅ · PPT 확정·데모 리허설 | 천세문 · 최승현 · 전원 | ✅ 데모 / ⏳ 발표 |
 
 **Day ↔ 레포 Phase 대략 매핑** (조정 시 함께 갱신)
 
@@ -38,7 +38,7 @@
 | Day 1 | 0 · 1a | `case_01` · personas · `data/raw/` · ingest |
 | Day 2 | 1b · 1c · 1d | `runs/rag/` · `agent_graph --smoke` · eval 초안 |
 | Day 3 | 2 · 3 | FastAPI session · Streamlit API only |
-| Day 4 | 제출 · 발표 | README 메트릭 · Golden Route · 리허설 |
+| Day 4 | 제출 · 발표 | README 메트릭 · Golden Route 데모 ✅ · 리허설·PRT |
 
 ---
 
@@ -64,7 +64,8 @@
 - [ ] `README.md` 메트릭 표 기입
 - [ ] `docs/PEER_REVIEW.md` 초안
 - [ ] `python3 -m pytest tests/smoke -q` 녹색 (API 기동)
-- [ ] Streamlit → API Golden Route 동작
+- [x] Streamlit → API Golden Route 동작
+- [x] Railway 라이브 데모 (https://web-production-072b8.up.railway.app)
 
 ### D-2 · D-1
 

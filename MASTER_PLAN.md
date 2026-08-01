@@ -73,7 +73,8 @@
 - [x] 핵심 증거 ID 회수 — Advanced Hit@5 **4/4** · win_condition `[ev_card_03, ev_msg_12, ev_net_01]`
 - [x] 심문 세션이 API → UI 단일 경로로 동작 (AutoGen ask 본선)
 - [x] Baseline RAG vs Advanced RAG 비교 (Hit@5 **0/4 → 4/4**)
-- [ ] 5분 Golden Route 데모 (범인 지목 → 자백) 완주 · UI 연출
+- [x] 5분 Golden Route 데모 (범인 지목 → 자백) 완주 · UI 연출  
+  (라이브: https://web-production-072b8.up.railway.app · 인트로→심문→증거 책상→조합 지목·검거 도장)
 - [x] 게임 룰: 3-Out · 멘탈 붕괴 · 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
 
 ---

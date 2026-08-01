@@ -16,8 +16,8 @@
 | Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
 | Eval | 로컬 Faithfulness + **RAGAS** | `evaluate.py` · `scripts/eval_ragas.py` (Python 3.12 · **n=30** Faith≈0.64 · Prec≈0.75 · Recall≈0.77) · `scripts/plot_metrics.py` |
 | API | FastAPI | `backend/` |
-| UI | Streamlit | `app.py` — **API만** 호출 |
-| Deploy | Railway | https://web-production-072b8.up.railway.app |
+| UI | Streamlit | `app.py` — **API만** 호출 · 증거 책상 · 지목 모달 · WebP 에셋 |
+| Deploy | Railway | https://web-production-072b8.up.railway.app (`/` 인트로 · `/game` · F5→인트로) |
 | Config | YAML | `configs/*.yaml` · `langgraph.enabled` · `autogen.enabled` |
 
 ---
