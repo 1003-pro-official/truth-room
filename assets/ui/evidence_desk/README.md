@@ -6,17 +6,14 @@
 
 ```
 assets/ui/evidence_desk/
-  desk_bg.jpg          # 책상 배경
-  ev_card_03.png       # 핵심
-  ev_msg_12.png
-  ev_net_01.png
-  ev_log_07.png        # 수집 가능(출입·함정 가능)
-  bait_cctv.png        # decoy (수사형)
-  bait_vpn.png
-  bait_usb.png
-  bait_taxi.png
-  bait_mail.png
-  bait_print.png
+  desk_bg.webp         # 책상 배경 (우선)
+  desk_bg.jpg          # 폴백
+  ev_card_03.webp      # 핵심 (256 WebP)
+  ev_msg_12.webp
+  ev_net_01.webp
+  ev_log_07.webp
+  bait_*.webp          # decoy
+  *.png                # 폴백
   README.md
 ```
 
@@ -26,33 +23,33 @@ assets/ui/evidence_desk/
 
 | 항목 | 값 |
 | :--- | :--- |
-| 파일 | `desk_bg.jpg` (또는 `desk_bg.png`) |
-| 픽셀 | **1600 × 900** (16:9) |
+| 파일 | `desk_bg.webp` (또는 `desk_bg.jpg` / `.png`) |
+| 픽셀 | **1280 × 720** (16:9) — 표시용 (원본 1600은 불필요) |
 | 분위기 | 야근 사무실 책상 — 탑뷰/약한 사선. 중앙~하단에 소품 올릴 빈 공간 |
 | 톤 | **중암 우드·저채도** — Field Ops 다크 UI에 맞춤, 증거는 여전히 구분 가능 |
-| 용량 | JPG q80~85, **≤ 400KB** |
+| 용량 | WebP q70~75 / JPG q70–75, **≤ 150KB** 권장 |
 
 ## 2) 증거 아이템 (10)
 
 | 항목 | 값 |
 | :--- | :--- |
-| 픽셀 | **512 × 512** PNG |
-| 배경 | **투명** (그린스크린 키잉 권장 — 흰 종이 밝은배경 키잉 금지) |
+| 픽셀 | **256 × 256** WebP (표시 ~160px, 2x 대응) |
+| 배경 | **투명** |
 | 스타일 | 위에서 내려다본 **서류·로그·전표** (핵심과 동일 톤). 약한 그림자 |
-| 용량 | 장당 **≤ 180KB** 권장 (흰 종이 증거는 과도한 투명 키잉·양자화 금지) |
+| 용량 | 장당 **≤ 12KB** WebP 권장 (PNG 폴백 ≤ 70KB) |
 
 | # | 파일 | 표시명 | 연결 |
 | :---: | :--- | :--- | :--- |
-| 1 | `ev_card_03.png` | 법인카드 | 핵심 `ev_card_03` |
-| 2 | `bait_cctv.png` | 로비 CCTV | decoy (출입 계열) |
-| 3 | `ev_msg_12.png` | 슬랙 DM | 핵심 `ev_msg_12` |
-| 4 | `bait_vpn.png` | VPN 로그 | decoy (네트워크 계열) |
-| 5 | `ev_net_01.png` | 네트워크 | 핵심 `ev_net_01` |
-| 6 | `bait_usb.png` | USB 대장 | decoy (유출 계열) |
-| 7 | `ev_log_07.png` | 출입 로그 | 수집 `ev_log_07` |
-| 8 | `bait_taxi.png` | 택시 전표 | decoy (강남·야간 계열) |
-| 9 | `bait_mail.png` | 업무 메일 | decoy (메신저 계열) |
-| 10 | `bait_print.png` | 프린터 로그 | decoy (문서·출력 계열) |
+| 1 | `ev_card_03.webp` | 법인카드 | 핵심 `ev_card_03` |
+| 2 | `bait_cctv.webp` | 로비 CCTV | decoy (출입 계열) |
+| 3 | `ev_msg_12.webp` | 슬랙 DM | 핵심 `ev_msg_12` |
+| 4 | `bait_vpn.webp` | VPN 로그 | decoy (네트워크 계열) |
+| 5 | `ev_net_01.webp` | 네트워크 | 핵심 `ev_net_01` |
+| 6 | `bait_usb.webp` | USB 대장 | decoy (유출 계열) |
+| 7 | `ev_log_07.webp` | 출입 로그 | 수집 `ev_log_07` |
+| 8 | `bait_taxi.webp` | 택시 전표 | decoy (강남·야간 계열) |
+| 9 | `bait_mail.webp` | 업무 메일 | decoy (메신저 계열) |
+| 10 | `bait_print.webp` | 프린터 로그 | decoy (문서·출력 계열) |
 
 **디자인 원칙:** decoy도 커피잔·열쇠 같은 생활 소품이 아니라, 핵심과 같은 「수사 증거」처럼 보여야 한다. UI 힌트에 「미끼」「단서 없음」 금지.
 

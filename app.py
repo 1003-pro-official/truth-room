@@ -115,7 +115,7 @@ EVIDENCE_DESK_DIR = ROOT / "assets" / "ui" / "evidence_desk"
 EVIDENCE_DESK_ITEMS = [
     {
         "id": "ev_card_03",
-        "file": "ev_card_03.png",
+        "file": "ev_card_03.webp",
         "short": "법인카드",
         "evidence_id": "ev_card_03",
         "query": "법인카드 룸살롱",
@@ -124,7 +124,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_cctv",
-        "file": "bait_cctv.png",
+        "file": "bait_cctv.webp",
         "short": "로비 CCTV",
         "evidence_id": None,
         "query": "로비 CCTV 23시 타임스탬프 캡처",
@@ -133,7 +133,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "ev_msg_12",
-        "file": "ev_msg_12.png",
+        "file": "ev_msg_12.webp",
         "short": "슬랙 DM",
         "evidence_id": "ev_msg_12",
         "query": "슬랙 DM 박신입 서버실",
@@ -142,7 +142,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_vpn",
-        "file": "bait_vpn.png",
+        "file": "bait_vpn.webp",
         "short": "VPN 로그",
         "evidence_id": None,
         "query": "해외 VPN 세션 접속 로그 요약",
@@ -151,7 +151,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "ev_net_01",
-        "file": "ev_net_01.png",
+        "file": "ev_net_01.webp",
         "short": "네트워크",
         "evidence_id": "ev_net_01",
         "query": "라운지 Wi-Fi 100GB",
@@ -160,7 +160,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_usb",
-        "file": "bait_usb.png",
+        "file": "bait_usb.webp",
         "short": "USB 대장",
         "evidence_id": None,
         "query": "보안팀 USB 대여 반납 대장",
@@ -169,7 +169,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "ev_log_07",
-        "file": "ev_log_07.png",
+        "file": "ev_log_07.webp",
         "short": "출입 로그",
         "evidence_id": "ev_log_07",
         "query": "서버실 출입 지문",
@@ -178,7 +178,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_taxi",
-        "file": "bait_taxi.png",
+        "file": "bait_taxi.webp",
         "short": "택시 전표",
         "evidence_id": None,
         "query": "강남 개인 택시 영수증 전표",
@@ -187,7 +187,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_mail",
-        "file": "bait_mail.png",
+        "file": "bait_mail.webp",
         "short": "업무 메일",
         "evidence_id": None,
         "query": "주간 업무보고 사내 메일 회신",
@@ -196,7 +196,7 @@ EVIDENCE_DESK_ITEMS = [
     },
     {
         "id": "bait_print",
-        "file": "bait_print.png",
+        "file": "bait_print.webp",
         "short": "프린터 로그",
         "evidence_id": None,
         "query": "복합기 프린터 대기열 출력 로그",
@@ -490,6 +490,7 @@ def _start_new_investigation(*, with_tab_intro: bool = False) -> None:
     st.session_state.pop("arrest_stamp", None)
     st.session_state.pop("arrest_stamp_suspect", None)
     st.session_state.pop("arrest_stamp_slam", None)
+    st.session_state.pop("_desk_assets_preloaded", None)
     st.session_state["show_intro"] = bool(with_tab_intro)
     st.session_state["intro_scene_idx"] = 0
     st.session_state["turn_deadline"] = None
@@ -922,23 +923,55 @@ def _portrait_data_uri(path: Path | None) -> str | None:
 
 
 def _desk_asset_url(filename: str) -> str | None:
-    """evidence_desk 에셋 URL — 파일 없으면 None (플레이스홀더)."""
-    path = EVIDENCE_DESK_DIR / filename
-    if not path.is_file():
+    """evidence_desk 에셋 URL — webp 우선, 없으면 png/jpg."""
+    name = str(filename or "").strip()
+    if not name:
         return None
+    path = EVIDENCE_DESK_DIR / name
+    if not path.is_file():
+        stem = Path(name).stem
+        for ext in (".webp", ".png", ".jpg", ".jpeg"):
+            cand = EVIDENCE_DESK_DIR / f"{stem}{ext}"
+            if cand.is_file():
+                path = cand
+                name = cand.name
+                break
+        else:
+            return None
     try:
         ver = path.stat().st_mtime_ns
     except OSError:
         ver = 0
-    return f"{_browser_asset_url(f'ui/evidence_desk/{filename}')}?v={ver}"
+    return f"{_browser_asset_url(f'ui/evidence_desk/{name}')}?v={ver}"
 
 
 def _desk_bg_url() -> str | None:
-    for name in ("desk_bg.jpg", "desk_bg.png"):
+    for name in ("desk_bg.webp", "desk_bg.jpg", "desk_bg.png"):
         url = _desk_asset_url(name)
         if url:
             return url
     return None
+
+
+def _preload_desk_assets(items: list[dict], bg_url: str | None) -> None:
+    """책상 탭 진입 시 배경·아이콘을 한 번에 프리로드 (버벅임 완화)."""
+    if st.session_state.get("_desk_assets_preloaded"):
+        return
+    hrefs: list[str] = []
+    if bg_url:
+        hrefs.append(bg_url)
+    for item in items:
+        url = _desk_asset_url(str(item.get("file") or ""))
+        if url:
+            hrefs.append(url)
+    if not hrefs:
+        return
+    links = "".join(
+        f'<link rel="preload" as="image" href="{html.escape(u, quote=True)}" />'
+        for u in hrefs
+    )
+    st.markdown(links, unsafe_allow_html=True)
+    st.session_state["_desk_assets_preloaded"] = True
 
 
 def _consume_desk_click() -> str | None:
@@ -1014,11 +1047,13 @@ def _render_evidence_desk_board(
 ) -> str | None:
     """책상 보드 — Streamlit 버튼에 증거 이미지를 입혀 직접 클릭."""
     bg = _desk_bg_url()
+    _preload_desk_assets(items, bg)
     bg_css = (
         f"background-image:url('{html.escape(bg, quote=True)}');"
         if bg
         else "background-color:#8a7f6e;"
     )
+    # 공통 스타일 1회 + 아이템별 background-image만 (CSS 페이로드·리페인트 축소)
     css_bits: list[str] = [
         f"""
         div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
@@ -1031,6 +1066,7 @@ def _render_evidence_desk_board(
           padding: 1.1rem 0.65rem 1rem !important;
           margin: 0 0 0.75rem !important;
           min-height: 26rem !important;
+          contain: layout paint;
         }}
         div[data-testid="stElementContainer"]:has(.evidence-desk-live-mark) {{
           display: none !important;
@@ -1038,73 +1074,78 @@ def _render_evidence_desk_board(
           margin: 0 !important;
           padding: 0 !important;
         }}
+        div[class*="st-key-desk_item_"] button,
+        div[class*="st-key-desk_item_"] .stButton > button {{
+          min-height: 10rem !important;
+          height: 10rem !important;
+          padding: 0.3rem 0.2rem 0.4rem !important;
+          border: none !important;
+          border-radius: 10px !important;
+          box-shadow: none !important;
+          background-color: transparent !important;
+          background-position: center 18% !important;
+          background-size: 70% auto !important;
+          background-repeat: no-repeat !important;
+          color: #f4f1ea !important;
+          font-weight: 700 !important;
+          font-size: 0.74rem !important;
+          letter-spacing: 0 !important;
+          line-height: 1.15 !important;
+          white-space: normal !important;
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: flex-end !important;
+          align-items: center !important;
+          text-shadow: 0 1px 2px rgba(0,0,0,0.75) !important;
+          transition: transform 0.12s ease, background-color 0.12s ease !important;
+        }}
+        div[class*="st-key-desk_item_"] button:hover:not(:disabled),
+        div[class*="st-key-desk_item_"] .stButton > button:hover:not(:disabled) {{
+          background-color: rgba(255,252,245,0.16) !important;
+          border: none !important;
+          transform: translateY(-2px) scale(1.03) !important;
+        }}
+        div[class*="st-key-desk_item_"] button:disabled {{
+          opacity: 0.42 !important;
+        }}
+        div[class*="st-key-desk_item_"] button p {{
+          margin: 0 !important;
+          padding: 0.12rem 0.4rem !important;
+          border-radius: 999px !important;
+          background: rgba(12, 14, 18, 0.62) !important;
+          color: #f4f1ea !important;
+          font-size: 0.74rem !important;
+          font-weight: 700 !important;
+        }}
+        @media (max-width: 900px) {{
+          div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
+            min-height: 20rem !important;
+          }}
+          div[class*="st-key-desk_item_"] button {{
+            min-height: 7.2rem !important;
+            height: 7.2rem !important;
+            font-size: 0.6rem !important;
+          }}
+        }}
         """
     ]
     for item in items:
         key = f"desk_item_{item['id']}"
         img_url = _desk_asset_url(str(item.get("file") or ""))
-        if img_url:
-            safe = html.escape(img_url, quote=True)
-            bg_layer = f"transparent url('{safe}') center 18% / 70% auto no-repeat"
-            bg_hover = f"rgba(255,252,245,0.16) url('{safe}') center 18% / 70% auto no-repeat"
-        else:
-            bg_layer = "rgba(20,24,30,0.35)"
-            bg_hover = "rgba(255,252,245,0.16)"
+        if not img_url:
+            css_bits.append(
+                f"""
+                div.st-key-{key} button {{
+                  background-color: rgba(20,24,30,0.35) !important;
+                }}
+                """
+            )
+            continue
+        safe = html.escape(img_url, quote=True)
         css_bits.append(
             f"""
-            div.st-key-{key} button,
-            div.st-key-{key} .stButton > button,
-            .st-key-{key} button {{
-              min-height: 10rem !important;
-              height: 10rem !important;
-              padding: 0.3rem 0.2rem 0.4rem !important;
-              border: none !important;
-              border-radius: 10px !important;
-              box-shadow: none !important;
-              background: {bg_layer} !important;
-              color: #f4f1ea !important;
-              font-weight: 700 !important;
-              font-size: 0.74rem !important;
-              letter-spacing: 0 !important;
-              line-height: 1.15 !important;
-              white-space: normal !important;
-              display: flex !important;
-              flex-direction: column !important;
-              justify-content: flex-end !important;
-              align-items: center !important;
-              text-shadow: 0 1px 2px rgba(0,0,0,0.75) !important;
-            }}
-            div.st-key-{key} button:hover:not(:disabled),
-            .st-key-{key} button:hover:not(:disabled) {{
-              background: {bg_hover} !important;
-              border: none !important;
-              transform: translateY(-2px) scale(1.03) !important;
-            }}
-            div.st-key-{key} button:disabled,
-            .st-key-{key} button:disabled {{
-              opacity: 0.42 !important;
-              background: {bg_layer} !important;
-            }}
-            div.st-key-{key} button p,
-            .st-key-{key} button p {{
-              margin: 0 !important;
-              padding: 0.12rem 0.4rem !important;
-              border-radius: 999px !important;
-              background: rgba(12, 14, 18, 0.62) !important;
-              color: #f4f1ea !important;
-              font-size: 0.74rem !important;
-              font-weight: 700 !important;
-            }}
-            @media (max-width: 900px) {{
-              div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
-                min-height: 20rem !important;
-              }}
-              div.st-key-{key} button,
-              .st-key-{key} button {{
-                min-height: 7.2rem !important;
-                height: 7.2rem !important;
-                font-size: 0.6rem !important;
-              }}
+            div.st-key-{key} button {{
+              background-image: url('{safe}') !important;
             }}
             """
         )
