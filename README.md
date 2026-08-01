@@ -189,7 +189,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-SFT-KO**    | Qwen2.5-0.5B LoRA                                   | train_loss≈2.96 · 한국어↑                                              | `runs/sft/local_lora_qwen05/`                                              |
 | **EXP-SFT-KO15**  | Qwen2.5-**1.5B** LoRA                               | train_loss≈2.75 · 알리바이 유지 개선                                   | `runs/sft/local_lora_qwen15/` · `lora_model_compare.json`                  |
 | **EXP-RAGAS**     | ragas on **Python 3.12**                            | **ok** Faith≈**0.64** · C-Prec≈**0.75** · C-Recall≈**0.77** (**n=30**) | `scripts/eval_ragas.py` · `runs/eval/ragas_py312_report.json`              |
-| **EXP-SFT-KO3B**  | Qwen2.5-**3B** LoRA                                 | train_loss≈2.79 · 알리바이 유지                                        | `runs/sft/local_lora_qwen3b/`                                              |
+| **EXP-SFT-KO3B**  | Qwen2.5-**3B** LoRA (본선)                          | train_loss≈2.66 · 알리바이 유지 · 재학습 완주          | `runs/sft/local_lora_qwen3b/` · `scripts/local_lora_persona.py` |
 | **EXP-SFT-KO7B**  | Qwen2.5-**7B** LoRA (16GB)                      | **memory_limit** — 로드·trainable% 확인, 1step 스왑 정체 | `runs/sft/local_lora_qwen7b/report.json`                       |
 | **EXP-ROUTE**     | source soft routing                                 | Context Precision **0.22→0.40**, Hit@5 4/4 유지                        | `lib/rag_core.py` `source_routing`                                         |
 | **EXP-AUTOGEN**   | pyautogen GroupChat → **본선 ask**                  | max_round=5 · timeout=60s · transcript UI                              | `lib/autogen_runtime.py`                                                   |
@@ -313,7 +313,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | `ev_msg_12` exact 미Hit  | (과거) partial `ev_msg` 태그  | **해결** — 줄단위 청킹·완전 ID          |
 | Context Precision 보수적 | top-5 Smoking Gun 혼재        | **source soft routing** (0.22→0.40)     |
 | Faithfulness 중간↓       | 토큰 overlap 한계             | **ragas n=30** Faith≈0.64 · emb≈0.37    |
-| 로컬 LoRA                | 소형→중형 스케일              | **3B 완주** · **7B는 16GB memory_limit** |
+| 로컬 LoRA                | 소형→중형 스케일              | **3B 본선 완주** · 7B는 16GB memory_limit |
 
 ---
 
@@ -323,7 +323,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | :------------------------------------------------------------------- | :------------------------------------------ |
 | FastAPI `/health` · session/ask/search/**tool**/accuse · AutoGen ask | ✅ smoke (`scripts/smoke_autogen_ask.py`)   |
 | Streamlit → API only                                                 | ✅                                          |
-| Golden Route (카드→슬랙→네트워크→이대리 지목)                        | 시나리오·데이터 준비 ✅ · UI 연출은 Phase 3 |
+| Golden Route (카드→슬랙→네트워크→이대리 지목)                        | ✅ UI 연출 (트래커·수색 칩·단서 STEP·엔딩) |
 
 실행: [GETTING_STARTED.md](GETTING_STARTED.md)
 
@@ -348,11 +348,13 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 5. ~~AutoGen 튜닝~~ → **완료** (`max_round=5`, `timeout_sec=60`)
 6. ~~RAGAS 도입·n 확대~~ → **완료** — Python **3.12** `ragas.evaluate` n=30 (Faith≈0.64 · Prec≈0.75 · Recall≈0.77). py3.9는 실패·embedding proxy만.
 7. ~~Precision source 라우팅~~ → **완료** (`source_routing: soft`)
-8. ~~더 큰 Ko LLM LoRA~~ → **완료** (1.5B → **3B** 완주 · **7B**는 16GB에서 `memory_limit`)
+8. ~~더 큰 Ko LLM LoRA~~ → **완료** (1.5B → **3B 본선 완주** · 7B는 16GB `memory_limit`로 상한 확정)
+9. ~~Judge LLM 조합 지목(G10)~~ → **완료** (`accuse_template` · 룰 권위 + LLM `public_summary`)
+10. ~~페르소나 대사 폴리싱~~ → **완료** (김팀장·이대리·박신입 말투/mental_break)
 
 ### 남은 작업
 
-1. Golden Route UI 연출 (카드→슬랙→네트워크→이대리 지목) — 시나리오·데이터는 준비됨 · Phase 3
+_(핵심 개발 게이트 없음 — 발표 리허설·PRT·슬라이드 확정은 팀 Day 4)_
 
 ---
 

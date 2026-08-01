@@ -194,7 +194,7 @@ game:
 | G5 | GM LLM `is_alibi_broken` JSON | Prompt+Agent | ✅ `lib/gm_judge.py` (로컬 스텁+스키마, LLM 훅 준비) |
 | G6 | 용의자 초상 에셋 · 라디오 선택 UI | Front | ✅ (스텁 일러스트) |
 | G11 | 용의자 공개 프로필 · 수사 파일 dialog | API/Front | ✅ |
-| G10 | Judge LLM 조합 지목 JSON | Prompt+Agent | ⏳ 프롬프트 후 |
+| G10 | Judge LLM 조합 지목 JSON | Prompt+Agent | ✅ `lib/gm_judge.enrich_accuse_verdict` (룰 권위 + LLM 공개 요약) |
 
 ---
 

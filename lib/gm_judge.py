@@ -164,3 +164,167 @@ def stress_delta_to_pressure(delta: int) -> float:
 
 def is_lie_broken(verdict: dict[str, Any] | None) -> bool:
     return bool(verdict) and str(verdict.get("status")) == "lie_broken"
+
+
+def accuse_system_prompt() -> str:
+    return str(_load().get("accuse_template") or "").strip()
+
+
+def render_accuse_prompt(
+    *,
+    accused_suspect_id: str,
+    submitted_evidence_ids: list[str],
+    owned_evidence_ids: list[str],
+    rule_correct: bool,
+    rule_errors: list[str],
+) -> str:
+    body = accuse_system_prompt()
+    vars_ = {
+        "accused_suspect_id": str(accused_suspect_id or ""),
+        "submitted_evidence_ids": ", ".join(str(x) for x in submitted_evidence_ids),
+        "owned_evidence_ids": ", ".join(str(x) for x in owned_evidence_ids),
+        "rule_correct": "true" if rule_correct else "false",
+        "rule_errors": "; ".join(rule_errors) if rule_errors else "(없음)",
+    }
+
+    class _Safe(dict):
+        def __missing__(self, key: str) -> str:
+            return "{" + key + "}"
+
+    return body.format_map(_Safe(vars_)).strip()
+
+
+def parse_accuse_json(raw: str, *, rule_correct: bool) -> dict[str, Any] | None:
+    """LLM 조합 지목 JSON — correct는 서버 룰로 강제."""
+    text = (raw or "").strip()
+    if not text:
+        return None
+    try:
+        data = json.loads(text)
+    except json.JSONDecodeError:
+        m = re.search(r"\{[\s\S]*\}", text)
+        if not m:
+            return None
+        try:
+            data = json.loads(m.group(0))
+        except json.JSONDecodeError:
+            return None
+    if not isinstance(data, dict):
+        return None
+    summary = str(data.get("public_summary") or "").strip()
+    if not summary:
+        return None
+    return {
+        "correct": bool(rule_correct),
+        "public_summary": summary[:480],
+        "reason_internal": str(data.get("reason_internal") or "")[:240],
+        "judge": "llm_accuse",
+    }
+
+
+def local_accuse_summary(*, correct: bool, errors: list[str]) -> str:
+    if correct:
+        return (
+            "자백 엔딩: 이대리 — 공로·보너스 불만으로 중국 경쟁사 5억에 응해 "
+            "라운지 Wi-Fi로 Omega 가중치 약 100GB를 유출. 미션 클리어."
+        )
+    if errors:
+        return "조합 지목 실패: " + "; ".join(errors)
+    return "조합 지목 실패: 진범·증거가 일치하지 않습니다."
+
+
+def llm_judge_accuse(
+    *,
+    accused_suspect_id: str,
+    submitted_evidence_ids: list[str],
+    owned_evidence_ids: list[str],
+    rule_correct: bool,
+    rule_errors: list[str],
+    model: str = "gpt-4o-mini",
+    timeout_sec: float = 20.0,
+) -> dict[str, Any] | None:
+    """OpenAI로 조합 지목 판결 문장 생성. 실패 시 None → 로컬 요약."""
+    prompt = render_accuse_prompt(
+        accused_suspect_id=accused_suspect_id,
+        submitted_evidence_ids=submitted_evidence_ids,
+        owned_evidence_ids=owned_evidence_ids,
+        rule_correct=rule_correct,
+        rule_errors=rule_errors,
+    )
+    if not prompt:
+        return None
+    try:
+        from openai import OpenAI
+
+        client = OpenAI()
+        resp = client.chat.completions.create(
+            model=model,
+            temperature=0.2,
+            timeout=timeout_sec,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "당신은 JSON만 출력하는 심판입니다. 마크다운·설명 금지.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+        )
+        raw = (resp.choices[0].message.content or "").strip()
+    except Exception:
+        return None
+    return parse_accuse_json(raw, rule_correct=rule_correct)
+
+
+def enrich_accuse_verdict(
+    stub: dict[str, Any],
+    *,
+    accused_suspect_id: str,
+    owned_evidence_ids: list[str],
+    agent_cfg: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """
+    룰 스텁 판정 + (옵션) Judge LLM 공개 요약.
+    correct는 항상 stub 권위. reason_internal은 서버 전용.
+    """
+    out = dict(stub)
+    correct = bool(stub.get("correct"))
+    errors = [str(e) for e in (stub.get("errors") or [])]
+    submitted = [str(e) for e in (stub.get("submitted_evidence_ids") or [])]
+    out["public_summary"] = local_accuse_summary(correct=correct, errors=errors)
+    out["judge"] = str(stub.get("judge") or "local_stub")
+
+    cfg = agent_cfg or {}
+    judge_cfg = cfg.get("judge") if isinstance(cfg.get("judge"), dict) else {}
+    enabled = bool(judge_cfg.get("accuse_llm", True))
+    if not enabled:
+        return out
+
+    model = str(judge_cfg.get("model") or cfg.get("llm_model") or "gpt-4o-mini")
+    timeout_sec = float(judge_cfg.get("timeout_sec") or 20)
+    llm = llm_judge_accuse(
+        accused_suspect_id=accused_suspect_id,
+        submitted_evidence_ids=submitted,
+        owned_evidence_ids=list(owned_evidence_ids),
+        rule_correct=correct,
+        rule_errors=errors,
+        model=model,
+        timeout_sec=timeout_sec,
+    )
+    if not llm:
+        out["judge"] = "local_stub"
+        return out
+
+    out["public_summary"] = llm["public_summary"]
+    out["reason_internal"] = llm.get("reason_internal") or ""
+    out["judge"] = "llm_accuse"
+    out["correct"] = correct  # 재확인
+    return out
+
+
+def public_accuse_judge(verdict: dict[str, Any] | None) -> dict[str, Any]:
+    """API 응답용 — reason_internal / 내부 오류 상세 최소화."""
+    v = verdict or {}
+    return {
+        "judge": str(v.get("judge") or "local_stub"),
+        "correct": bool(v.get("correct")),
+    }

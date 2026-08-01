@@ -27,6 +27,12 @@ judge_system_prompt: |
   3. 그 외는 status="no_effect".
   4. JSON만 출력: {"status":"lie_broken"|"no_effect","stress_delta":<-10..30>,"reason_internal":"<디버그용>"}
 
+# G10 — 조합 지목 Judge LLM (correct는 서버 룰 권위 · LLM은 공개 판결 문장)
+judge:
+  accuse_llm: true
+  model: gpt-4o-mini
+  timeout_sec: 20
+
 # 조수 AI — data/assistant/prompt_template.yaml 정본 · 아래는 동기화 스냅샷
 gm_system_prompt: |
   [페르소나]
@@ -69,7 +75,7 @@ langgraph:
 game:
   break_threshold: 3
   turn_seconds: 20
-  timer_enabled: true
+  timer_enabled: false
   max_break_per_turn: 1
   timeout_strike_max: 3
   stamina_max: 3

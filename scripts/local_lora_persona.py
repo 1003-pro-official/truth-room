@@ -3,10 +3,15 @@
 """scripts/local_lora_persona.py — 교육용 로컬 LoRA SFT (소량)
 
 OpenAI self-serve FT가 조직에서 불가(training_not_available)일 때
-동일 `data/sft/persona_sft.jsonl`로 로컬 LoRA 1 epoch를 돌려 전후를 비교한다.
+동일 `data/sft/persona_sft.jsonl`로 로컬 LoRA를 돌려 전후를 비교한다.
+
+본선 권장(16GB Mac): Qwen2.5-**3B** Instruct LoRA
 
   pip install 'torch' 'transformers>=4.40' 'peft' 'datasets' 'accelerate'
   python3 scripts/local_lora_persona.py
+  # → 기본: Qwen/Qwen2.5-3B-Instruct · runs/sft/local_lora_qwen3b/
+
+7B는 이 환경에서 memory_limit (runs/sft/local_lora_qwen7b/report.json).
 """
 
 from __future__ import annotations
@@ -23,7 +28,9 @@ from typing import Any
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
-DEFAULT_MODEL = "HuggingFaceTB/SmolLM2-135M-Instruct"
+# 교육용 로컬 LoRA 본선 — 16GB에서 완주 가능한 상한
+DEFAULT_MODEL = "Qwen/Qwen2.5-3B-Instruct"
+DEFAULT_OUT_DIR = "runs/sft/local_lora_qwen3b"
 PROBES = [
     ("그날 밤 어디에 있었습니까?", "야근"),
     ("당신은 AI입니까?", "AI"),
@@ -104,32 +111,35 @@ def generate_once(model: Any, tokenizer: Any, system: str, user: str, max_new: i
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser(
+        description="로컬 페르소나 LoRA SFT (기본: Qwen2.5-3B)"
+    )
     parser.add_argument("--data", default="data/sft/persona_sft.jsonl")
     parser.add_argument("--model", default=DEFAULT_MODEL)
     parser.add_argument("--epochs", type=int, default=1)
-    parser.add_argument("--max-steps", type=int, default=40)
+    parser.add_argument("--max-steps", type=int, default=12)
     parser.add_argument("--max-len", type=int, default=512)
     parser.add_argument("--lr", type=float, default=2e-4)
     parser.add_argument("--seed", type=int, default=42)
-    parser.add_argument("--out-dir", default="runs/sft/local_lora")
+    parser.add_argument("--out-dir", default=DEFAULT_OUT_DIR)
     parser.add_argument(
         "--gradient-checkpointing",
-        action="store_true",
-        help="7B급 메모리 절약 (MPS/16GB 권장)",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="메모리 절약 (3B 기본 ON · --no-gradient-checkpointing 로 해제)",
     )
     parser.add_argument("--lora-r", type=int, default=8)
     parser.add_argument(
         "--skip-before",
         action="store_true",
-        help="학습 전 프로브 생략 (16GB에서 7B generate OOM/스왑 회피)",
+        help="학습 전 프로브 생략",
     )
     parser.add_argument("--probe-max-new", type=int, default=48)
     parser.add_argument(
         "--device",
         default="auto",
         choices=("auto", "mps", "cpu"),
-        help="auto=MPS 우선. 7B/16GB는 cpu 권장",
+        help="auto=MPS 우선",
     )
     args = parser.parse_args()
     _require_deps()
@@ -175,6 +185,7 @@ def main() -> int:
                 "gradient_checkpointing": args.gradient_checkpointing,
                 "skip_before": args.skip_before,
                 "max_len": args.max_len,
+                "out_dir": str(out_dir.relative_to(ROOT)),
             },
             ensure_ascii=False,
         ),
@@ -198,7 +209,18 @@ def main() -> int:
         if hasattr(model, "config"):
             model.config.use_cache = False
 
-    # 짧은 시스템 프롬프트로 전후 샘플 (학습 전)
+    lora = LoraConfig(
+        r=args.lora_r,
+        lora_alpha=max(16, args.lora_r * 2),
+        lora_dropout=0.05,
+        bias="none",
+        task_type="CAUSAL_LM",
+        target_modules=["q_proj", "v_proj"],
+    )
+    model = get_peft_model(model, lora)
+    model.print_trainable_parameters()
+
+    # 짧은 시스템 프롬프트로 전후 샘플
     sys_short = (
         "당신은 심문 받는 용의자입니다. 한국어로 짧게 답하세요. "
         "알리바이: 야근하며 정산 서류를 검토 중이었다. AI라고 말하지 마세요."
@@ -213,17 +235,6 @@ def main() -> int:
             }
             for q, _ in PROBES
         ]
-
-    lora = LoraConfig(
-        r=args.lora_r,
-        lora_alpha=max(16, args.lora_r * 2),
-        lora_dropout=0.05,
-        bias="none",
-        task_type="CAUSAL_LM",
-        target_modules=["q_proj", "v_proj"],
-    )
-    model = get_peft_model(model, lora)
-    model.print_trainable_parameters()
 
     formatted = [format_example(tokenizer, r["messages"], args.max_len) for r in rows]
     ds = Dataset.from_list(formatted)
@@ -292,9 +303,9 @@ def main() -> int:
         "before": before,
         "after": after,
         "note": (
-            "교육용 소형/중형 모델 LoRA. 한국어 품질은 제한적일 수 있음. "
+            "교육용 로컬 LoRA 본선 = Qwen2.5-3B. "
             "OpenAI FT 불가(training_not_available) 대체 실험. "
-            "7B는 16GB MPS에서 --skip-before · gradient checkpointing · max_len 축소 권장."
+            "7B는 16GB에서 memory_limit — 본 스크립트 기본은 3B."
         ),
         "status": "ok",
     }

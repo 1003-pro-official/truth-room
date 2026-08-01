@@ -13,7 +13,7 @@
 5. **데이터** — 용의자 3 · 증거 소스 6종 · Smoking Gun 4 ID · win_condition
 6. **실험** — Baseline vs Advanced Hit@5 **0/4→4/4** · RAGAS n=30 · LoRA ladder · AutoGen ask
 7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분
-8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit · UI Golden Route 연출)
+8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit)
 9. **역할 분담 · Q&A**
 
 ---

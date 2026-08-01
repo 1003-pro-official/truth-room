@@ -13,15 +13,18 @@ import os
 from pathlib import Path
 from typing import Any
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend.game_engine import engine, load_api_config
-
 ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
+
+from backend.game_engine import engine, load_api_config  # noqa: E402
+
 API_CONFIG = ROOT / "configs" / "api.yaml"
 INTRO_DIR = ROOT / "web" / "intro"
 ASSETS_DIR = ROOT / "assets"

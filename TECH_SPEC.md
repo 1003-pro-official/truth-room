@@ -71,7 +71,7 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 
 툴 페이로드: `data/tools/cctv.yaml`, `data/tools/forensic.yaml`, `data/tools/card.yaml`, `data/tools/messenger.yaml`  
 조수 프롬프트: `data/assistant/prompt_template.yaml` · `configs/agent.yaml` `gm_system_prompt` · `lib/assistant_prompt.py`  
-심판(GM) 프롬프트: `data/gm/prompt_template.yaml` · `judge_system_prompt` · `lib/gm_judge.py` (`lie_broken`|`no_effect` JSON, UI 미노출)
+심판(GM) 프롬프트: `data/gm/prompt_template.yaml` · `judge_system_prompt` · `accuse_template` · `lib/gm_judge.py` (`lie_broken`|조합 지목 JSON, UI 미노출)
 
 ---
 

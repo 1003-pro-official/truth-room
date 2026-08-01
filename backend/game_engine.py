@@ -5,6 +5,8 @@ backend/game_engine.py — 세션 · 심문 · RAG 검색 · Function Calling ·
 
 from __future__ import annotations
 
+import os
+import re
 import sys
 import uuid
 from dataclasses import dataclass, field
@@ -258,12 +260,38 @@ class GameEngine:
                 stamina=session.stamina,
             ),
             "turn_seconds": int(self.game_cfg["turn_seconds"]),
-            "timer_enabled": bool(self.game_cfg["timer_enabled"]),
+            # UI/설정 동기화: 프로세스 기동 후에도 yaml 변경 반영
+            "timer_enabled": bool(load_game_cfg(load_yaml(AGENT_CONFIG) if AGENT_CONFIG.exists() else self.agent_cfg)["timer_enabled"]),
             "ended": session.ended,
             "accused": session.accused,
             "turn": len(session.messages),
             "tool_calls": len(session.tool_log),
         }
+
+    def _question_topic(self, question: str) -> str:
+        """질문 주제 분류 — 스텁 답변 분기용."""
+        q = (question or "").strip()
+        if len(q) < 2:
+            return "unclear"
+        # 자모만 / 의미 없는 난타
+        if re.fullmatch(r"[ㄱ-ㅎㅏ-ㅣ\s\W]+", q) or re.fullmatch(r"[a-zA-Z0-9\s]{1,12}", q):
+            return "unclear"
+        low = q.lower()
+        rules: list[tuple[str, tuple[str, ...]]] = [
+            ("alibi", ("어디", "그밤", "그날", "몇 시", "몇시", "알리바이", "있었", "뭐 하", "뭐하", "야근")),
+            ("card", ("카드", "룸살롱", "강남", "결제", "법인")),
+            ("slack", ("슬랙", "메신저", "dm", "메시지", "박신입", "침입")),
+            ("network", ("와이파이", "wi-fi", "wifi", "네트워크", "100gb", "전송", "mac")),
+            ("server", ("서버", "출입", "로그", "cctv", "지문", "배지")),
+            ("omega", ("오메가", "omega", "가중치", "유출", "파일")),
+            ("who", ("누구", "범인", "누가", "진범")),
+            ("why", ("왜", "이유", "동기")),
+            ("accuse", ("증거", "모순", "거짓말", "들통", "압박")),
+        ]
+        for topic, keys in rules:
+            if any(k in low or k in q for k in keys):
+                return topic
+        return "general"
 
     def _compose_answer(
         self,
@@ -278,20 +306,141 @@ class GameEngine:
         alibi = persona.get("alibi", "기억이 안 납니다.")
         vars_ = persona.get("prompt_vars") or {}
         example = str(vars_.get("예시_대사") or "").strip()
-        # pressure는 LLM 연동 시 render_suspect_prompt(..., pressure=)에 전달
+        fluster = str(vars_.get("당황시_반응") or "당황한 기색")
         _ = pressure
+        topic = self._question_topic(question)
+
         if mental:
-            react = str(vars_.get("당황시_반응") or "흔들리는 목소리")
             return (
-                f"[{name} · 멘탈 붕괴] ({react}) …{alibi} "
-                f"더 이상 버티기 어렵습니다. (질문: {question[:60]})"
+                f"[{name} · 멘탈 붕괴] ({fluster}) …{alibi} "
+                f"더 이상 버티기 어렵습니다."
             )
-        if example:
+
+        # 질문별로 다른 스텁 (AutoGen/LLM 실패 시에도 대화가 단조롭지 않게)
+        if topic == "unclear":
+            if "김" in name:
+                return f"[{name}] 에헴, 무슨 헛소리요? 제대로 물으시오."
+            if "이대" in name:
+                return f"[{name}] …질문이 명확하지 않습니다. 다시 말씀해 주시겠습니까."
+            return f"[{name}] 그, 그게… 무슨 말씀이신지… 죄송해요, 다시 한 번만요."
+
+        if topic == "alibi":
+            opener = example or f"{name}입니다."
+            return f"[{name}] {opener} {alibi}"
+
+        if topic == "card":
+            if "김" in name:
+                return (
+                    f"[{name}] 에헴! 법인카드? 업무용이지, 그게 왜. "
+                    f"이 양반아, 야근 중이었다고 하지 않았소."
+                )
+            if "이대" in name:
+                return f"[{name}] 카드 내역은 제가 확인할 권한이 없습니다. 알리바이와는 무관합니다."
+            return f"[{name}] 카, 카드요? 저 그런 거 없어요… 진짜로요."
+
+        if topic == "slack":
+            if "박" in name:
+                return (
+                    f"[{name}] 슬, 슬랙이요? 그… 그때는… 아뇨, 저 화장실에만… "
+                    f"죄송해요, 머리가 하얘져요."
+                )
+            if "이대" in name:
+                return f"[{name}] 메신저 기록은 공개 범위 내에서만 확인하시죠. 저는 라운지에 있었습니다."
+            return f"[{name}] 슬랙? 이 양반아, 난 야근하느라 폰도 안 봤소."
+
+        if topic == "network" or topic == "server":
+            if "이대" in name:
+                return (
+                    f"[{name}] 서버실 출입 로그를 보시면 제 이름은 없습니다. "
+                    f"라운지에서 쉬고 있었습니다."
+                )
+            if "박" in name:
+                return f"[{name}] 서, 서버실요? 저 그런 데 갈 자격도… 아뇨 진짜… 화장실이었어요."
+            return f"[{name}] 서버실? 난 내 자리에서 서류만 봤소. 에헴."
+
+        if topic == "omega":
+            if "김" in name:
+                return (
+                    f"[{name}] 프로젝트 Omega요? 다들 아는 이름이지. "
+                    f"그렇다고 제가 파일을 훔쳤다는 말은 아니지 않소."
+                )
             return (
-                f"[{name}] {example} "
-                f"알리바이로 말하면, {alibi} (질문 요약: {question[:60]})"
+                f"[{name}] Omega 파일 유출… 저도 충격입니다. "
+                f"그 시각 제 알리바이는 변함없습니다."
             )
-        return f"[{name}] 알리바이 기준으로 말하면, {alibi} (질문 요약: {question[:80]})"
+
+        if topic == "who":
+            if "이대" in name:
+                return f"[{name}] 추측은 삼가겠습니다. 증거로 말씀하시죠."
+            if "박" in name:
+                return f"[{name}] 누, 누구냐니… 저 아니에요. 정말이에요… 죄송해요."
+            return f"[{name}] 범인? 이 양반아, 날 의심하다니. 나 때는 이런 일이 없었소."
+
+        if topic == "why":
+            return f"[{name}] 동기 운운이요? 저는 할 말 없습니다. {alibi}"
+
+        if topic == "accuse":
+            if "김" in name:
+                return (
+                    f"[{name}] ({fluster}) …증거가 있으면 내놓으시오. "
+                    f"말만으로 몰아붙이지 말고."
+                )
+            if "이대" in name:
+                return (
+                    f"[{name}] ({fluster}) 모순이라니… "
+                    f"구체적 근거를 제시해 주십시오."
+                )
+            return f"[{name}] ({fluster}) 거짓말 아니에요… 제발 믿어 주세요…"
+
+        # general — 질문 일부를 언급해 동일 문장 반복 느낌 완화
+        snip = question.strip().replace("\n", " ")[:24]
+        opener = example.split(".")[0].strip() if example else name
+        return (
+            f"[{name}] {opener}. "
+            f"'{snip}…' 이라니, 그 부분만 말하면 {alibi}"
+        )
+
+    def _llm_compose_answer(
+        self,
+        persona: dict[str, Any],
+        question: str,
+        *,
+        mental: bool,
+        pressure: float,
+        model: str,
+    ) -> str | None:
+        """AutoGen 실패 시 단발 LLM 대사. 실패하면 None."""
+        if not os.environ.get("OPENAI_API_KEY"):
+            return None
+        try:
+            from openai import OpenAI
+
+            from lib.persona_prompt import render_suspect_prompt
+
+            system = render_suspect_prompt(
+                persona, pressure=pressure, mental_break=mental
+            )
+            client = OpenAI()
+            resp = client.chat.completions.create(
+                model=model or "gpt-4o-mini",
+                temperature=0.55,
+                timeout=25,
+                messages=[
+                    {"role": "system", "content": system},
+                    {
+                        "role": "user",
+                        "content": (
+                            "감사관의 심문입니다. 페르소나·제약을 지키며 "
+                            "질문에 직접 답하세요. 3문장 이내, 한국어만. "
+                            f"질문: {question}"
+                        ),
+                    },
+                ],
+            )
+            text = (resp.choices[0].message.content or "").strip()
+            return text or None
+        except Exception:
+            return None
 
     def ask(self, session: Session, suspect_id: str, question: str) -> dict[str, Any]:
         if session.ended:
@@ -317,21 +466,20 @@ class GameEngine:
             else {}
         )
         use_autogen = bool(ag_cfg.get("enabled", False))
+        llm_model = str(
+            ag_cfg.get("model")
+            or self.agent_cfg.get("llm_model")
+            or "gpt-4o-mini"
+        )
         agent_transcript: list[dict[str, str]] = []
         assistant_note = ""
         autogen_meta: dict[str, Any] = {"used": False}
+        verdict: dict[str, Any] | None = None
 
         draft_answer = self._compose_answer(
             persona, suspect_id, question, mental=mental_pre, pressure=pressure
         )
         answer = draft_answer
-        verdict = local_judge_lie(
-            suspect_id=suspect_id,
-            user_input=question,
-            evidence_ids=session.evidence_ids,
-            prompt_vars=vars_,
-            npc_response=draft_answer,
-        )
 
         if use_autogen:
             try:
@@ -349,11 +497,7 @@ class GameEngine:
                     # 템플릿 변수 치환은 local_judge 경로용 — GroupChat은 runtime 기본 심판 사용
                     judge_system=None,
                     evidence_ids=list(session.evidence_ids),
-                    model=str(
-                        ag_cfg.get("model")
-                        or self.agent_cfg.get("llm_model")
-                        or "gpt-4o-mini"
-                    ),
+                    model=llm_model,
                     max_round=int(ag_cfg.get("max_round") or 4),
                     temperature=float(ag_cfg.get("temperature") or 0.2),
                     timeout_sec=int(ag_cfg.get("timeout_sec") or 50),
@@ -369,14 +513,6 @@ class GameEngine:
                         "stress_delta": int(gv.get("stress_delta") or 0),
                         "judge": "autogen",
                     }
-                else:
-                    verdict = local_judge_lie(
-                        suspect_id=suspect_id,
-                        user_input=question,
-                        evidence_ids=session.evidence_ids,
-                        prompt_vars=vars_,
-                        npc_response=answer,
-                    )
                 autogen_meta = {
                     "used": True,
                     "elapsed_sec": ag.get("elapsed_sec"),
@@ -384,15 +520,35 @@ class GameEngine:
                     "backend": ag.get("backend"),
                 }
             except Exception as exc:  # noqa: BLE001 — 데모 안정: 폴백
-                autogen_meta = {"used": False, "fallback": True, "error": str(exc)[:200]}
+                autogen_meta = {
+                    "used": False,
+                    "fallback": True,
+                    "error": str(exc)[:200],
+                }
+
+        # AutoGen 미사용 시: 단발 LLM → 질문 분기 스텁
+        if not autogen_meta.get("used"):
+            llm_answer = self._llm_compose_answer(
+                persona,
+                question,
+                mental=mental_pre,
+                pressure=pressure,
+                model=llm_model,
+            )
+            if llm_answer:
+                answer = llm_answer
+                autogen_meta = {**autogen_meta, "llm_direct": True}
+            else:
                 answer = draft_answer
-                verdict = local_judge_lie(
-                    suspect_id=suspect_id,
-                    user_input=question,
-                    evidence_ids=session.evidence_ids,
-                    prompt_vars=vars_,
-                    npc_response=draft_answer,
-                )
+
+        if verdict is None:
+            verdict = local_judge_lie(
+                suspect_id=suspect_id,
+                user_input=question,
+                evidence_ids=session.evidence_ids,
+                prompt_vars=vars_,
+                npc_response=answer,
+            )
 
         is_broken = is_lie_broken(verdict)
         session.break_count, incremented = apply_break_count(
@@ -412,10 +568,15 @@ class GameEngine:
             ended=session.ended,
         )
 
-        # 폴백 경로에서만 멘탈 톤으로 재합성 (AutoGen 성공 시 응답 유지)
-        if not autogen_meta.get("used"):
+        # 멘탈 붕괴 직후 스텁만 톤 재합성 (LLM/AutoGen 응답은 유지)
+        if (
+            mental
+            and not mental_pre
+            and not autogen_meta.get("used")
+            and not autogen_meta.get("llm_direct")
+        ):
             answer = self._compose_answer(
-                persona, suspect_id, question, mental, pressure=pressure
+                persona, suspect_id, question, mental=True, pressure=pressure
             )
 
         if any(
@@ -645,11 +806,20 @@ class GameEngine:
             win_evidence_ids=win_ids,
             owned_evidence_ids=session.evidence_ids,
         )
+        from lib.gm_judge import enrich_accuse_verdict, public_accuse_judge
+
+        verdict = enrich_accuse_verdict(
+            verdict,
+            accused_suspect_id=suspect_id,
+            owned_evidence_ids=session.evidence_ids,
+            agent_cfg=self.agent_cfg,
+        )
+        public_judge = public_accuse_judge(verdict)
 
         if verdict["correct"]:
             session.accused = suspect_id
             session.ended = True
-            ending = (
+            ending = str(verdict.get("public_summary") or "").strip() or (
                 "자백 엔딩: 이대리 — 공로·보너스 불만으로 중국 경쟁사 5억에 응해 "
                 "라운지 Wi-Fi로 Omega 가중치 약 100GB를 유출. 미션 클리어."
             )
@@ -658,25 +828,27 @@ class GameEngine:
                 "evidence_ids": submitted,
                 "correct": True,
                 "ending": ending,
-                "judge": verdict,
+                "judge": public_judge,
             }
 
         # 오답 → 수사 권한 감소 (세션 유지 가능)
         stamina_info = self._apply_stamina_loss(session, 1)
-        msg = "조합 지목 실패: " + (
-            "; ".join(verdict["errors"]) if verdict["errors"] else "진범·증거가 일치하지 않습니다."
-        )
+        base = str(verdict.get("public_summary") or "").strip()
+        if not base:
+            base = "조합 지목 실패: " + (
+                "; ".join(verdict["errors"]) if verdict["errors"] else "진범·증거가 일치하지 않습니다."
+            )
         if stamina_info.get("authority_revoked"):
             session.accused = suspect_id
             ending = stamina_info["ending"]
         else:
-            ending = msg + f" (수사 권한 {session.stamina}/{self.game_cfg['stamina_max']})"
+            ending = base + f" (수사 권한 {session.stamina}/{self.game_cfg['stamina_max']})"
         return {
             "accused": suspect_id if stamina_info.get("authority_revoked") else None,
             "evidence_ids": submitted,
             "correct": False,
             "ending": ending,
-            "judge": verdict,
+            "judge": public_judge,
             **stamina_info,
         }
 

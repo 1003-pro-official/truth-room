@@ -27,7 +27,7 @@
 | **1c** | `agent_graph.py --smoke` (LangGraph) · AutoGen ask · `runs/agent/` | 🟢 |
 | **1d** | `runs/eval/` · RAGAS n=30 · `report/assets/` | 🟢 |
 | **2** | FastAPI session · `/tool` · `/ask` · `/docs` | 🟢 |
-| **3** | Streamlit → API only · Golden Route UI 연출 | 🟡 |
+| **3** | Streamlit → API only · Golden Route UI 연출 | 🟢 |
 
 **안티패턴 금지:** Only Me · UI에서 LLM 직결 · `culprit_id` 클라이언트 노출 · 무제한 AutoGen 티키타카 · YOLO/CV
 
