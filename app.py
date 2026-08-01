@@ -28,31 +28,51 @@ import streamlit.components.v1 as components
 
 API_URL = os.environ.get("API_URL", "http://localhost:8000").rstrip("/")
 ROOT = Path(__file__).resolve().parent
+
+
+def _resolve_image_path(path: Path | None) -> Path | None:
+    """같은 stem의 .webp가 있으면 우선, 없으면 jpg/png 폴백."""
+    if path is None:
+        return None
+    stem = path.with_suffix("")
+    ordered: list[Path] = []
+    for ext in (".webp", path.suffix.lower(), ".jpg", ".jpeg", ".png"):
+        if not ext or ext == ".":
+            continue
+        cand = stem.with_suffix(ext)
+        if cand not in ordered:
+            ordered.append(cand)
+    for cand in ordered:
+        if cand.is_file():
+            return cand
+    return None
+
+
 SUSPECT_PORTRAITS = {
-    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a.jpg",
-    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b.jpg",
-    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c.jpg",
+    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a.webp",
+    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b.webp",
+    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c.webp",
 }
 # 압력 단계별 표정 초상 (0=평온 · 1=긴장 · 2=균열 · 3=붕괴)
 SUSPECT_PORTRAIT_STAGES: dict[str, dict[int, Path]] = {
     sid: {
         0: base,
-        1: ROOT / "assets" / "suspects" / f"{sid}_s1.jpg",
-        2: ROOT / "assets" / "suspects" / f"{sid}_s2.jpg",
-        3: ROOT / "assets" / "suspects" / f"{sid}_s3.jpg",
+        1: ROOT / "assets" / "suspects" / f"{sid}_s1.webp",
+        2: ROOT / "assets" / "suspects" / f"{sid}_s2.webp",
+        3: ROOT / "assets" / "suspects" / f"{sid}_s3.webp",
     }
     for sid, base in SUSPECT_PORTRAITS.items()
 }
-# 수사 파일(프로필) 전신 — 웹용 JPEG (선택 그리드는 bust PNG)
+# 수사 파일(프로필) 전신 — WebP 우선 (jpg 폴백)
 SUSPECT_FULLBODY = {
-    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a_full.jpg",
-    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b_full.jpg",
-    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c_full.jpg",
+    "suspect_a": ROOT / "assets" / "suspects" / "suspect_a_full.webp",
+    "suspect_b": ROOT / "assets" / "suspects" / "suspect_b_full.webp",
+    "suspect_c": ROOT / "assets" / "suspects" / "suspect_c_full.webp",
 }
 # 심문 채팅 아바타
 CHAT_AVATARS = {
-    "detective": ROOT / "assets" / "characters" / "detective.jpg",
-    "assistant": ROOT / "assets" / "characters" / "assistant.jpg",
+    "detective": ROOT / "assets" / "characters" / "detective.webp",
+    "assistant": ROOT / "assets" / "characters" / "assistant.webp",
 }
 SUSPECT_NAME_TO_ID = {
     "김팀장": "suspect_a",
@@ -536,13 +556,10 @@ def _portrait_path(suspect_id: str, stage: int = 0) -> Path | None:
     stages = SUSPECT_PORTRAIT_STAGES.get(suspect_id) or {}
     stage_i = max(0, min(3, int(stage)))
     for s in range(stage_i, -1, -1):
-        path = stages.get(s)
-        if path and path.exists():
+        path = _resolve_image_path(stages.get(s))
+        if path:
             return path
-    base = SUSPECT_PORTRAITS.get(suspect_id)
-    if base and base.exists():
-        return base
-    return None
+    return _resolve_image_path(SUSPECT_PORTRAITS.get(suspect_id))
 
 
 def _chat_avatar_path(
@@ -554,9 +571,9 @@ def _chat_avatar_path(
 ) -> str | None:
     """채팅 버블용 캐릭터 초상 경로."""
     if role == "user":
-        path = CHAT_AVATARS["detective"]
+        path = _resolve_image_path(CHAT_AVATARS["detective"])
     elif role == "assistant":
-        path = CHAT_AVATARS["assistant"]
+        path = _resolve_image_path(CHAT_AVATARS["assistant"])
     elif role == "suspect":
         sid = suspect_id or SUSPECT_NAME_TO_ID.get(name, "")
         stage = 0 if portrait_stage is None else int(portrait_stage)
@@ -620,6 +637,27 @@ def _browser_asset_url(rel: str) -> str:
         else:
             base = f"{API_URL.rstrip('/')}/assets"
     return f"{base}/{rel.lstrip('/')}"
+
+
+def _ui_public_url(*parts: str) -> str | None:
+    """assets/ui 하위 공개 URL — webp 우선."""
+    if not parts:
+        return None
+    name = str(parts[-1] or "").strip()
+    if not name:
+        return None
+    folder = ROOT / "assets" / "ui"
+    if len(parts) > 1:
+        folder = folder.joinpath(*parts[:-1])
+    resolved = _resolve_image_path(folder / name)
+    if not resolved:
+        return None
+    rel = resolved.relative_to(ROOT / "assets").as_posix()
+    try:
+        ver = resolved.stat().st_mtime_ns
+    except OSError:
+        ver = 0
+    return f"{_browser_asset_url(rel)}?v={ver}"
 
 
 def _inject_top_dock(
@@ -907,12 +945,20 @@ def _file_data_uri(path_str: str, mtime_ns: int = 0) -> str:
     path = Path(path_str)
     raw = path.read_bytes()
     suffix = path.suffix.lower()
-    mime = "image/jpeg" if suffix in {".jpg", ".jpeg"} else "image/png"
+    if suffix in {".jpg", ".jpeg"}:
+        mime = "image/jpeg"
+    elif suffix == ".webp":
+        mime = "image/webp"
+    elif suffix == ".gif":
+        mime = "image/gif"
+    else:
+        mime = "image/png"
     _ = mtime_ns  # cache key
     return f"data:{mime};base64,{base64.b64encode(raw).decode('ascii')}"
 
 
 def _portrait_data_uri(path: Path | None) -> str | None:
+    path = _resolve_image_path(path) if path else None
     if not path or not path.exists():
         return None
     try:
@@ -1187,7 +1233,11 @@ def _render_evidence_desk_board(
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
     # 저채도 블루그레이 — 눈 피로 완화 · 야근 오피스 배경
     accent = "#7A9BB8" if not mental and not revoked else "#8A9BB5"
-    bg_url = html.escape(_browser_asset_url("ui/game_bg.jpg"), quote=True)
+    bg_url = html.escape(
+        _ui_public_url("game_bg.webp")
+        or _browser_asset_url("ui/game_bg.jpg"),
+        quote=True,
+    )
     st.markdown(
         f"""
         <style>
@@ -5121,7 +5171,7 @@ def _fetch_case_overview(session_id: str) -> dict | None:
 
 
 def _resolve_intro_image(image_key: str) -> Path | None:
-    """intro_scenes.image — assets 상대경로 또는 파일명."""
+    """intro_scenes.image — assets 상대경로 또는 파일명 (webp 우선)."""
     key = str(image_key or "").strip().lstrip("/")
     if not key:
         return None
@@ -5131,8 +5181,9 @@ def _resolve_intro_image(image_key: str) -> Path | None:
         ROOT / key,
     ]
     for path in candidates:
-        if path.is_file():
-            return path
+        resolved = _resolve_image_path(path)
+        if resolved:
+            return resolved
     return None
 
 
@@ -5676,9 +5727,9 @@ def _open_dossier(suspect_id: str, data: dict) -> None:
     )
     col_img, col_info = st.columns([1, 1.35], gap="medium")
     with col_img:
-        full = SUSPECT_FULLBODY.get(suspect_id)
-        bust = SUSPECT_PORTRAITS.get(suspect_id)
-        img_path = full if full and full.exists() else bust
+        full = _resolve_image_path(SUSPECT_FULLBODY.get(suspect_id))
+        bust = _resolve_image_path(SUSPECT_PORTRAITS.get(suspect_id))
+        img_path = full or bust
         if img_path and img_path.exists():
             st.markdown('<div class="dossier-fullbody">', unsafe_allow_html=True)
             st.image(str(img_path), use_container_width=True)
@@ -6070,7 +6121,7 @@ def _pick_suspect(
     stamp_html = ""
     stamp_sid = str(st.session_state.get("arrest_stamp_suspect") or "")
     if st.session_state.get("arrest_stamp") and (not stamp_sid or stamp_sid == sid):
-        stamp_path = ROOT / "assets" / "ui" / "arrest_stamp.png"
+        stamp_path = _resolve_image_path(ROOT / "assets" / "ui" / "arrest_stamp.webp")
         stamp_uri = _portrait_data_uri(stamp_path)
         if stamp_uri:
             slam = bool(st.session_state.pop("arrest_stamp_slam", False))

@@ -4,27 +4,27 @@
   const FALLBACK_SCENES = [
     {
       caption: "2024.07.29 · 밤",
-      image: "intro/scene_rain_cctv.jpg",
+      image: "intro/scene_rain_cctv.webp",
       text: "폭우가 도시를 삼킨 밤.\n사내 건물 옥외·복도 CCTV가\n차례로 먹통이 된다.",
     },
     {
       caption: "서버실 · 사내망",
-      image: "intro/scene_server_theft.jpg",
+      image: "intro/scene_server_theft.webp",
       text: "그 사이 —\n프로젝트 Omega 핵심 가중치 파일이\n불법 반출된다.\n추정 피해, 약 100억.",
     },
     {
       caption: "잔류 인원",
-      image: "intro/scene_trio.jpg",
+      image: "intro/scene_trio.webp",
       text: "당시 건물에 남은 사람은\n단 세 명뿐이었다.\n\n김팀장 · 이대리 · 박신입.",
     },
     {
       caption: "외부 감사관",
-      image: "intro/scene_auditor.jpg",
+      image: "intro/scene_auditor.webp",
       text: "당신은 외부 디지털 포렌식 감사관이다.\nRAG로 단서를 모으고,\n심문으로 알리바이를 무너뜨려라.",
     },
     {
       caption: "수사 개시",
-      image: "intro/scene_truth_door.jpg",
+      image: "intro/scene_truth_door.webp",
       text: "진범은 셋 중 한 명.\n결정적 증거를 조합해 지목하라.\n\n진실의 방이 열렸다.",
     },
   ];
@@ -278,6 +278,11 @@
     if (!key) return "";
     if (key.startsWith("http")) return key;
     if (key.startsWith("assets/")) return `/${key}`;
+    // jpg/png 요청이어도 webp가 있으면 우선 (용량·로딩)
+    const webpKey = key.replace(/\.(jpe?g|png)$/i, ".webp");
+    if (webpKey !== key) {
+      return `${ASSET_BASE}/${webpKey}`;
+    }
     return `${ASSET_BASE}/${key}`;
   }
 

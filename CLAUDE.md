@@ -21,7 +21,7 @@
 
 | Phase | 게이트 산출물 | 상태 |
 | :--- | :--- | :---: |
-| **0** | `.env`, `configs/*.yaml`, `docs/ROLES.md` 담당 | 🟡 |
+| **0** | `.env`, `configs/*.yaml`, `docs/ROLES.md` 담당 | 🟢 |
 | **1a** | `case_01`(100억의 야근자들), personas 3, raw 4소스, `runs/ingest/` | 🟢 |
 | **1b** | `runs/rag/index/` · baseline/advanced `exp_*/` | 🟢 |
 | **1c** | `agent_graph.py --smoke` (LangGraph) · AutoGen ask · `runs/agent/` | 🟢 |
