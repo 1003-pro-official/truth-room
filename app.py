@@ -323,7 +323,7 @@ def _file_data_uri(path_str: str) -> str:
 
 
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
-    # 저채도 블루그레이 — 눈 피로 완화 · 취조실 배경
+    # 저채도 블루그레이 — 눈 피로 완화 · 야근 오피스 배경
     accent = "#7A9BB8" if not mental and not revoked else "#8A9BB5"
     bg_url = html.escape(_browser_asset_url("ui/game_bg.jpg"), quote=True)
     st.markdown(
@@ -1200,10 +1200,11 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-height: 8px;
           line-height: 8px;
         }}
-        /* 카드 열: 프로필 뱃지 absolute 기준 */
+        /* 카드 열: 프로필 뱃지 absolute 기준 (정사각 이미지 = 100cqw) */
         div[data-testid="column"]:has(.suspect-pick-frame),
         div[data-testid="stColumn"]:has(.suspect-pick-frame) {{
           position: relative !important;
+          container-type: inline-size;
         }}
         div[data-testid="stElementContainer"]:has(.suspect-pick-frame),
         div[data-testid="stMarkdownContainer"]:has(.suspect-pick-frame) {{
@@ -1211,57 +1212,85 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding-bottom: 0 !important;
         }}
         /*
-          프로필 st.button = 이미지 바로 다음 요소.
-          문서 흐름에서 분리(absolute) → 라디오(이름)와 묶이지 않음.
-          이미지 안 우측 하단에 필 뱃지로 고정.
+          프로필 = HTML 필(7/31 레퍼런스) + 투명 hit 버튼.
+          Streamlit secondary 버튼 스타일(두꺼운 테두리·청회색 배경)을 쓰지 않음.
         */
-        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
-          + div[data-testid="stElementContainer"] {{
-          position: absolute !important;
-          right: 12px !important;
-          /* 이름 버튼 위 + 이미지 하단에서 안쪽으로 여백 */
-          bottom: calc(3.55rem + 12px) !important;
-          left: auto !important;
-          top: auto !important;
-          width: auto !important;
-          height: auto !important;
+        .suspect-pick-wrap .profile-pill {{
+          position: absolute;
+          right: 8px;
+          bottom: 8px;
+          z-index: 5;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          padding: 0.26rem 0.7rem;
+          font-size: 0.72rem;
+          font-weight: 600;
+          letter-spacing: 0.02em;
+          line-height: 1.2;
+          border-radius: 999px;
+          color: #ffffff;
+          background: rgba(8, 10, 14, 0.92);
+          border: 1px solid rgba(255, 255, 255, 0.9);
+          box-shadow: none;
+          pointer-events: none;
+          white-space: nowrap;
+        }}
+        /* 앵커는 레이아웃에서 제거 */
+        div[data-testid="stElementContainer"]:has(.profile-badge-mark),
+        div[data-testid="stMarkdownContainer"]:has(.profile-badge-mark) {{
+          height: 0 !important;
+          min-height: 0 !important;
           margin: 0 !important;
           padding: 0 !important;
-          z-index: 60 !important;
+          border: 0 !important;
+          overflow: hidden !important;
+        }}
+        /* 투명 hit 영역 — 필과 같은 자리 */
+        div[data-testid="stColumn"]:has(.suspect-pick-frame)
+          div[data-testid="stElementContainer"]:has(.profile-badge-mark)
+          + div[data-testid="stElementContainer"] {{
+          position: absolute !important;
+          right: 0.4rem !important;
+          top: calc(100cqw - 2.2rem) !important;
+          left: auto !important;
+          bottom: auto !important;
+          width: 4.6rem !important;
+          height: 1.7rem !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          z-index: 80 !important;
           background: transparent !important;
         }}
-        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
-          + div[data-testid="stElementContainer"] .stButton {{
-          margin: 0 !important;
-        }}
-        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+        div[data-testid="stColumn"]:has(.suspect-pick-frame)
+          div[data-testid="stElementContainer"]:has(.profile-badge-mark)
+          + div[data-testid="stElementContainer"] .stButton,
+        div[data-testid="stColumn"]:has(.suspect-pick-frame)
+          div[data-testid="stElementContainer"]:has(.profile-badge-mark)
           + div[data-testid="stElementContainer"] .stButton > button,
-        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
+        div[data-testid="stColumn"]:has(.suspect-pick-frame)
+          div[data-testid="stElementContainer"]:has(.profile-badge-mark)
           + div[data-testid="stElementContainer"]
           .stButton > button[data-testid="baseButton-secondary"] {{
-          min-height: 1.55rem !important;
-          height: 1.55rem !important;
-          max-height: 1.55rem !important;
-          width: auto !important;
-          min-width: 0 !important;
-          padding: 0 0.72rem !important;
-          font-size: 0.72rem !important;
-          font-weight: 600 !important;
-          letter-spacing: 0.02em !important;
-          line-height: 1 !important;
+          margin: 0 !important;
+          width: 100% !important;
+          min-width: 100% !important;
+          max-width: 100% !important;
+          min-height: 1.7rem !important;
+          height: 1.7rem !important;
+          max-height: 1.7rem !important;
+          padding: 0 !important;
+          border: 0 !important;
           border-radius: 999px !important;
-          white-space: nowrap !important;
-          color: #f2f4f7 !important;
-          background-color: rgba(12, 14, 18, 0.82) !important;
+          background: transparent !important;
           background-image: none !important;
-          border: 1px solid rgba(255, 255, 255, 0.95) !important;
-          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45) !important;
-        }}
-        div[data-testid="stElementContainer"]:has(.suspect-pick-frame)
-          + div[data-testid="stElementContainer"] .stButton > button:hover {{
-          color: #f2f4f7 !important;
-          background-color: rgba(40, 52, 68, 0.95) !important;
-          border-color: #ffffff !important;
+          box-shadow: none !important;
+          outline: none !important;
+          color: transparent !important;
+          font-size: 0 !important;
+          line-height: 0 !important;
+          opacity: 0 !important;
+          cursor: pointer !important;
         }}
         [data-testid="stColumn"] .stButton {{
           margin-top: 0 !important;
@@ -2270,20 +2299,25 @@ def _pick_suspect(
                     f"font-size:1.2rem;line-height:1.2;'>{html.escape(name[:1])}</div>"
                 )
 
-            # 이미지 → 프로필(absolute 뱃지) → 이름(라디오) 분리
+            # 이미지+HTML 필 → 투명 hit 버튼 → 이름(라디오)
             st.markdown(
                 f'<div class="suspect-pick-frame">'
                 f'<div class="suspect-pick-wrap" style="border:{border};'
                 f'border-radius:6px;">'
                 f"{img_html}"
+                f'<span class="profile-pill">수사파일</span>'
                 f"</div></div>",
+                unsafe_allow_html=True,
+            )
+            st.markdown(
+                '<div class="profile-badge-mark" aria-hidden="true"></div>',
                 unsafe_allow_html=True,
             )
             if st.button(
                 "수사파일",
                 key=f"suspect_profile_{sid}",
                 type="secondary",
-                help=f"{name} 수사 파일",
+                help=f"{name} 수사파일",
             ):
                 st.session_state["pending_dossier_id"] = sid
                 st.rerun()
