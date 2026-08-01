@@ -1230,6 +1230,62 @@ def _render_evidence_desk_board(
 
 
 
+def _force_sidebar_collapsed_on_full_load() -> None:
+    """전체 문서 로드(새로고침·입장) 시 사이드바를 닫힌 상태로 맞춤.
+
+    Streamlit 1.46+는 stSidebarCollapsed-* 를 localStorage에 보존해
+    initial_sidebar_state=\"collapsed\" 보다 우선한다. 위젯 rerun에서는
+    performance.timeOrigin 이 같으므로 다시 닫지 않는다.
+    """
+    components.html(
+        """<!DOCTYPE html><html><body><script>
+(function () {
+  try {
+    var w = window.parent;
+    if (!w || !w.document) return;
+    var loadId = String((w.performance && w.performance.timeOrigin) || Date.now());
+    var mark = "truth_room_sidebar_collapse_load";
+    if (w.sessionStorage.getItem(mark) === loadId) return;
+    w.sessionStorage.setItem(mark, loadId);
+    try {
+      for (var i = w.localStorage.length - 1; i >= 0; i--) {
+        var k = w.localStorage.key(i);
+        if (k && k.indexOf("stSidebarCollapsed-") === 0) {
+          w.localStorage.setItem(k, "true");
+        }
+      }
+    } catch (e) {}
+    function collapse() {
+      try {
+        var side = w.document.querySelector('[data-testid="stSidebar"]');
+        if (!side || side.getAttribute("aria-expanded") !== "true") return true;
+        var btn =
+          w.document.querySelector('[data-testid="stSidebarCollapseButton"] button') ||
+          w.document.querySelector('[data-testid="stSidebarCollapseButton"]') ||
+          w.document.querySelector(
+            'section[data-testid="stSidebar"] button[kind="headerNoPadding"]'
+          );
+        if (btn) {
+          btn.click();
+          return true;
+        }
+      } catch (e) {}
+      return false;
+    }
+    if (!collapse()) {
+      var n = 0;
+      var t = w.setInterval(function () {
+        n += 1;
+        if (collapse() || n > 40) w.clearInterval(t);
+      }, 50);
+    }
+  } catch (e) {}
+})();
+</script></body></html>""",
+        height=0,
+    )
+
+
 def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
     # 저채도 블루그레이 — 눈 피로 완화 · 야근 오피스 배경
     accent = "#7A9BB8" if not mental and not revoked else "#8A9BB5"
@@ -6298,6 +6354,7 @@ revoked = status == "authority_revoked" or (
 stamina = int(game.get("stamina") or 0)
 
 _inject_theme(mental=mental, revoked=revoked)
+_force_sidebar_collapsed_on_full_load()
 
 # 인트로/시작 화면 생략 — 사건개요 브리핑 후 스타트로 본편
 st.session_state["show_intro"] = False
