@@ -9,6 +9,10 @@ font = "sans serif"
 [browser]
 gatherUsageStats = false
 
+[client]
+# File change / Rerun / Deploy 등 개발자 툴바 최소화
+toolbarMode = "minimal"
+
 [server]
 headless = true
 # Cloudflare Container / reverse proxy (WebSocket)

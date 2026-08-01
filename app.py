@@ -543,20 +543,21 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           background-repeat: no-repeat !important;
           background-attachment: fixed, fixed, fixed !important;
           color: var(--ink);
-          min-height: 100vh !important;
           min-height: 100dvh !important;
+          overflow-x: hidden !important;
         }}
-        /* 뷰포트 세로 중앙 — 콘텐츠가 짧을 때만 가운데, 길면 상단부터 스크롤 */
+        /* 뷰포트 세로 중앙 — 콘텐츠가 짧을 때만 가운데, 길면 상단부터 스크롤.
+           height:100% + min-height:100vh 중첩은 맥북에서 불필요 스크롤을 만듦. */
         html, body {{
-          height: 100% !important;
-          min-height: 100vh !important;
-          min-height: 100dvh !important;
+          min-height: 100% !important;
+          height: auto !important;
+          overflow-x: hidden !important;
         }}
         [data-testid="stAppViewContainer"] {{
-          min-height: 100vh !important;
           min-height: 100dvh !important;
           display: flex !important;
           flex-direction: column !important;
+          overflow-x: hidden !important;
         }}
         [data-testid="stAppViewContainer"] > .main,
         [data-testid="stAppViewContainer"] > .stMain,
@@ -623,7 +624,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           opacity: 0 !important;
           pointer-events: none !important;
         }}
-        /* BGM 토글 — 인트로와 동일 EQ 버튼을 우상단 고정 (Streamlit Deploy 버튼 왼쪽) */
+        /* BGM 토글 — 예전 Streamlit 개발 알림(우상단) 자리 */
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark) {{
           position: absolute !important;
           width: 0 !important;
@@ -638,8 +639,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           + div[data-testid="stElementContainer"],
         div[data-testid="stElementContainer"]:has(iframe[height="36"]) {{
           position: fixed !important;
-          top: 3.35rem !important;
-          right: 1.15rem !important;
+          top: 0.55rem !important;
+          right: 1rem !important;
           z-index: 1000010 !important;
           width: 2.75rem !important;
           height: 2.25rem !important;
@@ -716,7 +717,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           align-items: flex-start !important;
           width: 100% !important;
           max-width: 100% !important;
-          margin: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          margin-bottom: 0 !important;
           padding: 0 !important;
         }}
         /* 용의자 카드 가로 간격 — 3열 레거시 (ops 행 제외) */
@@ -783,6 +786,15 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           color: #c8ced8 !important;
         }}
         [data-testid="stHeader"] {{ background: transparent; }}
+        /* File change · Rerun · Always rerun 상태 바 숨김 */
+        [data-testid="stStatusWidget"],
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        #MainMenu {{
+          display: none !important;
+          visibility: hidden !important;
+          pointer-events: none !important;
+        }}
         [data-testid="stSidebar"],
         [data-testid="stSidebarCollapsedControl"],
         [data-testid="collapsedControl"] {{
@@ -1260,7 +1272,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           column-gap: 2.75rem !important;
           width: 100% !important;
           max-width: 100% !important;
-          margin: 0 !important;
+          margin-left: 0 !important;
+          margin-right: 0 !important;
+          margin-bottom: 0 !important;
           padding: 0 !important;
         }}
         div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark)
@@ -1416,6 +1430,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           display: flex;
           flex-direction: column;
           justify-content: center;
+          align-items: center;
+          text-align: center;
         }}
         .hud-stat .stat-label {{
           display: block;
@@ -1424,12 +1440,14 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           text-transform: uppercase;
           color: var(--muted);
           margin-bottom: 0.15rem;
+          text-align: center;
         }}
         .hud-stat .stat-value {{
           font-size: 1.1rem;
           color: #b7c6d4;
           font-weight: 600;
           line-height: 1.2;
+          text-align: center;
         }}
         div[data-testid="column"]:has(.hud-restart-mark) {{
           display: flex !important;
@@ -1821,6 +1839,23 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .ending-banner.is-lose {{
           border-color: rgba(180, 90, 90, 0.45);
         }}
+        .app-footer-sig {{
+          /* top 이동은 레이아웃 높이를 남기므로 음수 margin으로 올림 */
+          margin: -1.25rem 0 0.35rem !important;
+          padding: 0 !important;
+          text-align: center !important;
+          font-size: 0.72rem !important;
+          letter-spacing: 0.06em !important;
+          color: rgba(139, 145, 156, 0.38) !important;
+          user-select: none;
+          position: static;
+          top: auto;
+        }}
+        div[data-testid="stElementContainer"]:has(.app-footer-sig),
+        div[data-testid="stMarkdownContainer"]:has(.app-footer-sig) {{
+          margin-bottom: 0 !important;
+          padding-bottom: 0 !important;
+        }}
         .ending-kicker {{
           font-size: 0.68rem;
           letter-spacing: 0.14em;
@@ -1939,7 +1974,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           width: 100% !important;
           max-width: 100% !important;
           justify-content: unset !important;
-          margin-bottom: 1.15rem !important;
+          margin-bottom: calc(1.15rem - 5px) !important;
+          padding-bottom: 0 !important;
         }}
         div[data-testid="stElementContainer"]:has(.golden-route) > div,
         div[data-testid="stMarkdownContainer"]:has(.golden-route) {{
@@ -1949,7 +1985,9 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         }}
         /* Golden Route ↔ 대상 용의자 / Field Ops */
         div[data-testid="stHorizontalBlock"]:has(.suspect-ops-row-mark) {{
-          margin-top: 0.35rem !important;
+          margin-top: 0 !important;
+          position: relative !important;
+          top: 0 !important;
         }}
         div[data-testid="stElementContainer"]:has(.panel-stack-gap) {{
           min-height: 0 !important;
@@ -3190,9 +3228,10 @@ def _render_hud(game: dict) -> None:
             st.markdown('<div class="hud-stats-mark" aria-hidden="true"></div>', unsafe_allow_html=True)
             timer_on_hud = TIMER_FEATURE_ENABLED and bool(game.get("timer_enabled", False))
             if timer_on_hud:
-                s1, s2, s3 = st.columns([1, 1, 1.15], gap="small")
+                _, s1, s2, s3 = st.columns([3, 1, 1, 1], gap="small")
             else:
-                s1, s3 = st.columns([1, 1.15], gap="small")
+                # 수사 권한 · 새 수사 개시: 폭 절반 + 우측 정렬
+                _, s1, s3 = st.columns([2, 1, 1], gap="small")
                 s2 = None
             with s1:
                 st.markdown(
@@ -4210,5 +4249,8 @@ if field_log:
     parts.append("</div>")
     st.markdown("".join(parts), unsafe_allow_html=True)
 
-st.caption("진실의 방 · interrogation deck")
+st.markdown(
+    '<p class="app-footer-sig">© 2026 어쩌다 팀 · All rights reserved.</p>',
+    unsafe_allow_html=True,
+)
 _sync_ops_rail_width()
