@@ -25,6 +25,10 @@ python scripts/eval_ragas.py --limit 0   # 전체 n=30 → runs/eval/ragas_py312
 
 - `persona_sft.jsonl` — OpenAI fine-tuning `messages` 형식 (78쌍)
 - `manifest.yaml` — 샘플 수·생성 시각
+- 실서버 ask 로그(선택): `configs/agent.yaml` `conversation_log.enabled: true`
+  - raw: `runs/conversation_log/ask_turns.jsonl`
+  - export: `python3 scripts/export_conversation_log.py`
+  - **룰/승패는 코드 유지 · 로그는 말투 FT 후보만**
 - 산출물:
   - `runs/sft/finetune_job_openai.json` (OpenAI 403 기록)
   - `runs/sft/local_lora/` · `local_lora_qwen05/` · `qwen15/` · `qwen3b/` · `qwen7b/report.json` (`memory_limit`)

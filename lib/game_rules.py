@@ -32,6 +32,45 @@ ALIBI_BREAK_RULES: dict[str, dict[str, Any]] = {
     },
 }
 
+# 압박(pressure) 가산용 — 해당 용의자 루트와 관련될 때만
+_PRESSURE_EXTRA: dict[str, tuple[str, ...]] = {
+    "suspect_a": ("출입", "지문", "로그", "야근", "CCTV"),
+    "suspect_b": ("네트워크", "외부", "100gb", "wifi"),
+    "suspect_c": ("메신저", "메신져"),
+}
+
+
+def pressure_hit_keywords(suspect_id: str) -> tuple[str, ...]:
+    """현재 심문 대상에게만 압박 가산할 질문 키워드."""
+    sid = str(suspect_id or "")
+    base = tuple(ALIBI_BREAK_RULES.get(sid, {}).get("keywords") or ())
+    extra = _PRESSURE_EXTRA.get(sid, ())
+    seen: set[str] = set()
+    out: list[str] = []
+    for k in (*base, *extra):
+        key = str(k)
+        fold = key.lower()
+        if fold in seen:
+            continue
+        seen.add(fold)
+        out.append(key)
+    return tuple(out)
+
+
+def question_hits_pressure(suspect_id: str, question: str) -> bool:
+    """질문 주제가 해당 용의자 압박 루트와 맞는지."""
+    q = question or ""
+    q_fold = q.lower()
+    for k in pressure_hit_keywords(suspect_id):
+        if not k:
+            continue
+        if k.isascii():
+            if k.lower() in q_fold:
+                return True
+        elif k in q:
+            return True
+    return False
+
 
 def load_game_cfg(agent_cfg: dict[str, Any] | None) -> dict[str, Any]:
     game = (agent_cfg or {}).get("game") or {}

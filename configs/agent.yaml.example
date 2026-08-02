@@ -83,10 +83,18 @@ game:
 # 멀티에이전트 (AutoGen) — 심문 턴 본선 · 실패 시 스텁 폴백
 autogen:
   enabled: true
+  mode: pipeline
   model: gpt-4o-mini
   max_round: 5
   temperature: 0.15
   timeout_sec: 60
+  memory_turns: 6
+  other_summary_turns: 2
+
+# 심문 ask JSONL — 말투 FT 후보 (로컬 기본 OFF · 실서버만 true / CONVERSATION_LOG=1)
+conversation_log:
+  enabled: false
+  path: runs/conversation_log/ask_turns.jsonl
 
 tools:
   retrieve: true

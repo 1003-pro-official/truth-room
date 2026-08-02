@@ -111,8 +111,33 @@ def local_judge_lie(
     need_ids = [str(x) for x in (tokens_cfg.get("evidence_ids") or [])]
     tokens = [str(t) for t in (tokens_cfg.get("tokens") or [])]
     q = user_input or ""
+    sid = str(suspect_id or "")
 
-    has_token = any(t and t in q for t in tokens)
+    # 남의 결정적 증거로 추궁 / 『확보했다』만 → 붕괴 없음
+    foreign = {
+        "suspect_a": ("Wi-Fi", "와이파이", "MAC", "100GB", "100gb", "메신저", "슬랙", "DM"),
+        "suspect_b": ("룸살롱", "법인카드", "법인", "강남", "850", "메신저", "슬랙", "DM", "화장실"),
+        "suspect_c": ("룸살롱", "법인카드", "법인", "강남", "850", "Wi-Fi", "와이파이", "MAC", "100GB", "전송"),
+    }
+    own_token = any(t and t in q for t in tokens)
+    foreign_hit = any(k in q for k in foreign.get(sid, ()))
+    if foreign_hit and not own_token:
+        return {
+            "status": "no_effect",
+            "stress_delta": _clamp_delta(0),
+            "reason_internal": f"{sid}: 타 용의자 증거/주제로 추궁 — 붕괴 없음",
+            "judge": "gm_local",
+        }
+    if re.search(r"확보|증거가\s*있|증거를\s*잡", q) and not own_token:
+        return {
+            "status": "no_effect",
+            "stress_delta": _clamp_delta(0),
+            "reason_internal": f"{sid}: 확보 주장만 있고 결정적 증거 토큰 없음",
+            "judge": "gm_local",
+        }
+
+
+    has_token = own_token
     has_ev = any(eid in evidence_ids for eid in need_ids) if need_ids else False
 
     # 결정적 증거 문구가 발언에 직접 언급된 경우도 인정
@@ -164,6 +189,26 @@ def stress_delta_to_pressure(delta: int) -> float:
 
 def is_lie_broken(verdict: dict[str, Any] | None) -> bool:
     return bool(verdict) and str(verdict.get("status")) == "lie_broken"
+
+
+def is_nonsensical_question(user_input: str) -> bool:
+    """자모 나열·의미 없는 문자열 등 — 심문 질문으로 취급하지 않음."""
+    text = (user_input or "").strip()
+    if len(text) < 2:
+        return True
+    syllables = len(re.findall(r"[가-힣]", text))
+    jamo = len(re.findall(r"[ㄱ-ㅎㅏ-ㅣ]", text))
+    latin = len(re.findall(r"[A-Za-z]", text))
+    digits = len(re.findall(r"\d", text))
+    # 완성 글자 거의 없이 자모만 나열 (예: ㅁㅇㄹㅁㄴㅇㄹ)
+    if jamo >= 3 and syllables <= 1:
+        return True
+    if syllables == 0 and jamo >= 2:
+        return True
+    # 의미 있는 한글·영문·숫자 거의 없음
+    if syllables + latin + digits <= 1 and len(text) >= 4:
+        return True
+    return False
 
 
 def accuse_system_prompt() -> str:

@@ -14,13 +14,14 @@ from __future__ import annotations
 
 import base64
 import html
+import json
 import os
 import random
 import re
 import time
 from datetime import timedelta
 from pathlib import Path
-from urllib.parse import quote
+from urllib.parse import quote, urlencode
 
 import requests
 import streamlit as st
@@ -449,7 +450,27 @@ st.markdown(
       .stMainBlockContainer,
       .stMain .block-container,
       .main .block-container {
-        margin-top: auto !important;
+        /* 세로 중앙 대신 상단 고정 + 여백 (탭 전환 시 컨텐츠 점프 방지) */
+        margin-top: 0 !important;
+        margin-bottom: 0.5rem !important;
+        /* 맥북~일반: ~11vh / 27"·고해상도는 min-height 미디어로 추가 하향 */
+        padding-top: calc(var(--app-topbar-h) + clamp(2.75rem, 11vh, 6rem)) !important;
+      }
+    }
+    @media (min-width: 901px) and (min-height: 1000px) {
+      [data-testid="stMainBlockContainer"],
+      .stMainBlockContainer,
+      .stMain .block-container,
+      .main .block-container {
+        padding-top: calc(var(--app-topbar-h) + clamp(4rem, 14vh, 9rem) + 135px) !important;
+      }
+    }
+    @media (min-width: 901px) and (min-height: 1200px) {
+      [data-testid="stMainBlockContainer"],
+      .stMainBlockContainer,
+      .stMain .block-container,
+      .main .block-container {
+        padding-top: calc(var(--app-topbar-h) + clamp(5rem, 16vh, 11rem) + 135px) !important;
       }
     }
     /* 사이드바 본문 여백 — 조기 적용 (헤더와 분리된 UserContent) */
@@ -506,10 +527,14 @@ def _start_new_investigation(*, with_tab_intro: bool = False) -> None:
     st.session_state["last_ending"] = None
     st.session_state.pop("last_ending_ok", None)
     st.session_state.pop("accuse_flash", None)
+    st.session_state.pop("revoked_flash", None)
+    st.session_state.pop("revoked_alert_acked", None)
+    st.session_state.pop("revoked_alert_pending_accuse", None)
     st.session_state.pop("case_won", None)
     st.session_state.pop("arrest_stamp", None)
     st.session_state.pop("arrest_stamp_suspect", None)
     st.session_state.pop("arrest_stamp_slam", None)
+    st.session_state.pop("portrait_stage_by_suspect", None)
     st.session_state.pop("_desk_assets_preloaded", None)
     st.session_state["show_intro"] = bool(with_tab_intro)
     st.session_state["intro_scene_idx"] = 0
@@ -639,6 +664,307 @@ def _browser_asset_url(rel: str) -> str:
     return f"{base}/{rel.lstrip('/')}"
 
 
+def _inject_refresh_hotkey_guard() -> None:
+    """하위 호환 — `_ensure_parent_media_bridge()`에서 처리."""
+    return
+
+
+def _play_sfx(
+    filename: str,
+    *,
+    volume: float = 0.7,
+    debounce_ms: int = 0,
+    mark: str | None = None,
+) -> None:
+    """효과음 큐에 적재 — iframe 없이 parent bridge가 재생."""
+    seq = int(st.session_state.get("_sfx_seq") or 0) + 1
+    st.session_state["_sfx_seq"] = seq
+    pending = list(st.session_state.get("_sfx_pending") or [])
+    pending.append(
+        {
+            "file": str(filename),
+            "volume": max(0.0, min(1.0, float(volume))),
+            "debounce_ms": max(0, int(debounce_ms)),
+            "mark": mark or f"truth_room_sfx_{Path(filename).stem}",
+            "seq": seq,
+        }
+    )
+    st.session_state["_sfx_pending"] = pending
+
+
+def _ensure_parent_media_bridge(*, bgm_src: str, muted: bool, force_play: bool) -> None:
+    """BGM·SFX·새로고침 가드를 parent DOM에 1회만 설치 (클릭마다 iframe 금지)."""
+    if st.session_state.get("_parent_media_bridge"):
+        # force_play만 별도 신호 (markdown) — iframe 없음
+        if force_play:
+            st.markdown(
+                '<div class="tr-media-cmd" data-cmd="bgm-play" aria-hidden="true"></div>',
+                unsafe_allow_html=True,
+            )
+        return
+
+    src_js = json.dumps(str(bgm_src or ""))
+    muted_js = "true" if muted else "false"
+    force_js = "true" if force_play else "false"
+    components.html(
+        f"""<!DOCTYPE html><html><body><script>
+(function () {{
+  try {{
+    var w = window.parent;
+    if (!w || !w.document) return;
+    var doc = w.document;
+    if (w.__trMediaBridge) return;
+    w.__trMediaBridge = true;
+
+    // F5 / Cmd+R 가드
+    if (!w.__truthRoomRefreshGuard) {{
+      w.__truthRoomRefreshGuard = true;
+      w.addEventListener("keydown", function (e) {{
+        try {{
+          var key = String(e.key || "");
+          var refresh = key === "F5" || ((e.metaKey || e.ctrlKey) && key.toLowerCase() === "r");
+          if (!refresh) return;
+          e.preventDefault();
+          e.stopImmediatePropagation();
+          var path = String((w.location && w.location.pathname) || "");
+          if (path.indexOf("/game") === 0) w.location.replace("/");
+          else w.location.reload();
+        }} catch (err) {{
+          try {{ w.location.reload(); }} catch (e2) {{}}
+        }}
+      }}, true);
+    }}
+
+    // SFX
+    w.__trPlaySfx = function (src, vol, debounce, mark) {{
+      try {{
+        var now = Date.now();
+        debounce = debounce || 0;
+        mark = mark || "tr_sfx";
+        if (debounce > 0) {{
+          var prev = parseInt(w.sessionStorage.getItem(mark) || "0", 10);
+          if (now - prev < debounce) return;
+          w.sessionStorage.setItem(mark, String(now));
+        }}
+        var a = new w.Audio(src);
+        a.volume = (typeof vol === "number") ? vol : 0.7;
+        var p = a.play();
+        if (p && p.catch) p.catch(function () {{}});
+      }} catch (e) {{}}
+    }};
+
+    // BGM 토글 — parent fixed (Streamlit rerun과 무관)
+    if (!doc.getElementById("tr-bgm-dock")) {{
+      var wrap = doc.createElement("div");
+      wrap.id = "tr-bgm-dock";
+      wrap.style.cssText = "position:fixed;top:0.28rem;right:0.75rem;z-index:1000026;pointer-events:auto;";
+      var btn = doc.createElement("button");
+      btn.type = "button";
+      btn.id = "tr-bgm-toggle";
+      btn.setAttribute("aria-pressed", "false");
+      btn.title = "BGM OFF";
+      btn.setAttribute("aria-label", "배경음악");
+      btn.style.cssText = "margin:0;width:2.5rem;height:2.15rem;padding:0;border-radius:0.4rem;border:1px solid rgba(255,255,255,0.35);background:rgba(18,22,30,0.9);color:#e8e4dc;cursor:pointer;display:inline-grid;place-items:center;";
+      btn.textContent = "♪";
+      wrap.appendChild(btn);
+      doc.body.appendChild(wrap);
+      var audio = doc.createElement("audio");
+      audio.id = "tr-bgm-audio";
+      audio.loop = true;
+      audio.preload = "auto";
+      audio.src = {src_js};
+      audio.setAttribute("playsinline", "");
+      doc.body.appendChild(audio);
+      var VOL = 0.06;
+      var userMuted = {muted_js};
+      var audible = false;
+      audio.volume = VOL;
+      function setUi(on) {{
+        if (!btn) return;
+        btn.setAttribute("aria-pressed", on ? "true" : "false");
+        btn.title = on ? "BGM ON" : "BGM OFF";
+        btn.setAttribute("aria-label", on ? "배경음악 끄기" : "배경음악 켜기");
+      }}
+      async function play() {{
+        if (userMuted) {{ audio.pause(); setUi(false); return false; }}
+        audio.volume = VOL;
+        try {{
+          await audio.play();
+          audible = true;
+          setUi(true);
+          return true;
+        }} catch (e) {{
+          audible = false;
+          setUi(false);
+          return false;
+        }}
+      }}
+      function stop() {{
+        audio.pause();
+        audible = false;
+        setUi(false);
+      }}
+      w.__trBgmPlay = play;
+      w.__trBgmStop = stop;
+      if (btn) {{
+        btn.addEventListener("click", async function (e) {{
+          e.preventDefault();
+          e.stopPropagation();
+          if (audible && !audio.paused && !userMuted) {{ userMuted = true; stop(); return; }}
+          userMuted = false;
+          await play();
+        }});
+      }}
+      if ({force_js} && !userMuted) play();
+      else if (!userMuted) {{
+        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {{
+          try {{
+            w.addEventListener(ev, function () {{ if (!userMuted && !audible) play(); }}, {{ once: true, passive: true }});
+          }} catch (err) {{}}
+        }});
+      }}
+    }}
+
+    // Streamlit 마크다운 신호를 감시해 SFX / BGM 명령 실행 (추가 iframe 없음)
+    function handleNode(node) {{
+      if (!node || node.nodeType !== 1) return;
+      if (node.classList && node.classList.contains("tr-sfx-item")) {{
+        var src = node.getAttribute("data-src") || "";
+        var vol = parseFloat(node.getAttribute("data-vol") || "0.7");
+        var deb = parseInt(node.getAttribute("data-debounce") || "0", 10);
+        var mark = node.getAttribute("data-mark") || "tr_sfx";
+        if (src) w.__trPlaySfx(src, vol, deb, mark);
+        try {{ node.remove(); }} catch (e) {{}}
+      }}
+      if (node.classList && node.classList.contains("tr-media-cmd")) {{
+        var cmd = node.getAttribute("data-cmd") || "";
+        if (cmd === "bgm-play" && w.__trBgmPlay) w.__trBgmPlay();
+        try {{ node.remove(); }} catch (e) {{}}
+      }}
+      if (node.querySelectorAll) {{
+        node.querySelectorAll(".tr-sfx-item, .tr-media-cmd").forEach(handleNode);
+      }}
+    }}
+    var obs = new w.MutationObserver(function (muts) {{
+      muts.forEach(function (m) {{
+        m.addedNodes.forEach(handleNode);
+      }});
+    }});
+    obs.observe(doc.body, {{ childList: true, subtree: true }});
+    // 이미 렌더된 신호 처리
+    doc.querySelectorAll(".tr-sfx-item, .tr-media-cmd").forEach(handleNode);
+  }} catch (e) {{}}
+}})();
+</script></body></html>""",
+        height=0,
+        width=0,
+    )
+    st.session_state["_parent_media_bridge"] = True
+
+
+def _flush_sfx_runtime() -> None:
+    """pending SFX를 markdown 신호로 전달 — 클릭마다 iframe 생성하지 않음."""
+    pending = list(st.session_state.pop("_sfx_pending", None) or [])
+    if not pending and st.session_state.get("_parent_media_bridge"):
+        return
+    bgm_src = _browser_asset_url("audio/game.mp3")
+    _ensure_parent_media_bridge(
+        bgm_src=bgm_src,
+        muted=False,
+        force_play=False,
+    )
+    if not pending:
+        return
+    chunks: list[str] = []
+    for item in pending:
+        rel = f"audio/{str(item.get('file') or '').lstrip('/')}"
+        src_url = _browser_asset_url(rel)
+        mp3_path = ROOT / "assets" / rel
+        try:
+            data_b64 = base64.b64encode(mp3_path.read_bytes()).decode("ascii")
+            audio_src = f"data:audio/mpeg;base64,{data_b64}"
+        except OSError:
+            audio_src = src_url
+        vol = float(item.get("volume") or 0.7)
+        debounce = int(item.get("debounce_ms") or 0)
+        mark = html.escape(str(item.get("mark") or "tr_sfx"), quote=True)
+        src_esc = html.escape(audio_src, quote=True)
+        chunks.append(
+            f'<div class="tr-sfx-item" data-src="{src_esc}" data-vol="{vol}" '
+            f'data-debounce="{debounce}" data-mark="{mark}" aria-hidden="true"></div>'
+        )
+    st.markdown("".join(chunks), unsafe_allow_html=True)
+
+
+def _play_arrest_stamp_sfx() -> None:
+    """검거 도장 slam(0.52s · 임팩트 ~0.30s)에 맞춘 효과음 1회 재생."""
+    _play_sfx(
+        "arrest_stamp.mp3",
+        volume=1.0,
+        debounce_ms=800,
+        mark="truth_room_stamp_sfx_at",
+    )
+
+
+def _play_ui_open_sfx() -> None:
+    """프로필·메뉴 팝업 — 서류철 펼침 효과음."""
+    _play_sfx(
+        "ui_open.mp3",
+        volume=0.55,
+        debounce_ms=250,
+        mark="truth_room_ui_open_sfx",
+    )
+
+
+def _play_search_ok_sfx() -> None:
+    _play_sfx(
+        "sfx_ok.mp3",
+        volume=0.75,
+        debounce_ms=200,
+        mark="truth_room_search_ok_sfx",
+    )
+
+
+def _play_search_miss_sfx() -> None:
+    _play_sfx(
+        "sfx_miss.mp3",
+        volume=0.7,
+        debounce_ms=200,
+        mark="truth_room_search_miss_sfx",
+    )
+
+
+def _play_revoked_sfx() -> None:
+    _play_sfx(
+        "sfx_revoked.mp3",
+        volume=0.85,
+        debounce_ms=400,
+        mark="truth_room_revoked_sfx",
+    )
+
+
+def _play_stress_up_sfx(*, stage: int = 1) -> None:
+    _play_sfx(
+        "sfx_stress_up.mp3",
+        volume=min(0.95, 0.55 + 0.1 * max(0, int(stage))),
+        debounce_ms=180,
+        mark="truth_room_stress_up_sfx",
+    )
+
+
+def _note_portrait_stage(suspect_id: str, stage: int) -> bool:
+    """초상 단계가 올랐으면 True (효과음 트리거용)."""
+    sid = str(suspect_id or "")
+    if not sid:
+        return False
+    stages = dict(st.session_state.get("portrait_stage_by_suspect") or {})
+    prev = int(stages.get(sid, 0) or 0)
+    now = max(0, min(3, int(stage)))
+    stages[sid] = now
+    st.session_state["portrait_stage_by_suspect"] = stages
+    return now > prev
+
+
 def _ui_public_url(*parts: str) -> str | None:
     """assets/ui 하위 공개 URL — webp 우선."""
     if not parts:
@@ -667,152 +993,39 @@ def _inject_top_dock(
     muted: bool = False,
     force_play: bool = False,
 ) -> None:
-    """우상단 독 — 수사 권한(+ 선택 BGM). 인트로 셸에서는 스킵."""
+    """우상단 독 — 수사 권한은 markdown(고정), BGM은 parent 1회 설치.
+
+    클릭/rerun 때마다 components.html(height=44)을 다시 만들면
+    페이지 전체가 흔들린다.
+    """
     if st.session_state.get("from_intro_shell"):
         return
     stamina = int(game.get("stamina") or 0)
     stamina_max = int(game.get("stamina_max") or 3)
     hearts = "♥" * stamina + "♡" * max(0, stamina_max - stamina)
     hearts_esc = html.escape(hearts)
-    muted_js = "true" if muted else "false"
-    force_js = "true" if force_play else "false"
-    src = html.escape(_browser_asset_url("audio/game.mp3"), quote=True)
-
-    bgm_html = ""
-    if with_bgm:
-        bgm_html = f"""
-<button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="BGM OFF">
-  <span class="eq" aria-hidden="true"><i></i><i></i><i></i><i></i></span>
-</button>
-<audio id="a" src="{src}" loop preload="auto" playsinline></audio>
-"""
-    bgm_script = ""
-    if with_bgm:
-        bgm_script = f"""
-(function(){{
-  const a=document.getElementById("a");
-  const btn=document.getElementById("bgmToggle");
-  if(!a||!btn) return;
-  const VOL=0.06;
-  let userMuted={muted_js};
-  let audible=false;
-  a.volume=VOL;
-  function setUi(on){{
-    btn.setAttribute("aria-pressed", on ? "true" : "false");
-    btn.setAttribute("aria-label", on ? "배경음악 끄기" : "배경음악 켜기");
-    btn.title = on ? "BGM ON" : "BGM OFF";
-  }}
-  async function play(){{
-    if(userMuted){{a.pause();setUi(false);return false;}}
-    a.volume=VOL;
-    try{{
-      await a.play();
-      a.volume=VOL;
-      audible=true;
-      setUi(true);
-      return true;
-    }}catch(e){{
-      audible=false;
-      setUi(false);
-      return false;
-    }}
-  }}
-  function stop(){{
-    a.pause();
-    audible=false;
-    setUi(false);
-  }}
-  btn.addEventListener("click", async function(e){{
-    e.preventDefault();
-    e.stopPropagation();
-    if(audible && !a.paused && !userMuted){{
-      userMuted=true;
-      stop();
-      return;
-    }}
-    userMuted=false;
-    await play();
-  }});
-  if({force_js} && !userMuted){{ play(); }}
-  else if(!userMuted){{
-    ["pointerdown","keydown","touchstart"].forEach(function(ev){{
-      try{{window.parent.addEventListener(ev,function(){{if(!userMuted&&!audible)play();}},{{once:true,passive:true}});}}catch(err){{}}
-    }});
-  }}
-}})();
-"""
-
-    dock_w = 220 if with_bgm else 148
     st.markdown(
-        '<div class="game-bgm-dock-mark" aria-hidden="true"></div>',
+        f"""
+        <div class="tr-stamina-dock" title="수사 권한 {stamina}/{stamina_max}">
+          <span class="lbl">수사 권한</span>
+          <span class="hearts">{hearts_esc}</span>
+        </div>
+        """,
         unsafe_allow_html=True,
     )
-    components.html(
-        f"""<!DOCTYPE html>
-<html><head><meta charset="utf-8" />
-<style>
-  html,body{{margin:0;padding:0;background:transparent;overflow:hidden;}}
-  .dock{{
-    display:flex;align-items:center;justify-content:flex-end;gap:0.4rem;
-    height:44px;padding:4px 0;box-sizing:border-box;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
-  }}
-  .stamina-chip{{
-    display:inline-flex;align-items:center;gap:0.35rem;
-    height:2.15rem;padding:0 0.6rem;box-sizing:border-box;
-    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.28);
-    background:rgba(18,22,30,0.92);color:#e8e4dc;
-    white-space:nowrap;
-  }}
-  .stamina-chip .lbl{{
-    font-size:0.62rem;letter-spacing:0.06em;text-transform:uppercase;
-    color:rgba(180,186,196,0.9);
-  }}
-  .stamina-chip .hearts{{
-    font-size:0.85rem;font-weight:700;letter-spacing:0.05em;color:#e8eef4;
-  }}
-  .bgm-toggle{{
-    margin:0;width:2.5rem;height:2.15rem;padding:0;flex:0 0 auto;
-    box-sizing:border-box;
-    display:inline-grid;place-items:center;
-    border-radius:0.4rem;border:1px solid rgba(255,255,255,0.35);
-    background:rgba(18,22,30,0.9);color:#e8e4dc;cursor:pointer;
-  }}
-  .bgm-toggle:hover{{border-color:#fff;}}
-  .bgm-toggle[aria-pressed="true"]{{border-color:#7A9BB8;}}
-  .eq{{display:flex;align-items:flex-end;justify-content:center;gap:2px;width:14px;height:12px;}}
-  .eq i{{display:block;width:2px;height:40%;border-radius:1px;background:#c5ccd6;transform-origin:bottom center;}}
-  .bgm-toggle[aria-pressed="true"] .eq i{{
-    background:#7A9BB8;animation:eq-bounce .9s ease-in-out infinite;
-  }}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(1){{animation-delay:0s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(2){{animation-delay:.15s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(3){{animation-delay:.35s;}}
-  .bgm-toggle[aria-pressed="true"] .eq i:nth-child(4){{animation-delay:.22s;}}
-  .bgm-toggle[aria-pressed="false"] .eq i{{height:35%;opacity:.55;}}
-  @keyframes eq-bounce{{0%,100%{{height:30%;}}50%{{height:100%;}}}}
-</style></head>
-<body>
-<div class="dock">
-  <div class="stamina-chip" title="수사 권한 {stamina}/{stamina_max}">
-    <span class="lbl">수사 권한</span>
-    <span class="hearts">{hearts_esc}</span>
-  </div>
-  {bgm_html}
-</div>
-<script>
-{bgm_script}
-</script>
-</body></html>""",
-        height=44,
-        width=dock_w,
-    )
+    if with_bgm:
+        _ensure_parent_media_bridge(
+            bgm_src=_browser_asset_url("audio/game.mp3"),
+            muted=muted,
+            force_play=force_play,
+        )
 
 
 def _inject_game_bgm(*, muted: bool = False, force_play: bool = False) -> None:
     """하위 호환 — 게임 상태에서 우상단 독(수사 권한+BGM)."""
     game = st.session_state.get("game") or {}
     _inject_top_dock(game, with_bgm=True, muted=muted, force_play=force_play)
+
 
 
 def _sync_ops_rail_width() -> None:
@@ -904,26 +1117,38 @@ def _execute_search(
         st.session_state.setdefault("log", []).append(
             f"헛수색 — 수사 권한 {data.get('stamina', '?')}/{data.get('stamina_max', 3)}"
         )
-        st.session_state["desk_flash"] = {
-            "kind": "warn",
-            "text": "헛수색 — 관련 단서를 찾지 못했습니다.",
-        }
         if data.get("authority_revoked"):
-            st.session_state["last_ending"] = data.get("ending")
-            st.session_state["last_ending_ok"] = False
+            # 박탈음은 모달 오픈(_request_authority_revoked_alert)에서 재생
+            ending = (
+                data.get("ending")
+                or "감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다."
+            )
+            st.session_state["revoked_flash"] = ending
+            st.session_state["last_ending"] = None
+            st.session_state.pop("last_ending_ok", None)
+            st.session_state.pop("revoked_alert_acked", None)
+            st.session_state.pop("desk_flash", None)
+        else:
+            _play_search_miss_sfx()
+            st.session_state["desk_flash"] = {
+                "kind": "warn",
+                "text": "헛수색 — 관련 단서를 찾지 못했습니다.",
+            }
     elif data.get("already_owned"):
         st.session_state["desk_flash"] = {
             "kind": "info",
             "text": "이미 확보한 증거입니다.",
         }
     elif data.get("new_clues"):
+        _play_search_ok_sfx()
         title = (data["new_clues"][0] or {}).get("title") or "증거 확보"
         st.session_state["desk_flash"] = {
             "kind": "ok",
             "text": f"증거 확보 — {title}",
         }
     else:
-        # force_evidence 등 new_clues 없이 hits만 온 경우
+        # force_evidence 등 new_clues 없이 hits만 온 경우 (미끼 출입로그 포함)
+        _play_search_ok_sfx()
         hit0 = (data.get("hits") or [{}])[0] or {}
         title = hit0.get("snippet") or hit0.get("evidence_id") or "수색 완료"
         if isinstance(title, str) and (title.count(",") >= 3 or "\n" in title):
@@ -996,6 +1221,14 @@ def _desk_bg_url() -> str | None:
         url = _desk_asset_url(name)
         if url:
             return url
+    return None
+
+
+def _desk_bg_path() -> Path | None:
+    for name in ("desk_bg.webp", "desk_bg.jpg", "desk_bg.png"):
+        path = EVIDENCE_DESK_DIR / name
+        if path.is_file():
+            return path
     return None
 
 
@@ -1076,6 +1309,10 @@ def _apply_desk_click(sid: str, game: dict, clicked_id: str) -> None:
         if item["id"] not in inspected_list:
             inspected_list.append(item["id"])
             st.session_state["desk_inspected"] = inspected_list
+    if st.session_state.get("revoked_flash"):
+        # 권한 박탈 모달만 — desk_flash 와 동시 오픈 금지
+        st.session_state.pop("desk_flash", None)
+    elif decoy:
         st.session_state["desk_flash"] = {
             "kind": "warn",
             "text": f"헛수색 — 「{item.get('short')}」에서는 단서를 찾지 못했습니다.",
@@ -1091,7 +1328,11 @@ def _render_evidence_desk_board(
     inspected: set[str],
     ended: bool = False,
 ) -> str | None:
-    """책상 보드 — Streamlit 버튼에 증거 이미지를 입혀 직접 클릭."""
+    """책상 보드 — st.container(key=) 1곳의 클래스에만 나무 배경.
+
+    stVerticalBlock:has(...) 에 배경을 입히면 탭/컬럼 조상까지 잡혀
+    책상이 두 장으로 보인다. 키드 셸 1곳만 칠한다.
+    """
     bg = _desk_bg_url()
     _preload_desk_assets(items, bg)
     bg_css = (
@@ -1099,26 +1340,48 @@ def _render_evidence_desk_board(
         if bg
         else "background-color:#8a7f6e;"
     )
-    # 공통 스타일 1회 + 아이템별 background-image만 (CSS 페이로드·리페인트 축소)
     css_bits: list[str] = [
         f"""
-        div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
+        /* desk-fix:keyed-shell-v5 */
+        div.st-key-tr_evidence_desk {{
           {bg_css}
           background-size: cover !important;
           background-position: center !important;
+          background-repeat: no-repeat !important;
           border-radius: 10px !important;
           border: 1px solid rgba(200, 210, 220, 0.22) !important;
           box-shadow: inset 0 0 28px rgba(40, 32, 24, 0.12) !important;
           padding: 1.1rem 0.65rem 1rem !important;
           margin: 0 0 0.75rem !important;
           min-height: 26rem !important;
+          overflow: hidden !important;
           contain: layout paint;
         }}
-        div[data-testid="stElementContainer"]:has(.evidence-desk-live-mark) {{
+        div.st-key-tr_evidence_desk [data-testid="stVerticalBlock"],
+        div.st-key-tr_evidence_desk [data-testid="stHorizontalBlock"],
+        div.st-key-tr_evidence_desk [data-testid="stElementContainer"],
+        div.st-key-tr_evidence_desk [data-testid="column"],
+        div.st-key-tr_evidence_desk [data-testid="stColumn"],
+        div.st-key-tr_evidence_desk [data-testid="stButton"] {{
+          background: transparent !important;
+          background-image: none !important;
+          background-color: transparent !important;
+          min-height: 0 !important;
+          border: none !important;
+          box-shadow: none !important;
+        }}
+        [data-stale="true"] div.st-key-tr_evidence_desk,
+        [data-stale="true"]:has(div.st-key-tr_evidence_desk) {{
           display: none !important;
+          opacity: 0 !important;
           height: 0 !important;
+          min-height: 0 !important;
           margin: 0 !important;
           padding: 0 !important;
+          overflow: hidden !important;
+          border: none !important;
+          background: none !important;
+          background-image: none !important;
         }}
         div[class*="st-key-desk_item_"] button,
         div[class*="st-key-desk_item_"] .stButton > button {{
@@ -1164,7 +1427,7 @@ def _render_evidence_desk_board(
           font-weight: 700 !important;
         }}
         @media (max-width: 900px) {{
-          div[data-testid="stVerticalBlock"]:has(> div[data-testid="stElementContainer"] .evidence-desk-live-mark):not(:has(.search-catalog-kicker)) {{
+          div.st-key-tr_evidence_desk {{
             min-height: 20rem !important;
           }}
           div[class*="st-key-desk_item_"] button {{
@@ -1198,11 +1461,7 @@ def _render_evidence_desk_board(
     st.markdown(f"<style>{''.join(css_bits)}</style>", unsafe_allow_html=True)
 
     clicked_id: str | None = None
-    with st.container():
-        st.markdown(
-            '<div class="evidence-desk-live-mark" aria-hidden="true"></div>',
-            unsafe_allow_html=True,
-        )
+    with st.container(key="tr_evidence_desk"):
         for row_i in range(0, len(items), 5):
             row = items[row_i : row_i + 5]
             cols = st.columns(5)
@@ -1230,33 +1489,54 @@ def _render_evidence_desk_board(
 
 
 
-def _force_sidebar_collapsed_on_full_load() -> None:
+def _force_sidebar_collapsed_on_full_load(*, allow_click: bool = True) -> None:
     """전체 문서 로드(새로고침·입장) 시 사이드바를 닫힌 상태로 맞춤.
 
     Streamlit 1.46+는 stSidebarCollapsed-* 를 localStorage에 보존해
     initial_sidebar_state=\"collapsed\" 보다 우선한다. 위젯 rerun에서는
     performance.timeOrigin 이 같으므로 다시 닫지 않는다.
+    allow_click=False(스타트 브리핑)면 localStorage만 맞추고 click 접기는 생략한다.
     """
+    click_js = "true" if allow_click else "false"
+    # 위젯 rerun마다 iframe을 다시 만들면 레이아웃이 흔들린다 — 세션당 1회만
+    _side_key = f"_sidebar_collapse_injected_{allow_click}"
+    if st.session_state.get(_side_key):
+        return
+    st.session_state[_side_key] = True
     components.html(
-        """<!DOCTYPE html><html><body><script>
-(function () {
-  try {
+        f"""<!DOCTYPE html><html><body><script>
+(function () {{
+  try {{
     var w = window.parent;
     if (!w || !w.document) return;
     var loadId = String((w.performance && w.performance.timeOrigin) || Date.now());
     var mark = "truth_room_sidebar_collapse_load";
     if (w.sessionStorage.getItem(mark) === loadId) return;
     w.sessionStorage.setItem(mark, loadId);
-    try {
-      for (var i = w.localStorage.length - 1; i >= 0; i--) {
+    try {{
+      for (var i = w.localStorage.length - 1; i >= 0; i--) {{
         var k = w.localStorage.key(i);
-        if (k && k.indexOf("stSidebarCollapsed-") === 0) {
+        if (k && k.indexOf("stSidebarCollapsed-") === 0) {{
           w.localStorage.setItem(k, "true");
-        }
-      }
-    } catch (e) {}
-    function collapse() {
-      try {
+        }}
+      }}
+    }} catch (e) {{}}
+    var allowClick = {click_js};
+    if (!allowClick) return;
+    function hasModal() {{
+      try {{
+        return !!(
+          w.document.querySelector('[data-testid="stDialog"]') ||
+          w.document.querySelector('[data-testid="stModal"]') ||
+          w.document.querySelector('div[role="dialog"]')
+        );
+      }} catch (e) {{
+        return false;
+      }}
+    }}
+    function collapse() {{
+      try {{
+        if (hasModal()) return true;
         var side = w.document.querySelector('[data-testid="stSidebar"]');
         if (!side || side.getAttribute("aria-expanded") !== "true") return true;
         var btn =
@@ -1265,24 +1545,25 @@ def _force_sidebar_collapsed_on_full_load() -> None:
           w.document.querySelector(
             'section[data-testid="stSidebar"] button[kind="headerNoPadding"]'
           );
-        if (btn) {
+        if (btn) {{
           btn.click();
           return true;
-        }
-      } catch (e) {}
+        }}
+      }} catch (e) {{}}
       return false;
-    }
-    if (!collapse()) {
+    }}
+    if (!collapse()) {{
       var n = 0;
-      var t = w.setInterval(function () {
+      var t = w.setInterval(function () {{
         n += 1;
         if (collapse() || n > 40) w.clearInterval(t);
-      }, 50);
-    }
-  } catch (e) {}
-})();
+      }}, 50);
+    }}
+  }} catch (e) {{}}
+}})();
 </script></body></html>""",
         height=0,
+        width=0,
     )
 
 
@@ -1335,8 +1616,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           min-height: 100dvh !important;
           overflow-x: hidden !important;
         }}
-        /* 뷰포트 세로 중앙 — 콘텐츠가 짧을 때만 가운데, 길면 상단부터 스크롤.
-           height:100% + min-height:100vh 중첩은 맥북에서 불필요 스크롤을 만듦. */
+        /* 상단 고정 — 세로 중앙은 탭 높이 변화에 따라 전체가 오르내려 사용하지 않음. */
         html, body {{
           min-height: 100% !important;
           height: auto !important;
@@ -1377,6 +1657,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .stMainBlockContainer,
         .stMain .block-container,
         .main .block-container {{
+          /* 모바일: 탑바 직하 / PC: 뤼튼식 상단 여백 + 위쪽 정렬 */
           padding-top: calc(var(--app-topbar-h, 3.15rem) + 0.35rem) !important;
           padding-bottom: 0.75rem !important;
           /* 맥북 등 좁은 화면: 좌우 최소 여백 / 광폭 모니터: max-width 가운데 정렬 */
@@ -1388,7 +1669,6 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           ) !important;
           margin-left: auto !important;
           margin-right: auto !important;
-          /* 기본은 상단 고정 — PC에서만 세로 중앙 */
           margin-top: 0 !important;
           margin-bottom: 0.5rem !important;
           width: 100% !important;
@@ -1399,9 +1679,33 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           .stMainBlockContainer,
           .stMain .block-container,
           .main .block-container {{
-            /* 짧으면 세로 중앙, 길면 auto→0 으로 상단 스크롤 가능 */
-            margin-top: auto !important;
-            margin-bottom: auto !important;
+            /* 맥북: 기존 여백 유지 */
+            padding-top: calc(
+              var(--app-topbar-h, 3.15rem) + clamp(2.75rem, 11vh, 6rem)
+            ) !important;
+            margin-top: 0 !important;
+            margin-bottom: 0.5rem !important;
+          }}
+        }}
+        /* 27"·4K 등 세로가 긴 화면 — 스테이지를 더 아래로 */
+        @media (min-width: 901px) and (min-height: 1000px) {{
+          [data-testid="stMainBlockContainer"],
+          .stMainBlockContainer,
+          .stMain .block-container,
+          .main .block-container {{
+            padding-top: calc(
+              var(--app-topbar-h, 3.15rem) + clamp(4rem, 14vh, 9rem) + 135px
+            ) !important;
+          }}
+        }}
+        @media (min-width: 901px) and (min-height: 1200px) {{
+          [data-testid="stMainBlockContainer"],
+          .stMainBlockContainer,
+          .stMain .block-container,
+          .main .block-container {{
+            padding-top: calc(
+              var(--app-topbar-h, 3.15rem) + clamp(5rem, 16vh, 11rem) + 135px
+            ) !important;
           }}
         }}
         /* height=0 components.html 이 남기는 세로 틈 제거 */
@@ -1423,6 +1727,31 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           opacity: 0 !important;
           pointer-events: none !important;
         }}
+        /* SFX 런타임 슬롯 — flex 흐름에서 완전 분리 (팝업 시 화면 흔들림 방지) */
+        div[data-testid="stElementContainer"]:has(.sfx-runtime-mark),
+        div[data-testid="stElementContainer"]:has(.sfx-runtime-mark) + div[data-testid="stElementContainer"] {{
+          display: none !important;
+          position: fixed !important;
+          left: 0 !important;
+          top: 0 !important;
+          width: 0 !important;
+          height: 0 !important;
+          max-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          overflow: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+          z-index: -1 !important;
+        }}
+        .sfx-runtime-mark {{
+          display: none !important;
+          height: 0 !important;
+          width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }}
         /* st.markdown(<style>) 빈 박스가 VerticalBlock flex gap을 누적 → 상단 여백 주범 */
         div[data-testid="stElementContainer"]:has(style),
         div[data-testid="stElementContainer"]:has(.stMarkdownContainer > style) {{
@@ -1438,6 +1767,61 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           width: 0 !important;
           opacity: 0 !important;
           pointer-events: none !important;
+        }}
+        /* 수사 권한 — iframe 없이 fixed markdown (클릭 remount 흔들림 방지) */
+        .tr-stamina-dock {{
+          position: fixed !important;
+          top: 0.28rem !important;
+          right: 3.55rem !important;
+          z-index: 1000025 !important;
+          display: inline-flex !important;
+          align-items: center !important;
+          gap: 0.35rem !important;
+          height: 2.15rem !important;
+          padding: 0 0.6rem !important;
+          box-sizing: border-box !important;
+          border-radius: 0.4rem !important;
+          border: 1px solid rgba(255, 255, 255, 0.28) !important;
+          background: rgba(18, 22, 30, 0.92) !important;
+          color: #e8e4dc !important;
+          white-space: nowrap !important;
+          pointer-events: none !important;
+          font-family: var(--font-ui) !important;
+        }}
+        .tr-stamina-dock .lbl {{
+          font-size: 0.62rem !important;
+          letter-spacing: 0.06em !important;
+          text-transform: uppercase !important;
+          color: rgba(180, 186, 196, 0.9) !important;
+        }}
+        .tr-stamina-dock .hearts {{
+          font-size: 0.85rem !important;
+          font-weight: 700 !important;
+          letter-spacing: 0.05em !important;
+          color: #e8eef4 !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.tr-stamina-dock) {{
+          position: absolute !important;
+          width: 0 !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          opacity: 1 !important;
+          pointer-events: none !important;
+        }}
+        /* SFX/media 신호 노드 — 레이아웃 비참여 */
+        .tr-sfx-item,
+        .tr-media-cmd {{
+          display: none !important;
+        }}
+        div[data-testid="stElementContainer"]:has(.tr-sfx-item),
+        div[data-testid="stElementContainer"]:has(.tr-media-cmd) {{
+          display: none !important;
+          height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
         }}
         /* BGM+수사권한 독 — 예전 Streamlit 개발 알림(우상단) 자리 */
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark) {{
@@ -1464,6 +1848,7 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
           padding: 0 !important;
           overflow: visible !important;
           background: transparent !important;
+          display: none !important; /* legacy iframe dock 비활성 */
         }}
         div[data-testid="stElementContainer"]:has(.game-bgm-dock-mark)
           + div[data-testid="stElementContainer"] iframe {{
@@ -4059,23 +4444,6 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         .ending-banner.is-lose {{
           border-color: rgba(180, 90, 90, 0.45);
         }}
-        .app-footer-sig {{
-          /* 음수 margin으로만 살짝 올림 (레이아웃 높이 유지) */
-          margin: -0.35rem 0 0.35rem !important;
-          padding: 0 !important;
-          text-align: center !important;
-          font-size: 0.72rem !important;
-          letter-spacing: 0.06em !important;
-          color: rgba(139, 145, 156, 0.38) !important;
-          user-select: none;
-          position: static;
-          top: auto;
-        }}
-        div[data-testid="stElementContainer"]:has(.app-footer-sig),
-        div[data-testid="stMarkdownContainer"]:has(.app-footer-sig) {{
-          margin-bottom: 0 !important;
-          padding-bottom: 0 !important;
-        }}
         .ending-kicker {{
           font-size: 0.68rem;
           letter-spacing: 0.14em;
@@ -4833,6 +5201,8 @@ def _inject_theme(*, mental: bool = False, revoked: bool = False) -> None:
         /*
           Streamlit stDialog = Modal Root(오버레이).
           오버레이는 뷰포트 풀사이즈, 카드만 내용 높이.
+          ※ stale 본편을 display:none 하면 프로필 등 팝업 중 게임 화면이
+            통째로 사라져 검정만 보인다 — 숨기지 않는다.
         */
         div[data-testid="stDialog"] {{
           position: fixed !important;
@@ -5424,6 +5794,7 @@ def _confirm_pending_clue() -> None:
     st.session_state.pop("suppress_clue_banner", None)
 
 
+
 def _render_clue_banner() -> None:
     if st.session_state.get("suppress_clue_banner"):
         return
@@ -5517,11 +5888,18 @@ def _render_ending_banner() -> None:
     st.markdown(_ending_card_html(str(text), won=False), unsafe_allow_html=True)
 
 
-def _ending_card_html(body: str, *, won: bool) -> str:
-    """엔딩 배너·지목 모달 공통 카드 마크업."""
+def _ending_card_html(body: str, *, won: bool, revoked: bool = False) -> str:
+    """엔딩 배너·지목/권한박탈 모달 공통 카드 마크업."""
     cls = "ending-banner is-win" if won else "ending-banner is-lose"
-    kicker = "CASE CLOSED · GOLDEN ROUTE" if won else "JUDGEMENT FAILED"
-    title = "진실이 밝혀졌습니다" if won else "지목이 빗나갔습니다"
+    if won:
+        kicker = "CASE CLOSED · GOLDEN ROUTE"
+        title = "진실이 밝혀졌습니다"
+    elif revoked:
+        kicker = "AUTHORITY REVOKED"
+        title = "수사 권한이 박탈되었습니다"
+    else:
+        kicker = "JUDGEMENT FAILED"
+        title = "지목이 빗나갔습니다"
     return (
         f'<div class="{cls}">'
         f'<div class="ending-kicker">{kicker}</div>'
@@ -5859,9 +6237,15 @@ def _open_case_info(case: dict, *, title_fallback: str = "사건개요") -> None
     )
 
 
-@st.dialog("사건개요", width="large", dismissible=False)
+@st.dialog("수사 브리핑", width="large", dismissible=False)
 def _open_case_briefing(case: dict, *, title_fallback: str = "사건개요") -> None:
-    """진입 브리핑 — 닫기(X) 없음, 스타트로만 진행."""
+    """진입 브리핑 — 닫기(X) 없음, 스타트로만 진행.
+
+    제목을 「사건개요」와 공유하면 START 직후 빈 다이얼로그 껍데기가
+    한 프레임 남는 경우가 있어 브리핑 전용 제목을 쓴다.
+    """
+    if st.session_state.get("game_started"):
+        return
     st.markdown(
         '<div class="case-briefing-lock" aria-hidden="true"></div>',
         unsafe_allow_html=True,
@@ -5878,6 +6262,9 @@ def _open_case_briefing(case: dict, *, title_fallback: str = "사건개요") -> 
         st.session_state["bgm_should_play"] = True
         st.session_state["timer_paused"] = False
         st.session_state.pop("timer_remaining", None)
+        # START 직후 Streamlit이 남기는 빈 다이얼로그 껍데기 1프레임 억제
+        st.session_state["_suppress_dialog_shell"] = True
+        st.session_state.pop("_pending_ui_dialog", None)
         _reset_timer()
         st.rerun()
 
@@ -5951,6 +6338,8 @@ def _open_desk_clue_alert(clue: dict) -> None:
         st.rerun()
 
 
+
+
 @st.dialog("수색 결과", dismissible=False)
 def _open_desk_alert(message: str, *, kind: str = "warn") -> None:
     text = str(message or "").strip() or "수색 결과를 확인하세요."
@@ -5968,6 +6357,8 @@ def _open_desk_alert(message: str, *, kind: str = "warn") -> None:
         st.rerun()
 
 
+
+
 @st.dialog("지목 결과", dismissible=False)
 def _open_accuse_alert(
     message: str, *, won: bool = False, revoked: bool = False
@@ -5976,12 +6367,15 @@ def _open_accuse_alert(
     if won:
         body = text or "미션 클리어."
         st.markdown(_ending_card_html(body, won=True), unsafe_allow_html=True)
+    elif revoked:
+        body = text or "감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다."
+        st.markdown(
+            _ending_card_html(body, won=False, revoked=True),
+            unsafe_allow_html=True,
+        )
     else:
         st.error(text or "지목이 빗나갔습니다.")
-        if revoked:
-            st.caption("수사 권한이 모두 소진되어 수사가 종료됩니다.")
-        else:
-            st.caption("오답 지목 1회마다 수사 권한이 1 감소합니다. 조합을 다시 검토하세요.")
+        st.caption("오답 지목 1회마다 수사 권한이 1 감소합니다. 조합을 다시 검토하세요.")
     if st.button("확인", type="primary", use_container_width=True, key="btn_accuse_alert_ok"):
         if won:
             st.session_state["case_won"] = True
@@ -5990,59 +6384,207 @@ def _open_accuse_alert(
                 st.session_state.get("suspect_id") or ""
             )
             st.session_state["arrest_stamp_slam"] = True
+        elif revoked:
+            st.session_state["revoked_alert_acked"] = True
+            st.session_state.pop("revoked_alert_pending_accuse", None)
+            st.session_state["last_ending"] = None
+            st.session_state.pop("last_ending_ok", None)
         _resume_timer()
         st.rerun()
 
 
+@st.dialog("수사 권한 박탈", dismissible=False)
+def _open_authority_revoked_alert(message: str) -> None:
+    body = (
+        str(message or "").strip()
+        or "감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다."
+    )
+    st.markdown(
+        _ending_card_html(body, won=False, revoked=True),
+        unsafe_allow_html=True,
+    )
+    if st.button(
+        "확인", type="primary", use_container_width=True, key="btn_revoked_alert_ok"
+    ):
+        st.session_state["revoked_alert_acked"] = True
+        st.session_state["last_ending"] = None
+        st.session_state.pop("last_ending_ok", None)
+        _resume_timer()
+        st.rerun()
+
+
+def _queue_ui_dialog(kind: str, **payload) -> None:
+    """버튼 클릭용 — 다음 런 초반에 다이얼로그만 연다."""
+    st.session_state["_pending_ui_dialog"] = {"kind": str(kind), **payload}
+    st.rerun()
+
+
+def _set_pending_ui_dialog(kind: str, **payload) -> None:
+    """flash 소비용 — rerun 없이 pending만 세팅 (같은 런에서 drain)."""
+    st.session_state["_pending_ui_dialog"] = {"kind": str(kind), **payload}
+
+
+def _dispatch_ui_dialog(pending: dict) -> bool:
+    """queued UI dialog 1건 오픈. 성공 시 True."""
+    kind = str(pending.get("kind") or "")
+    if kind == "howto":
+        _pause_timer()
+        _open_howto()
+        return True
+    if kind == "dossier":
+        sid = str(pending.get("suspect_id") or "")
+        data = st.session_state.get("_dossier_dialog_data")
+        if not sid or not isinstance(data, dict):
+            return False
+        _pause_timer()
+        _open_dossier(sid, data)
+        return True
+    if kind == "case_info":
+        case = pending.get("case") or {}
+        title = str(pending.get("title_fallback") or "사건개요")
+        _pause_timer()
+        _open_case_info(case if isinstance(case, dict) else {}, title_fallback=title)
+        return True
+    if kind == "desk_alert":
+        _pause_timer()
+        _open_desk_alert(str(pending.get("message") or ""), kind=str(pending.get("alert_kind") or "warn"))
+        return True
+    if kind == "desk_clue":
+        clue = pending.get("clue")
+        if not isinstance(clue, dict):
+            return False
+        st.session_state["suppress_clue_banner"] = True
+        _pause_timer()
+        _open_desk_clue_alert(clue)
+        return True
+    if kind == "accuse":
+        _pause_timer()
+        _open_accuse_alert(
+            str(pending.get("message") or ""),
+            won=bool(pending.get("won")),
+            revoked=bool(pending.get("revoked")),
+        )
+        return True
+    if kind == "revoked":
+        _pause_timer()
+        _open_authority_revoked_alert(str(pending.get("message") or ""))
+        return True
+    return False
+
+
 def _request_desk_alert(message: str, *, kind: str = "warn") -> None:
-    _pause_timer()
-    _open_desk_alert(message, kind=kind)
+    _set_pending_ui_dialog("desk_alert", message=str(message), alert_kind=str(kind))
 
 
 def _request_accuse_alert(
     message: str, *, won: bool = False, revoked: bool = False
 ) -> None:
-    _pause_timer()
-    _open_accuse_alert(message, won=won, revoked=revoked)
-
-
-def _request_desk_clue_alert(clue: dict) -> None:
-    st.session_state["suppress_clue_banner"] = True
-    _pause_timer()
-    _open_desk_clue_alert(clue)
-
-
-def _consume_desk_flash_modal() -> None:
-    """수색 결과 모달 — 성공+단서는 배너 내용, 그 외는 단순 알림."""
-    flash = st.session_state.get("desk_flash")
-    if not isinstance(flash, dict) or not flash.get("text"):
-        return
-    kind = str(flash.get("kind") or "info")
-    pending = list(st.session_state.get("pending_clues") or [])
-    if kind == "ok" and pending:
-        st.session_state.pop("desk_flash", None)
-        _request_desk_clue_alert(pending[0])
-        return
-    st.session_state.pop("desk_flash", None)
-    _request_desk_alert(str(flash.get("text")), kind=kind)
-
-
-def _consume_accuse_flash_modal() -> None:
-    """최종 지목 결과 모달 (정답·오답)."""
-    flash = st.session_state.get("accuse_flash")
-    if not isinstance(flash, dict) or not flash.get("text"):
-        return
-    st.session_state.pop("accuse_flash", None)
-    _request_accuse_alert(
-        str(flash.get("text")),
-        won=bool(flash.get("won")),
-        revoked=bool(flash.get("revoked")),
+    if won:
+        _play_search_ok_sfx()
+    elif revoked:
+        _play_revoked_sfx()
+    else:
+        _play_search_miss_sfx()
+    _set_pending_ui_dialog(
+        "accuse",
+        message=str(message),
+        won=bool(won),
+        revoked=bool(revoked),
     )
 
 
+def _request_authority_revoked_alert(message: str) -> None:
+    _play_revoked_sfx()
+    _set_pending_ui_dialog("revoked", message=str(message))
+
+
+def _request_desk_clue_alert(clue: dict) -> None:
+    _set_pending_ui_dialog("desk_clue", clue=clue)
+
+
+
+
+def _consume_desk_flash_modal() -> bool:
+    """수색 결과 모달 큐잉. 큐에 넣었으면 True."""
+    flash = st.session_state.get("desk_flash")
+    if not isinstance(flash, dict) or not flash.get("text"):
+        return False
+    kind = str(flash.get("kind") or "info")
+    pending = list(st.session_state.get("pending_clues") or [])
+    st.session_state.pop("desk_flash", None)
+    if kind == "ok" and pending:
+        _request_desk_clue_alert(pending[0])
+        return True
+    _request_desk_alert(str(flash.get("text")), kind=kind)
+    return True
+
+
+
+
+def _consume_accuse_flash_modal() -> bool:
+    """최종 지목 결과 모달 큐잉. 큐에 넣었으면 True."""
+    flash = st.session_state.get("accuse_flash")
+    if not isinstance(flash, dict) or not flash.get("text"):
+        return False
+    st.session_state.pop("accuse_flash", None)
+    revoked = bool(flash.get("revoked"))
+    if revoked:
+        st.session_state["revoked_alert_pending_accuse"] = True
+    _request_accuse_alert(
+        str(flash.get("text")),
+        won=bool(flash.get("won")),
+        revoked=revoked,
+    )
+    return True
+
+
+def _consume_authority_revoked_modal(*, revoked: bool) -> bool:
+    """수사 권한 박탈 모달 큐잉. 큐에 넣었으면 True."""
+    flash = st.session_state.get("revoked_flash")
+    if flash:
+        st.session_state.pop("revoked_flash", None)
+        _request_authority_revoked_alert(str(flash))
+        return True
+    if st.session_state.get("revoked_alert_pending_accuse"):
+        return False
+    if not revoked or st.session_state.get("revoked_alert_acked"):
+        return False
+    msg = (
+        st.session_state.get("last_ending")
+        or "감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다."
+    )
+    _request_authority_revoked_alert(str(msg))
+    return True
+
+
+def _consume_game_flash_modals(*, revoked: bool) -> bool:
+    """플래시 → 다이얼로그 큐. 큐잉/오픈 예약이 있으면 True.
+
+    실제 오픈은 `_drain_dialogs_before_stage`에서 수행한 뒤 본편 UI를 이어서 그린다.
+    """
+    if _consume_accuse_flash_modal():
+        return True
+    if _consume_authority_revoked_modal(revoked=revoked):
+        st.session_state.pop("desk_flash", None)
+        return True
+    return _consume_desk_flash_modal()
+
+
+def _drain_dialogs_before_stage(*, revoked: bool) -> bool:
+    """pending UI dialog 1건 오픈. 성공 시 True.
+
+    본편(Field Ops)은 그대로 이어서 그린다 — stop 하면 팝업 뒤에
+    게임 화면이 사라져 검정만 보인다.
+    """
+    pending = st.session_state.pop("_pending_ui_dialog", None)
+    if isinstance(pending, dict) and pending.get("kind"):
+        return _dispatch_ui_dialog(pending)
+    return False
+
+
 def _request_howto() -> None:
-    _pause_timer()
-    _open_howto()
+    _play_ui_open_sfx()
+    _queue_ui_dialog("howto")
 
 
 def _request_dossier(suspect_id: str) -> None:
@@ -6052,8 +6594,9 @@ def _request_dossier(suspect_id: str) -> None:
         st.session_state["dossier_error"] = err or "프로필을 불러오지 못했습니다."
         return
     st.session_state.pop("dossier_error", None)
-    _pause_timer()
-    _open_dossier(suspect_id, data)
+    st.session_state["_dossier_dialog_data"] = data
+    _play_ui_open_sfx()
+    _queue_ui_dialog("dossier", suspect_id=str(suspect_id))
 
 
 def _request_case_info(
@@ -6071,10 +6614,11 @@ def _request_case_info(
             return
     st.session_state.pop("dossier_error", None)
     if show_start:
+        # 최초 브리핑은 본편 UI 없이 열림(기존 st.stop 경로)
         _open_case_briefing(case, title_fallback=title_fallback)
         return
-    _pause_timer()
-    _open_case_info(case, title_fallback=title_fallback)
+    _play_ui_open_sfx()
+    _queue_ui_dialog("case_info", case=case, title_fallback=title_fallback)
 
 
 def _stress_stage(*, break_n: int, pressure: float, is_broken: bool) -> int:
@@ -6187,6 +6731,8 @@ def _pick_suspect(
                 f'<img alt="검거" src="{stamp_uri}" />'
                 f"</div>"
             )
+            if slam:
+                _play_arrest_stamp_sfx()
 
     # 단일 카드 — 초상+프로필 hit를 같은 relative 스택에 둠
     with st.container():
@@ -6353,31 +6899,40 @@ revoked = status == "authority_revoked" or (
 )
 stamina = int(game.get("stamina") or 0)
 
-_inject_theme(mental=mental, revoked=revoked)
-_force_sidebar_collapsed_on_full_load()
-
 # 인트로/시작 화면 생략 — 사건개요 브리핑 후 스타트로 본편
 st.session_state["show_intro"] = False
 if "game_started" not in st.session_state:
     st.session_state["game_started"] = False
+_game_started = bool(st.session_state.get("game_started"))
+# 이전 실험용 플래그 잔여 정리
+st.session_state.pop("pending_interrogation", None)
+st.session_state.pop("stage_enter_anim", None)
 
-# 우상단 독: 수사 권한 (+ 스타트 이후 BGM)
-_force_bgm = False
-_with_bgm = bool(st.session_state.get("game_started"))
-if _with_bgm:
-    _force_bgm = bool(st.session_state.pop("bgm_should_play", False))
-_inject_top_dock(game, with_bgm=_with_bgm, muted=False, force_play=_force_bgm)
+_inject_theme(mental=mental, revoked=revoked)
+# START 직후 한 런만 — 빈 「사건개요」다이얼로그 껍데기 숨김
+if st.session_state.pop("_suppress_dialog_shell", None):
+    st.markdown(
+        """
+        <style>
+        div[data-testid="stDialog"],
+        div[data-testid="stModal"],
+        div[role="dialog"],
+        [data-testid="stDialog"] ~ div {
+          display: none !important;
+          visibility: hidden !important;
+          opacity: 0 !important;
+          pointer-events: none !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+# 스타트 전 브리핑 중에는 click 접기 생략(모달 아래 레이아웃 흔들림 방지)
+_force_sidebar_collapsed_on_full_load(allow_click=_game_started)
 
-_render_hud_brand(game)
-with st.sidebar:
-    _render_sidebar_hud(game, sid=sid)
-_consume_desk_flash_modal()
-_consume_accuse_flash_modal()
-_render_clue_banner()
-
-# 진입 시 사건개요 팝업 + 스타트 (닫아도 미시작이면 다시 염)
+# 진입 시 사건개요 팝업 + 스타트 — 본편 UI는 그리지 않아 뒤에는 배경만 보이게
 if (
-    not st.session_state.get("game_started")
+    not _game_started
     and not game.get("ended")
     and not revoked
 ):
@@ -6386,13 +6941,27 @@ if (
         title_fallback=str(game.get("title") or "사건개요"),
         show_start=True,
     )
+    _flush_sfx_runtime()
+    st.stop()
+
+# 우상단 독: 수사 권한 (+ 스타트 이후 BGM)
+_force_bgm = bool(st.session_state.pop("bgm_should_play", False))
+
+# flash → dialog queue. 다이얼로그만 열고 본편은 아래에서 계속 그림.
+_consume_game_flash_modals(revoked=revoked)
+_drain_dialogs_before_stage(revoked=revoked)
+
+_inject_top_dock(game, with_bgm=True, muted=False, force_play=_force_bgm)
+
+_render_hud_brand(game)
+with st.sidebar:
+    _render_sidebar_hud(game, sid=sid)
+_render_clue_banner()
 
 if st.session_state.get("dossier_error"):
     st.error(st.session_state.pop("dossier_error"))
 
-if revoked:
-    st.error("감사관, 당신은 무능합니다. 수사 권한이 박탈되었습니다.")
-elif mental:
+if mental and not revoked:
     st.warning("알리바이 3-Out — 용의자 멘탈 마스크가 깨졌습니다.")
 
 timer_on = (
@@ -6439,7 +7008,7 @@ elif timer_on:
 
     _timer_slot()
 
-if st.session_state.get("last_ending"):
+if st.session_state.get("last_ending") and not revoked:
     _render_ending_banner()
 
 # 본문 한 줄: 왼쪽 용의자/탭, 오른쪽 인벤토리·압박·기록
@@ -6547,12 +7116,17 @@ with col_ops:
         _render_interrogation_chat()
         # Streamlit 네이티브 채팅 입력 — Enter 전송·한글 IME를 프레임워크가 처리
         question = st.chat_input(
-            "그날 밤 어디에 있었습니까?",
+            "질문을 입력하세요",
+
             key="ask_chat",
             disabled=bool(game.get("ended")),
         )
         if question and not game.get("ended"):
-            if timer_on and not st.session_state.get("timer_paused") and _timer_seconds_left() <= 0:
+            if (
+                timer_on
+                and not st.session_state.get("timer_paused")
+                and _timer_seconds_left() <= 0
+            ):
                 st.warning("시간 초과 — 턴이 패스됩니다.")
                 _handle_timeout(sid)
             else:
@@ -6566,8 +7140,6 @@ with col_ops:
                     data = resp.json()
                     st.session_state["game"] = data.get("state", game)
                     line = data.get("answer") or ""
-                    if data.get("is_alibi_broken"):
-                        line = f"알리바이 붕괴! (break {data.get('break_count')}/3) — {line}"
                     _append_chat("user", question, name="탐정")
                     state_now = data.get("state") or st.session_state.get("game") or {}
                     press_now = float(
@@ -6584,6 +7156,8 @@ with col_ops:
                         pressure=press_now,
                         is_broken=broken_now,
                     )
+                    if _note_portrait_stage(str(suspect_id), stage_now):
+                        _play_stress_up_sfx(stage=stage_now)
                     _append_chat(
                         "suspect",
                         line,
@@ -6594,49 +7168,11 @@ with col_ops:
                     note = (data.get("assistant_note") or "").strip()
                     if note:
                         _append_chat("assistant", note, name="조수")
-                    transcript = data.get("agent_transcript") or []
-                    if transcript:
-                        st.session_state["last_agent_turn"] = {
-                            "question": question,
-                            "transcript": transcript,
-                            "autogen": data.get("autogen") or {},
-                            "gm_status": data.get("gm_status"),
-                        }
+                    st.session_state.pop("last_agent_turn", None)
                     _reset_timer()
                     st.rerun()
                 else:
                     st.error(resp.text)
-
-        last_ag = st.session_state.get("last_agent_turn")
-        if last_ag and last_ag.get("transcript"):
-            st.markdown(
-                '<div class="ops-autogen-gap" aria-hidden="true"></div>',
-                unsafe_allow_html=True,
-            )
-            meta = last_ag.get("autogen") or {}
-            label = "멀티에이전트 대화 (AutoGen)"
-            if meta.get("used"):
-                label += f" · {meta.get('n_messages', '?')}msgs · {meta.get('elapsed_sec', '?')}s"
-            elif meta.get("fallback"):
-                label = "멀티에이전트 (폴백 — 스텁 응답)"
-            with st.expander(label, expanded=False):
-                st.caption(f"Q: {last_ag.get('question') or ''}")
-                role_label = {
-                    "Detective": "탐정",
-                    "Suspect": "용의자",
-                    "ForensicAssistant": "포렌식 조수",
-                    "Judge": "심판",
-                }
-                for turn in last_ag["transcript"]:
-                    role = str(turn.get("role") or "")
-                    content = str(turn.get("content") or "")
-                    if role == "Judge":
-                        st.caption(
-                            f"**심판** · status=`{last_ag.get('gm_status') or '—'}`"
-                        )
-                        continue
-                    who = role_label.get(role, role or "agent")
-                    st.markdown(f"**{who}** — {content}")
 
     with tab_search:
         owned_now = list(game.get("evidence_ids") or [])
@@ -6733,18 +7269,18 @@ with col_ops:
 
         if accuse_clicked and ready:
             eids = [ev_options[lab] for lab in selected_labels]
-            resp = requests.post(
-                f"{_api()}/api/v1/session/{sid}/accuse",
-                json={"suspect_id": suspect_id, "evidence_ids": eids},
-                timeout=30,
-            )
+            with st.spinner("OpenAI 심판 LLM이 판정 중입니다…"):
+                resp = requests.post(
+                    f"{_api()}/api/v1/session/{sid}/accuse",
+                    json={"suspect_id": suspect_id, "evidence_ids": eids},
+                    timeout=45,
+                )
             if resp.status_code == 200:
                 data = resp.json()
                 st.session_state["game"] = data.get("state", game)
                 ending_text = str(data.get("ending") or "").strip()
                 if data.get("correct"):
                     win_msg = ending_text or "미션 클리어."
-                    # 배너는 모달 확인 후에 표시 (중복 방지)
                     st.session_state["last_ending"] = None
                     st.session_state.pop("last_ending_ok", None)
                     st.session_state["accuse_flash"] = {
@@ -6759,17 +7295,17 @@ with col_ops:
                         "revoked": revoked_now,
                     }
                     if revoked_now:
-                        st.session_state["last_ending"] = fail_msg
-                        st.session_state["last_ending_ok"] = False
+                        st.session_state["revoked_flash"] = None
+                        st.session_state["last_ending"] = None
+                        st.session_state.pop("last_ending_ok", None)
+                        st.session_state.pop("revoked_alert_acked", None)
                     else:
                         st.session_state["last_ending"] = None
                         st.session_state.pop("last_ending_ok", None)
+                # 다음 런 초반에 모달만 연다 (본편 remount와 분리 → 첫 팝업 떨림 방지)
                 st.rerun()
             else:
                 st.error(resp.text)
 
-st.markdown(
-    '<p class="app-footer-sig">© 2026 어쩌다 팀 · All rights reserved.</p>',
-    unsafe_allow_html=True,
-)
+_flush_sfx_runtime()
 _sync_ops_rail_width()

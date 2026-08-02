@@ -285,13 +285,31 @@ def node_update_pressure(state: AgentState, cfg: dict[str, Any], personas: dict[
 
 
 def node_confront(state: AgentState, cfg: dict[str, Any], personas: dict[str, Any]) -> AgentState:
+    from lib.story_branch import resolve_story_branch
+
     persona = personas.get(state.suspect_id, {})
     eids = state.evidence_ids
-    line = f"{persona.get('name', state.suspect_id)}에게 증거 {eids or ['(없음)']} 제시."
+    branch = resolve_story_branch(
+        suspect_id=state.suspect_id,
+        evidence_ids=list(eids),
+        pressure=dict(state.pressure),
+        break_count=dict(state.break_count),
+    )
+    line = (
+        f"{persona.get('name', state.suspect_id)}에게 증거 {eids or ['(없음)']} 제시. "
+        f"[{branch.get('label')}] {branch.get('assistant_hint')}"
+    )
     if "ev_net_01" in eids and state.suspect_id == "suspect_b":
         line += " 결정적 네트워크 로그로 압박."
     state.messages.append({"role": "gm", "text": line})
-    state.trace.append({"node": "confront", "ok": True, "line": line})
+    state.trace.append(
+        {
+            "node": "confront",
+            "ok": True,
+            "line": line,
+            "story_branch": branch.get("id"),
+        }
+    )
     state.phase = "ending"
     return state
 
