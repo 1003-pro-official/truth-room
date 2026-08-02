@@ -14,7 +14,7 @@
 6. **실험** — Baseline vs Advanced Hit@5 **0/4→4/4** · RAGAS n=30 · LoRA ladder · AutoGen ask
 7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분  
    _(UI: Streamlit→React — Streamlit 한계로 오류 반복 → 본선 이전)_
-8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit)
+8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit · **진범 랜덤·용의자 5 = 중장기**)
 9. **역할 분담 · Q&A**
 
 ---
@@ -40,3 +40,17 @@
 - **RAGAS C-Prec / C-Recall:** ≈**0.75** / ≈**0.77** (n=30)
 - **LoRA:** SmolLM→0.5B→1.5B→**3B** 완주 · **7B** 16GB `memory_limit`
 - **그래프:** `report/assets/` · `python3 scripts/plot_metrics.py`
+
+---
+
+## Next · Q&A (중장기 확장)
+
+정본: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
+
+| 질문 | 답 한 줄 |
+| :--- | :--- |
+| 진범 랜덤? | 가능 · **변형 케이스**로 세션 로드 (ID만 바꾸면 RAG 모순) |
+| 용의자 5명? | 가능 · **`case_02` 신규** 권장 (페르소나·아트·미끼 증거·UI) |
+| 왜 지금 3·고정? | 데모·Hit@k·골든 루트 재현을 위해 **한 사건을 깊게** |
+
+발표 멘트: 「확장은 엔진보다 **시나리오·RAG 코퍼스**가 본체. 로드맵에 명시.」

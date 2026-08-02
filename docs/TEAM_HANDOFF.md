@@ -23,6 +23,7 @@ git pull origin main
 | 게임 룰 (3-Out·스태미나·조합 지목) | `docs/GAME_RULES.md` · `lib/game_rules.py` |
 | API 세션/심문/검색/지목/프로필 | `backend/main.py` · `backend/game_engine.py` |
 | 실서버 심문 로그 → 말투 재학습 | `lib/conversation_log.py` · `scripts/export_conversation_log.py` · [CONVERSATION_LOG.md](CONVERSATION_LOG.md) |
+| 중장기 (진범 랜덤·용의자 5) | [ROADMAP_EXPANSION.md](ROADMAP_EXPANSION.md) · 발표 Q&A |
 | **React UI (본선)** · 인트로 | `web/game/` · `web/intro/` · `assets/ui/evidence_desk/` |
 | Streamlit UI (백업) | `app.py` |
 | API 계약 | `TECH_SPEC.md` §4 |

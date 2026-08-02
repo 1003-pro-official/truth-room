@@ -123,6 +123,11 @@ UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `ac
 | 안정장치 | ask 비차단 · culprit/secrets 미기록 · 누수 문구 편집 · 길이 상한 · 말투 전용 · `runs/` gitignore |
 | 문서 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
 
+### 4.2 중장기 확장 (PRT 비범위)
+
+진범 세션 랜덤 · 용의자 5명은 **현행 `case_01` 스키마 유지** 전제에서 변형 케이스/`case_02`로 확장한다.  
+정본: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
+
 ---
 
 ## 5. Agent 상태 (LangGraph)

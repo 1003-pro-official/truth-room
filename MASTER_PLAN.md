@@ -79,6 +79,13 @@
 - [x] 게임 룰: 3-Out · 멘탈 붕괴 · 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
 - [ ] 실서버 심문 로그 수집 → 말투 재학습 사이클 운영 — [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) (파이프라인·안정장치 ✅ · 운영 수집은 진행)
 
+### 중장기 (PRT 이후 · 발표 Next)
+
+- [ ] 진범 랜덤 — **변형 케이스 세트** 세션 로드 (ID만 스왑 금지)
+- [ ] 용의자 5명 — 권장 `case_02` 신규 사건
+
+상세·Q&A 멘트: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
+
 ---
 
 ## 6. 비범위 (Out of scope · 초안)
@@ -88,5 +95,6 @@
 - 상용 필수화 (로컬·Colab도 가능 — **Railway 데모:** https://web-production-072b8.up.railway.app )
 - 무제한 AutoGen 티키타카(상한·폴백 없는) · OpenAI embedding/Chroma 필수화 (선택 실험만 · Hit@5에서 Advanced 미상회)
 - 객체탐지(YOLO) · CV 학습 파이프라인
+- **PRT 범위 밖:** 진범 세션 랜덤 · 용의자 5명 — 중장기로만 ([docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md))
 
 상세 기술 → [TECH_SPEC.md](TECH_SPEC.md) · 코딩 규칙 → [AI_CONVENTION.md](AI_CONVENTION.md)

@@ -385,6 +385,13 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 - 실서버 심문 로그 수집(`CONVERSATION_LOG=1`) → export → 말투 LoRA 재학습 사이클 운영 ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
 - _(발표 리허설·PRT 과제 복사·슬라이드 확정은 팀 Day 4)_
 
+### 중장기 (발표 Next · PRT 이후)
+
+| 방향 | 요지 | 문서 |
+| :--- | :--- | :--- |
+| 진범 랜덤 | ID만 스왑 ❌ · **변형 케이스** 세션 로드 | [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md) |
+| 용의자 5명 | `case_01` 억지 확장 ❌ · **`case_02` 신규** 권장 | 동상 |
+
 ---
 
 ## 7. 팀 · 문서
@@ -395,6 +402,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | [docs/ROLES.md](docs/ROLES.md)                         | 역할 (최승현·최병철·박성우·이근목·천세문) |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)           | 팀원용 구현 현황 · 코드 맵 · 데모         |
 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)   | 실서버 심문 로그 → 재학습 · **안정장치**  |
+| [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 5명 · 발표 Q&A |
 | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) | Docker + Cloudflare Containers            |
 | [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
 | [docs/GAME_RULES.md](docs/GAME_RULES.md)               | 3-Out · 멘탈 붕괴 · 타임어택              |
