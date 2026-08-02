@@ -25,12 +25,32 @@ python scripts/eval_ragas.py --limit 0   # 전체 n=30 → runs/eval/ragas_py312
 
 - `persona_sft.jsonl` — OpenAI fine-tuning `messages` 형식 (78쌍)
 - `manifest.yaml` — 샘플 수·생성 시각
-- 실서버 ask 로그(선택): `configs/agent.yaml` `conversation_log.enabled: true`
-  - raw: `runs/conversation_log/ask_turns.jsonl`
-  - export: `python3 scripts/export_conversation_log.py`
-  - **룰/승패는 코드 유지 · 로그는 말투 FT 후보만**
 - 산출물:
   - `runs/sft/finetune_job_openai.json` (OpenAI 403 기록)
   - `runs/sft/local_lora/` · `local_lora_qwen05/` · `qwen15/` · `qwen3b/` · `qwen7b/report.json` (`memory_limit`)
   - `runs/sft/lora_model_compare.json`
   - `runs/eval/ragas_py312_report.json` (n=30 · Faith≈0.64 · Prec≈0.75 · Recall≈0.77)
+
+---
+
+## 실서버 심문 채팅 → 재학습 데이터셋
+
+팀 합의: **실서버에서 테스트하며 쌓인 심문 채팅**을 모아 말투 재학습에 쓴다.  
+정본 운영·안정장치: **[docs/CONVERSATION_LOG.md](../docs/CONVERSATION_LOG.md)**
+
+```bash
+# 실서버만: CONVERSATION_LOG=1 (또는 conversation_log.enabled: true)
+# → runs/conversation_log/ask_turns.jsonl
+
+python3 scripts/export_conversation_log.py
+# → runs/conversation_log/persona_ft_candidates.jsonl  (말투 FT 후보)
+# (선택) --include-assistant
+```
+
+| 안정장치 (요약) | |
+| :--- | :--- |
+| 기본 OFF | 로컬 `enabled: false` |
+| ask 비차단 | 로깅 실패해도 심문 응답은 정상 |
+| 비밀 미기록 | `culprit_id` · secrets 미포함 · 누수 문구 `[편집됨]` |
+| 말투만 | 알리바이/승패 룰은 코드 유지 · 로그는 `persona_speech` 후보 |
+| Git 제외 | `runs/` · 원본 대화 커밋 금지 |

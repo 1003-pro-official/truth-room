@@ -85,6 +85,9 @@ python3 -m uvicorn backend.main:app --port 8000
 **단일 경로:** React(또는 Streamlit 백업) → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))  
 **데모 게이트:** Phase 3 완료 — 심문 · 증거 책상 · 조합 지목 · Golden Route UI
 
+**실서버 심문 로그 → 재학습:** 플레이 테스트 ask를 JSONL로 모아 말투 LoRA 후보로 쓴다.  
+켜기: `CONVERSATION_LOG=1`. 안정장치·절차: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
+
 **라이브 데모:** https://web-production-072b8.up.railway.app
 
 ---

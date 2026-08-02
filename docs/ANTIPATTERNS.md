@@ -16,6 +16,9 @@
 | **노트북에 로직 전부** | 정본은 `.py` · 노트북은 실행 래퍼만 |
 | **로컬에서만 “완료”** | Smoke CI · `/docs` · 데모 리허설 |
 | **증거/프롬프트 불일치** | `evidence_id` ↔ `win_condition` ↔ 페르소나 동기화 |
+| **실서버 대화 로그를 룰 학습에 사용** | 로그는 **말투 FT 후보만** · 승패/알리바이는 코드 권위 ([CONVERSATION_LOG.md](CONVERSATION_LOG.md)) |
+| **로컬에서 conversation_log 기본 ON** | 기본 OFF · 실서버만 `CONVERSATION_LOG=1` |
+| **ask_turns.jsonl 커밋** | `runs/` gitignore · 원본 대화 비공개 |
 
 ---
 

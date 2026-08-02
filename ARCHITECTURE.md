@@ -16,6 +16,7 @@ Interactive Mystery · Advanced RAG · Multi-Agent(AutoGen 심문) DLthon 프로
 | :--- | :--- |
 | [docs/ROLES.md](docs/ROLES.md) | 5인 역할 |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md) | 팀원 온보딩 · 구현 현황 · 코드 맵 |
+| [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) | 실서버 심문 로그 → 말투 재학습 · 안정장치 |
 | [TEAM_KICKOFF_CHECKLIST.md](TEAM_KICKOFF_CHECKLIST.md) | 시작~제출 체크리스트 |
 | [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) | DLthon2 4일 + 발표 역산 |
 | [PRESENTATION.md](PRESENTATION.md) | 발표 초안 |

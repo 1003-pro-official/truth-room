@@ -190,6 +190,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-SFT-KO15**  | Qwen2.5-**1.5B** LoRA                               | train_loss≈2.75 · 알리바이 유지 개선                                   | `runs/sft/local_lora_qwen15/` · `lora_model_compare.json`                  |
 | **EXP-RAGAS**     | ragas on **Python 3.12**                            | **ok** Faith≈**0.64** · C-Prec≈**0.75** · C-Recall≈**0.77** (**n=30**) | `scripts/eval_ragas.py` · `runs/eval/ragas_py312_report.json`              |
 | **EXP-SFT-KO3B**  | Qwen2.5-**3B** LoRA (본선)                          | train_loss≈2.66 · 알리바이 유지 · 재학습 완주          | `runs/sft/local_lora_qwen3b/` · `scripts/local_lora_persona.py` |
+| **EXP-CONV-LOG**  | 실서버 ask JSONL → 말투 FT 후보                     | opt-in · 안정장치 문서화                               | `lib/conversation_log.py` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
 | **EXP-SFT-KO7B**  | Qwen2.5-**7B** LoRA (16GB)                      | **memory_limit** — 로드·trainable% 확인, 1step 스왑 정체 | `runs/sft/local_lora_qwen7b/report.json`                       |
 | **EXP-ROUTE**     | source soft routing                                 | Context Precision **0.22→0.40**, Hit@5 4/4 유지                        | `lib/rag_core.py` `source_routing`                                         |
 | **EXP-AUTOGEN**   | pyautogen GroupChat → **본선 ask**                  | max_round=5 · timeout=60s · transcript UI                              | `lib/autogen_runtime.py`                                                   |
@@ -219,6 +220,20 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | OpenAI FT submit   | **실패** — 조직에 신규 fine-tuning job 생성 권한 없음 ([deprecations](https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning)) |
 | 로컬 LoRA 대체     | `SmolLM2-135M-Instruct` · trainable **0.34%** · 30 steps · `train_loss≈1.87` · adapter `runs/sft/local_lora/`                                                        |
 | 채택               | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 gpt-4o-mini를 대체하지 못함)        |
+
+### 실서버 심문 로그 → 재학습 (계획·파이프라인)
+
+실서버(Railway) 플레이 테스트에서 나온 **심문 채팅(ask 턴)**을 데이터셋으로 모아, 페르소나 **말투** 소량 SFT/LoRA에 다시 넣는 흐름을 합의·구현해 두었다.
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 수집 | `lib/conversation_log.py` — ask 성공 시 JSONL append (opt-in) |
+| 경로 | `runs/conversation_log/ask_turns.jsonl` → `scripts/export_conversation_log.py` |
+| 재학습 용도 | **말투(persona_speech) 후보만**. 알리바이·승패·GM 판정은 코드/YAML 권위 유지 |
+| 켜는 법 | 실서버 `CONVERSATION_LOG=1` 또는 `conversation_log.enabled: true` (로컬 기본 **OFF**) |
+
+**안정장치:** 기본 OFF · 로깅 실패가 ask를 깨지 않음 · `culprit_id`/secrets 미기록 · 누수 문구 `[편집됨]` · 길이 상한 · export 필터 · `runs/` gitignore · UI 비노출.  
+상세: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [data/sft/README.md](data/sft/README.md)
 
 ![Local LoRA train_loss ladder](report/assets/metrics/lora_train_loss_ladder.png)
 
@@ -367,7 +382,8 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 남은 작업
 
-_(핵심 개발·데모 게이트 완료 — 발표 리허설·PRT 과제 복사·슬라이드 확정은 팀 Day 4)_
+- 실서버 심문 로그 수집(`CONVERSATION_LOG=1`) → export → 말투 LoRA 재학습 사이클 운영 ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
+- _(발표 리허설·PRT 과제 복사·슬라이드 확정은 팀 Day 4)_
 
 ---
 
@@ -378,9 +394,9 @@ _(핵심 개발·데모 게이트 완료 — 발표 리허설·PRT 과제 복사
 | [GETTING_STARTED.md](GETTING_STARTED.md)               | 설치·실행                                 |
 | [docs/ROLES.md](docs/ROLES.md)                         | 역할 (최승현·최병철·박성우·이근목·천세문) |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)           | 팀원용 구현 현황 · 코드 맵 · 데모         |
+| [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)   | 실서버 심문 로그 → 재학습 · **안정장치**  |
 | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) | Docker + Cloudflare Containers            |
 | [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
-
 | [docs/GAME_RULES.md](docs/GAME_RULES.md)               | 3-Out · 멘탈 붕괴 · 타임어택              |
 | [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)             | DLthon2 마일스톤                          |
 | [PRESENTATION.md](PRESENTATION.md)                     | 발표 초안                                 |

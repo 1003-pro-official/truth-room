@@ -111,6 +111,18 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 
 UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `accuse` 판정에만 사용.
 
+### 4.1 실서버 심문 로그 → 재학습 (opt-in)
+
+실서버 플레이 테스트의 ask 턴을 JSONL로 모아 **말투** 소량 SFT/LoRA 재학습 후보로 쓴다.
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 구현 | `lib/conversation_log.py` · `scripts/export_conversation_log.py` |
+| 설정 | `configs/agent.yaml` `conversation_log` · env `CONVERSATION_LOG=1` |
+| 기본 | **OFF** (로컬). 실서버에서만 켠다 |
+| 안정장치 | ask 비차단 · culprit/secrets 미기록 · 누수 문구 편집 · 길이 상한 · 말투 전용 · `runs/` gitignore |
+| 문서 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
+
 ---
 
 ## 5. Agent 상태 (LangGraph)
