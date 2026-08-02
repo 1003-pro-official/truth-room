@@ -16,9 +16,13 @@
 | Tools | Function Calling | `check_card_history` · `run_forensic` · `search_messenger` · `request_cctv_log` (`lib/tools.py`) |
 | Eval | 로컬 Faithfulness + **RAGAS** | `evaluate.py` · `scripts/eval_ragas.py` (Python 3.12 · **n=30** Faith≈0.64 · Prec≈0.75 · Recall≈0.77) · `scripts/plot_metrics.py` |
 | API | FastAPI | `backend/` |
-| UI | Streamlit | `app.py` — **API만** 호출 · 증거 책상 · 지목 모달 · WebP 에셋 |
+| UI | **React** (`web/game`) · Streamlit `app.py` 백업 | `/game` 정적 빌드 · API만 호출 · 레이어 모달 · WebP 에셋 |
 | Deploy | Railway | https://web-production-072b8.up.railway.app (`/` 인트로 · `/game` · F5→인트로) |
 | Config | YAML | `configs/*.yaml` · `langgraph.enabled` · `autogen.enabled` |
+
+**UI 전환 (Streamlit → React):** 초기 데모는 Streamlit으로 API-only 골든 루트를 검증했고, 본선은 React로 이전했다.  
+**직접 원인:** Streamlit의 위젯·세션 상태·다이얼로그·리렌더 모델이 심문/모달/인벤과 맞물리며 **오류·상태 꼬임이 반복**되어 데모 안정화가 어려웠다.  
+**부가 이점:** 커스텀 게임 UX(레이아웃·모션·오디오) 제어, UI→API only 경계 고정, `/` 인트로·`/game/` 분리 배포. Streamlit은 백업 경로로 유지.
 
 ---
 

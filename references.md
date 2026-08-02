@@ -15,7 +15,7 @@
 | S2b | **AutoGen** (`lib/autogen_runtime.py`) | ask 턴 GroupChat (용의자·조수·심판) | **1c/2** | [microsoft/autogen](https://github.com/microsoft/autogen) · round_robin · max_round |
 | S3 | **Function Calling** (`lib/tools.py`) | CCTV·포렌식 툴 | **1c** | OpenAI / 로컬 툴 스키마 |
 | S4 | **FastAPI** | Session · ask · search · tool · accuse | **2** | [fastapi.tiangolo.com](https://fastapi.tiangolo.com/) |
-| S5 | **Streamlit** | 심문 UI (`st.chat_message` 등) · **API only** | **3** | [Streamlit chat](https://docs.streamlit.io/develop/api-reference/chat) |
+| S5 | **React** (`web/game`) · Streamlit 백업 | 심문 UI · **API only** · 커스텀 레이아웃·연출 | **3** | [web/game/README.md](web/game/README.md) |
 | S6 | **notion-client** | README → Notion 리포트 | 공통 | [developers.notion.com](https://developers.notion.com/) |
 
 **비채택(범위 밖):** 무제한 AutoGen 티키타카(상한·폴백 없는) · YOLO/CV · UI에서 LLM 직결
@@ -45,10 +45,11 @@
 - **근거:** 일반 DAG(단방향)가 아닌 **순환(Cyclic) 그래프**를 지원해, 게임 내내 용의자 **스트레스(pressure)** · 플레이어 **증거 수집 상태**를 메모리에 유지하고 자백/부인 분기를 제어할 수 있는 기술적 근거가 된다.  
   *(구현: `lib/langgraph_runtime.py` 공식 StateGraph · 노드 로직 `agent_graph.py` · 미설치 시 순차 폴백. ask 본선은 AutoGen.)*
 
-#### Streamlit Conversational UI
+#### React Game UI (본선) · Streamlit (백업)
 
-- **문서:** `st.chat_message` · `st.dataframe` — [Streamlit Chat](https://docs.streamlit.io/develop/api-reference/chat)
-- **근거:** React 등 무거운 프론트 없이 **심문 채팅창**과 **CSV·로그형 증거**를 한 화면에 인터랙티브하게 렌더링할 수 있음을 확인.
+- **경로:** `web/game/` (Vite + React) · 백업 `app.py`
+- **근거:** 초기 Streamlit으로 API-only 골든 루트를 빠르게 검증했으나, **상태·다이얼로그·리렌더 한계로 오류가 반복**되어 본선을 React로 이전. 커스텀 게임 UX·UI→API only도 함께 확보.
+- **상세:** [README.md §5](README.md) · [TECH_SPEC.md](TECH_SPEC.md) UI 행
 
 #### Modular RAG (라우팅 메커니즘)
 
@@ -80,7 +81,8 @@
 | Modular / Hybrid RAG | `lib/rag_core.py` · soft routing · Hit@5 4/4 · C-Prec 0.40 | 🟢 |
 | Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` | 🟢 LangGraph smoke |
 | AutoGen GroupChat ask | `lib/autogen_runtime.py` | 🟢 본선 |
-| Streamlit 심문 UI | `app.py` → FastAPI only · 증거 책상 · Golden Route | 🟢 |
+| Streamlit 심문 UI | `app.py` → FastAPI only · **백업** | 🟡 백업 |
+| **React 심문 UI** | `web/game/` → FastAPI only · 증거 책상 · Golden Route | 🟢 본선 |
 | RAGAS · 메트릭 그래프 | `scripts/eval_ragas.py` · `scripts/plot_metrics.py` · `report/assets/` | 🟢 |
 | 리포트 · Notion | `update_report.py` · `update_notion.py` | 🟢 |
 

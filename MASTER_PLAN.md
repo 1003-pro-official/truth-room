@@ -15,7 +15,8 @@
 | **제출물** | GitHub 리포트(`README.md`) · 데모 · Peer Review · 발표 |
 | **일정** | DLthon2 4일 전략·마일스톤 → [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) (**변경 가능**) |
 
-**완성 전략 (요약):** Day 1 문서·몹 기획으로 시나리오/데이터 동시 설계 → 상태머신↔Streamlit 뼈대 먼저 연결 → RAG·프롬프트를 얹어 데모 안정화.
+**완성 전략 (요약):** Day 1 문서·몹 기획으로 시나리오/데이터 동시 설계 → 상태머신↔UI 뼈대 먼저 연결 → RAG·프롬프트를 얹어 데모 안정화.  
+**UI:** 초기 Streamlit → 본선 **React** (`web/game`). **직접 원인** — Streamlit 한계로 상태·다이얼로그 **오류 반복**. Streamlit `app.py` 백업.
 
 > **AutoGen:** 심문 ask 본선 — `lib/autogen_runtime.py` GroupChat(용의자·포렌식 조수·심판). `configs/agent.yaml` `autogen.enabled` · 실패 시 스텁 폴백.  
 > **LangGraph:** 오프라인 상태머신 smoke — `lib/langgraph_runtime.py` 공식 StateGraph · `agent_graph.py` 노드 · `langgraph.enabled` (false/미설치 시 순수 Python 폴백).
@@ -48,7 +49,7 @@
 | **1c** | Agent | **LangGraph** StateGraph · `lib/langgraph_runtime.py` · `runs/agent/` · `--smoke` |
 | **1d** | Eval | Faithfulness · **RAGAS n=30** · `runs/eval/` |
 | **2** | API | FastAPI 심문/증거/세션/툴 |
-| **3** | Demo | Streamlit「진실의 방」UI |
+| **3** | Demo | **React**「진실의 방」UI (`web/game`) · Streamlit 백업 |
 | **제출** | Docs | README · PRT · 발표 |
 
 ---
@@ -61,7 +62,7 @@
 | **Scenario** | 최병철 | 세계관 · 증거 원문 |
 | **Prompt** | 박성우 | 페르소나 · 조수 프롬프트 |
 | **RAG / Data · Tools** | 이근목 | 인덱스 · Retrieval · Function Calling |
-| **Service / Demo · QA** | 천세문 | Streamlit · API 연동 · 데모 |
+| **Service / Demo · QA** | 천세문 | React UI · API 연동 · 데모 |
 
 상세 → [docs/ROLES.md](docs/ROLES.md)
 

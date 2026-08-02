@@ -11,9 +11,9 @@
 </head>
 <body>
   <header class="topbar">
-    <div class="brand">진실의 방</div>
+    <div class="brand">방구석 프로파일러</div>
     <div class="topbar-right">
-      <p class="topbar-hint" id="scrollHint">잠시 후 자동 진행 · 스크롤로도 이동</p>
+      <p class="topbar-hint" id="scrollHint">화면을 클릭하거나 스크롤로 이동</p>
       <button type="button" class="bgm-toggle" id="bgmToggle" aria-pressed="false" aria-label="배경음악" title="배경음악">
         <span class="eq" aria-hidden="true">
           <i></i><i></i><i></i><i></i>
@@ -46,6 +46,15 @@
   <main id="pinRoot" class="pin-root" aria-live="polite">
     <!-- scenes injected by app.js -->
   </main>
+
+  <img
+    id="sceneCursor"
+    class="scene-cursor"
+    src="/intro/media/cursor_click.gif"
+    alt=""
+    aria-hidden="true"
+    draggable="false"
+  />
 
   <script src="/intro/app.js"></script>
 </body>

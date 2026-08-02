@@ -16,12 +16,13 @@
          ↓
 [Eval]  evaluate · RAGAS (`scripts/eval_ragas.py`, n=30) · plot_metrics
          ↓
-[Service] FastAPI (세션·search·tool·ask) → Streamlit (API 호출)
+[Service] FastAPI (세션·search·tool·ask) → **React** (`web/game`) · Streamlit 백업
          ↓
 [Docs]  README / PRT / 발표 / Notion
 ```
 
-> **서빙 단일 경로:** Streamlit ❌ LLM/Chroma 직접 · ✅ `POST /api/v1/session/...`
+> **서빙 단일 경로:** UI ❌ LLM/Chroma 직접 · ✅ `POST /api/v1/session/...`  
+> **본선 UI:** React. Streamlit→React **직접 원인** — 상태·다이얼로그 오류 반복. [README.md §5](../README.md).
 
 ---
 

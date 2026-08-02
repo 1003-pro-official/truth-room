@@ -75,7 +75,7 @@
 
 ## Phase 3 — Demo
 
-- [x] Streamlit「진실의 방」· API only
+- [x] **React**「진실의 방」· API only · Streamlit 백업
 - [x] Railway 라이브 · 인트로(`/`) → 게임(`/game/`) · 새로고침 시 인트로 복귀
 - [ ] 5분 데모 **발표** 리허설 (슬라이드·멘트)
 

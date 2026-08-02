@@ -109,9 +109,12 @@ body {
 }
 
 .brand {
-  font-family: var(--font-display);
-  font-size: 1.15rem;
+  font-family: "Apple SD Gothic Neo", "Malgun Gothic", "Black Han Sans", sans-serif;
+  font-weight: 700;
   letter-spacing: 0.04em;
+  font-size: 1.05rem;
+  color: #e8eef4;
+  line-height: 1;
 }
 
 .topbar-hint {
@@ -126,7 +129,6 @@ body {
   opacity: 0;
 }
 
-/* 휠만으로는 소리 불가 → 클릭/탭 유도 고정 CTA */
 .bgm-unlock {
   position: fixed;
   left: 50%;
@@ -214,6 +216,31 @@ body {
   display: block;
 }
 
+.scene-visual.has-door-layers img.door-base,
+.scene-visual.has-door-layers img.door-open {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scene-visual.has-door-layers img.door-open {
+  opacity: 0;
+  transition: opacity 1.25s ease;
+  z-index: 1;
+}
+
+.scene-visual.has-door-layers.is-door-open img.door-open {
+  opacity: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-visual.has-door-layers img.door-open {
+    transition: none;
+  }
+}
+
 .scene-veil {
   position: absolute;
   inset: 0;
@@ -277,7 +304,6 @@ body {
   color: var(--muted);
 }
 
-/* 마지막 씬: 스크롤 핀 없이 버튼으로 게임 전환 */
 .scene--final {
   height: 100vh;
 }
@@ -301,13 +327,49 @@ body {
   text-align: center;
 }
 
-.scene--final .scene-kicker,
-.scene--final .scene-caption,
-.scene--final .scene-text {
-  text-align: center;
+.scene:not(.scene--final) .scene-sticky {
+  cursor: none;
 }
 
-/* 설명 카드와 분리된 CTA (카드 밖) — 마지막 씬 진입 후 지연 페이드인 */
+.scene--final .scene-sticky {
+  cursor: default;
+}
+
+.scene--final .scene-start-btn {
+  cursor: pointer;
+}
+
+.scene-cursor {
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 48px;
+  height: 56px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  pointer-events: none;
+  z-index: 80;
+  opacity: 0;
+  transform: translate3d(-100px, -100px, 0);
+  transition: opacity 0.15s ease;
+  image-rendering: auto;
+  user-select: none;
+}
+
+.scene-cursor.is-on {
+  opacity: 1;
+}
+
+@media (hover: none), (pointer: coarse) {
+  .scene:not(.scene--final) .scene-sticky {
+    cursor: pointer;
+  }
+  .scene-cursor {
+    display: none !important;
+  }
+}
+
 .scene-cta {
   position: relative;
   z-index: 4;

@@ -45,7 +45,8 @@ public_overview:
         RAG로 단서를 모으고,
         심문으로 알리바이를 무너뜨려라.
     - caption: "수사 개시"
-      image: intro/scene_truth_door.webp
+      image: intro/scene_truth_door_closed.webp
+      image_open: intro/scene_truth_door.webp
       text: |
         진범은 셋 중 한 명.
         결정적 증거를 조합해 지목하라.

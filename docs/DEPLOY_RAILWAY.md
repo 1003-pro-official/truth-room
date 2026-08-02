@@ -1,6 +1,8 @@
 # Railway 배포 — 진실의 방으로
 
 > Streamlit + FastAPI 단일 Docker 이미지.  
+> **본선 UI:** React (`web/game` 정적). Streamlit은 선택 백업.  
+> UI 전환 이유: [README.md §5](../README.md).  
 > Cloudflare Containers(Paid) 대신 **Railway** 권장 경로.
 
 관련: [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md) · [GETTING_STARTED.md](../GETTING_STARTED.md)
@@ -75,7 +77,7 @@ docker compose up --build
 | 요금 | Hobby/Trial 한도 확인 · 데모 후 서비스 pause 가능 |
 | `.env` | 레포에 커밋 금지 · Railway Variables 사용 |
 | 포트 | Railway가 `PORT` 주입 — entrypoint가 자동 반영 |
-| `/` vs `/game/` | `/` = 스크롤 인트로 · `/game/` = Streamlit. **F5 on `/game/` → `/`** (nginx HTML inject) |
+| `/` vs `/game/` | `/` = 스크롤 인트로 · `/game/` = **React**. **F5 on `/game/` → `/`** (nginx HTML inject) |
 | 에셋 | WebP 우선 (`assets/ui` · `suspects` · `intro` · `evidence_desk`) · `/assets/` 캐시 30d |
 
 ---

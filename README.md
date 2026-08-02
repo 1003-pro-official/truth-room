@@ -319,14 +319,26 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ## 5. 데모 · 서비스 검증
 
+### UI 스택 — Streamlit → React
+
+본선 플레이 UI는 **React** (`web/game`, `/game/`)입니다. 초기 프로토타입·골든 루트 검증은 Streamlit(`app.py`)으로 진행했고, 현재 Streamlit은 **백업·참고용**으로만 유지합니다 (`/game-streamlit/` · `ENABLE_STREAMLIT_BACKUP=1`).
+
+개발 과정에서 Streamlit의 구조적 한계로 **레이아웃·상태·다이얼로그·리렌더 관련 오류가 반복**되어, 데모 품질을 안정적으로 맞추기 어렵다고 판단해 본선을 React로 이전했습니다.
+
+| 전환 이유 | 설명 |
+| :--- | :--- |
+| **Streamlit 한계로 오류 반복 (직접 원인)** | 위젯·세션 상태·`st.dialog`/리렌더 사이클이 심문·모달·인벤·타이머와 맞물리며 **깨짐·중복 실행·상태 꼬임·레이아웃 붕괴**가 반복됨. 패치해도 같은 계열 이슈가 되살아나 일정·안정성을 해침 |
+| 커스텀 게임 UX 한계 | 심문 덱·증거 책상·수사 파일·검거 도장·효과음·폭죽 등 **정밀 레이아웃·모션·오디오**를 Streamlit 컴포넌트 모델 안에서 제어하기 어려움 |
+| API 경계·배포 적합성 | React 정적 UI → FastAPI만 호출로 **UI→LLM 직결 금지**를 구조화. `/` 인트로 + `/game/` 플레이 분리에도 적합 |
+
 | 항목                                                                 | 상태                                        |
 | :------------------------------------------------------------------- | :------------------------------------------ |
 | FastAPI `/health` · session/ask/search/**tool**/accuse · AutoGen ask | ✅ smoke (`scripts/smoke_autogen_ask.py`)   |
-| Streamlit → API only                                                 | ✅                                          |
+| **React** (`web/game`) → API only · Streamlit은 백업                 | ✅                                          |
 | Golden Route (카드→슬랙→네트워크→이대리 지목)                        | ✅ UI 연출 (트래커·수색 칩·단서 STEP·엔딩) |
 | Railway 라이브                                                       | ✅ https://web-production-072b8.up.railway.app |
 
-실행: [GETTING_STARTED.md](GETTING_STARTED.md)
+실행: [GETTING_STARTED.md](GETTING_STARTED.md) · UI 상세: [web/game/README.md](web/game/README.md)
 
 ---
 

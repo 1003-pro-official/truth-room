@@ -9,10 +9,11 @@
 1. **타이틀** — 방구석 프로파일러: 진실의 방으로 · 「100억의 야근자들」
 2. **문제** — 단순 RAG 챗봇의 한계 →「플레이 가능한 추론」필요
 3. **솔루션** — 심문 × Advanced RAG × Function Calling × **AutoGen** × **LangGraph** 압박 루프
-4. **아키텍처** — Data → Hybrid RAG → Agent(AutoGen ask + LangGraph StateGraph) → FastAPI → UI
+4. **아키텍처** — Data → Hybrid RAG → Agent(AutoGen ask + LangGraph StateGraph) → FastAPI → **React UI**
 5. **데이터** — 용의자 3 · 증거 소스 6종 · Smoking Gun 4 ID · win_condition
 6. **실험** — Baseline vs Advanced Hit@5 **0/4→4/4** · RAGAS n=30 · LoRA ladder · AutoGen ask
-7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분
+7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분  
+   _(UI: Streamlit→React — Streamlit 한계로 오류 반복 → 본선 이전)_
 8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit)
 9. **역할 분담 · Q&A**
 

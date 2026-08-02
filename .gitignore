@@ -13,3 +13,5 @@ deploy/cloudflare/node_modules/
 deploy/cloudflare/.wrangler/
 # 대용량 원본이 생기면 추가
 # data/raw_private/
+web/game/dist/
+web/game/node_modules/

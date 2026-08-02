@@ -13,9 +13,9 @@
 | 최병철 | | Scenario · raw · [@choi0310](https://github.com/choi0310) |
 | 박성우 | | Prompt · [@parkjw8](https://github.com/parkjw8) |
 | 이근목 | | RAG · tools · [@snarmse](https://github.com/snarmse) |
-| 천세문 | | Streamlit · 데모 · [@1003-pro-official](https://github.com/1003-pro-official) |
+| 천세문 | | React UI · 데모 · Streamlit 백업 · [@1003-pro-official](https://github.com/1003-pro-official) |
 
-공통: Python **3.9+** · `pip install -r requirements.txt -r requirements-llm.txt` · UI는 `streamlit`  
+공통: Python **3.9+** · `pip install -r requirements.txt -r requirements-llm.txt` · 본선 UI는 React (`web/game`) · Streamlit은 백업  
 **RAGAS**는 Python **≥3.10** 권장 (본 레포 **3.12** 검증 · n=30 Faith≈0.64 / Prec≈0.75 / Recall≈0.77)  
 **라이브 데모:** https://web-production-072b8.up.railway.app
 

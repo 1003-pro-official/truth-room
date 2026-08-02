@@ -9,7 +9,7 @@
 | 안티패턴 | 대응 |
 | :--- | :--- |
 | **Only Me** — 혼자만 돌리고 PR 없음 | 역할별 `feature/*` → PR → 리뷰 |
-| **UI → LLM 직결** | Streamlit → **FastAPI only** |
+| **UI → LLM 직결** | **React / Streamlit → FastAPI only** |
 | **`culprit_id` 클라이언트 노출** | 세션 상태에 넣지 않음 · `accuse` 판정만 |
 | **설정 하드코딩** | `configs/*.yaml` only |
 | **`.env` 커밋** | `.gitignore` · 키는 각자 로컬 |
@@ -22,10 +22,15 @@
 ## 서빙 단일 경로
 
 ```
-Streamlit (app.py)  →  FastAPI (backend/)  →  RAG/Agent/Tools
+React (web/game)  →  FastAPI (backend/)  →  RAG/Agent/Tools
+     ↑ 본선
+Streamlit (app.py) →  동일 API          →  (백업 경로)
 ```
 
 UI에서 Chroma/인덱스/OpenAI를 직접 import 하지 않습니다.
+
+**본선 UI:** React (`web/game`). Streamlit은 초기 프로토타입·백업.  
+전환 이유: Streamlit 한계로 **개발 중 오류 반복** → React 본선 — [README.md §5](../README.md).
 
 ---
 

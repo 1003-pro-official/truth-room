@@ -218,6 +218,7 @@ class GameEngine:
                         "caption": str(item.get("caption") or "").strip(),
                         "text": text,
                         "image": str(item.get("image") or "").strip(),
+                        "image_open": str(item.get("image_open") or "").strip(),
                     }
                 )
         return {

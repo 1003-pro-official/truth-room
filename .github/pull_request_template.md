@@ -20,8 +20,8 @@
 - [ ] `culprit_id`를 API 기본 응답·UI에 노출하지 않음
 - [ ] (RAG) Baseline/Advanced 결과는 `runs/rag/exp_*/` · README 표 갱신(해당 시)
 - [ ] (Agent) `--smoke` 또는 관련 시나리오 검증
-- [ ] (Service) Streamlit → **FastAPI only** (LLM/인덱스 직결 없음)
-- [ ] (Service) `/docs` Swagger 또는 Streamlit 스크린샷
+- [ ] (Service) **React / Streamlit** → **FastAPI only** (LLM/인덱스 직결 없음)
+- [ ] (Service) `/docs` Swagger 또는 `/game/` UI 스크린샷
 - [ ] Only Me 아님 — 역할 밖 대규모 변경 시 리뷰
 
 ## Anti-pattern self-check

@@ -25,6 +25,7 @@ from backend.game_engine import engine, load_api_config  # noqa: E402
 
 API_CONFIG = ROOT / "configs" / "api.yaml"
 INTRO_DIR = ROOT / "web" / "intro"
+GAME_DIR = ROOT / "web" / "game" / "dist"
 ASSETS_DIR = ROOT / "assets"
 
 
@@ -201,7 +202,7 @@ def pass_turn(session_id: str) -> Dict[str, Any]:
     return {**result, "state": engine.public_state(session)}
 
 
-# 로컬(uvicorn only)에서도 스크롤 인트로·에셋 서빙
+# 로컬(uvicorn only)에서도 스크롤 인트로·에셋·React 게임 서빙
 if INTRO_DIR.is_dir():
     @app.get("/")
     def intro_home() -> FileResponse:
@@ -211,6 +212,13 @@ if INTRO_DIR.is_dir():
         "/intro",
         StaticFiles(directory=str(INTRO_DIR), html=True),
         name="intro_static",
+    )
+
+if GAME_DIR.is_dir():
+    app.mount(
+        "/game",
+        StaticFiles(directory=str(GAME_DIR), html=True),
+        name="game_static",
     )
 
 if ASSETS_DIR.is_dir():

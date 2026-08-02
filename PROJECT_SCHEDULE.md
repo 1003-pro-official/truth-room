@@ -20,7 +20,7 @@
 | 전략 | 내용 |
 | :--- | :--- |
 | **문서 중심 몹(Mob) 기획** | Day 1에 환경 세팅으로 시간을 뺏기지 않도록, 화이트보드·Notion으로 **세계관·시나리오·가짜 알리바이·증거 원문**을 전원 동시 설계한다. |
-| **단계별 애자일 개발** | 먼저 **Backend(상태머신/API) ↔ Frontend(Streamlit)** 뼈대(mock)를 연결한 뒤, **RAG · 상세 AI 프롬프트**를 얹어 빠르고 안정적인 데모를 만든다. |
+| **단계별 애자일 개발** | 먼저 **Backend(상태머신/API) ↔ Frontend** 뼈대(mock)를 연결한 뒤, **RAG · 상세 AI 프롬프트**를 얹어 빠르고 안정적인 데모를 만든다. UI는 Streamlit 프로토타입 → **React 본선**. |
 
 ### DLthon2 기간 내 마일스톤 (초안 · 변경 가능)
 
@@ -37,7 +37,7 @@
 | :--- | :--- | :--- |
 | Day 1 | 0 · 1a | `case_01` · personas · `data/raw/` · ingest |
 | Day 2 | 1b · 1c · 1d | `runs/rag/` · `agent_graph --smoke` · eval 초안 |
-| Day 3 | 2 · 3 | FastAPI session · Streamlit API only |
+| Day 3 | 2 · 3 | FastAPI session · **React** API only · Streamlit 백업 |
 | Day 4 | 제출 · 발표 | README 메트릭 · Golden Route 데모 ✅ · 리허설·PRT |
 
 ---
@@ -64,7 +64,7 @@
 - [ ] `README.md` 메트릭 표 기입
 - [ ] `docs/PEER_REVIEW.md` 초안
 - [ ] `python3 -m pytest tests/smoke -q` 녹색 (API 기동)
-- [x] Streamlit → API Golden Route 동작
+- [x] **React** → API Golden Route 동작 · Streamlit 백업
 - [x] Railway 라이브 데모 (https://web-production-072b8.up.railway.app)
 
 ### D-2 · D-1

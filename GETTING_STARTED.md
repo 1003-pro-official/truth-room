@@ -29,7 +29,6 @@ cd truth-room
 cp .env.example .env          # OPENAI_API_KEY (AutoGen 심문 ask 본선)
 
 pip install -r requirements.txt -r requirements-llm.txt
-pip install streamlit
 
 python3 ingest.py
 python3 build_index.py
@@ -44,11 +43,16 @@ python3 update_report.py          # runs/ → README.md 자동 반영
 # Notion (선택): .env에 NOTION_TOKEN · NOTION_PAGE_ID
 python3 update_notion.py
 python3 -m uvicorn backend.main:app --port 8000
-python3 -m streamlit run app.py
+# 본선 UI: http://127.0.0.1:8000/ (인트로) · http://127.0.0.1:8000/game/ (React)
+# 로컬 Vite 핫리로드(선택):
+#   cd web/game && npm install && npm run dev  → http://127.0.0.1:5173/game/
 ```
 
 **라이브 데모:** https://web-production-072b8.up.railway.app  
-(`/` 인트로 브리핑 → `/game/` 플레이 · `/game/` 새로고침 시 인트로로 복귀)
+(`/` 인트로 브리핑 → `/game/` React 플레이 · `/game/` 새로고침 시 인트로로 복귀)
+
+> **UI 전환:** 본선은 **React** (`web/game`). Streamlit `app.py`는 백업.  
+> **이유:** Streamlit 한계(상태·다이얼로그·리렌더)로 **개발 중 오류가 반복**되어 본선 이전. 상세 [README.md §5](README.md) · [web/game/README.md](web/game/README.md).
 
 ---
 
@@ -73,12 +77,15 @@ python3 -m streamlit run app.py
 
 | 구성 | 명령 | URL |
 | :--- | :--- | :--- |
-| API | `python3 -m uvicorn backend.main:app --port 8000` | http://localhost:8000/docs · `/` 인트로 |
-| UI (로컬) | `python3 -m streamlit run app.py` | http://localhost:8501 |
+| API + 인트로 + React 빌드 | `python3 -m uvicorn backend.main:app --port 8000` | `/` 인트로 · `/game/` 플레이 · `/docs` |
+| React 개발 서버 (선택) | `cd web/game && npm run dev` | http://127.0.0.1:5173/game/ |
+| Streamlit 백업 (선택) | `python3 -m streamlit run app.py` | http://localhost:8501 |
 | Docker/Railway | `docker compose up --build` | http://localhost:8080 (`/`→`/game/`) |
 
-**단일 경로:** Streamlit → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))  
+**단일 경로:** React(또는 Streamlit 백업) → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))  
 **데모 게이트:** Phase 3 완료 — 심문 · 증거 책상 · 조합 지목 · Golden Route UI
+
+**라이브 데모:** https://web-production-072b8.up.railway.app
 
 ---
 
@@ -104,12 +111,11 @@ truth-room/
 ├── MASTER_PLAN.md · TECH_SPEC.md · AI_CONVENTION.md · CLAUDE.md
 ├── ingest.py · build_index.py · rag_pipeline.py · agent_graph.py · evaluate.py
 ├── lib/               # langgraph_runtime · autogen_runtime · rag_core · tools
-├── backend/ · app.py
+├── backend/ · app.py      # app.py = Streamlit 백업
+├── web/intro/ · web/game/ # 인트로 · React 본선 UI
 ├── configs/ · data/ · runs/ · report/assets/ · docs/ · notebooks/
 └── .github/
 ```
-
-**라이브 데모:** https://web-production-072b8.up.railway.app
 
 ### 리포트 · Notion · 메트릭 그래프
 

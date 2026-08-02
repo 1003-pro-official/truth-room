@@ -22,9 +22,12 @@ git pull origin main
 | 용의자 페르소나·공개 프로필 | `data/personas/suspect_*.yaml` |
 | 게임 룰 (3-Out·스태미나·조합 지목) | `docs/GAME_RULES.md` · `lib/game_rules.py` |
 | API 세션/심문/검색/지목/프로필 | `backend/main.py` · `backend/game_engine.py` |
-| Streamlit UI (초상·인벤·프로필 팝업·증거 책상·지목 모달) | `app.py` · `assets/ui/evidence_desk/` |
+| **React UI (본선)** · 인트로 | `web/game/` · `web/intro/` · `assets/ui/evidence_desk/` |
+| Streamlit UI (백업) | `app.py` |
 | API 계약 | `TECH_SPEC.md` §4 |
 | 역할·GitHub ID | `docs/ROLES.md` |
+
+> **UI:** Streamlit → **React** 전환. **직접 원인** — Streamlit 한계로 개발 중 **오류 반복**. 상세 [README.md §5](../README.md).
 
 Swagger로 API 목록: `uvicorn` 기동 후 http://localhost:8000/docs
 
@@ -35,16 +38,15 @@ Swagger로 API 목록: `uvicorn` 기동 후 http://localhost:8000/docs
 ```bash
 cp .env.example .env   # OPENAI_API_KEY 등 — .env 는 절대 커밋 금지
 pip install -r requirements.txt -r requirements-llm.txt
-pip install streamlit
 
-# 터미널 1
+# 터미널 1 — API + 인트로 + (빌드된) React
 python3 -m uvicorn backend.main:app --host 127.0.0.1 --port 8000
 
-# 터미널 2
-python3 -m streamlit run app.py
+# 터미널 2 (선택) — React 핫리로드
+cd web/game && npm install && npm run dev
 ```
 
-1. 사이드바 **새 수사 개시** (또는 Railway `/` 인트로 → **입장하기**)
+1. http://127.0.0.1:8000/ 인트로 → **입장하기** (또는 Vite `:5173/game/`)
 2. 용의자 선택 → **심문** / **증거 수색**(책상 보드) / **최종 지목**
 3. **프로필** → 전신·페르소나·사건개요
 4. 정답 지목 → 결과 모달 → 초상 **검거** 도장
@@ -61,7 +63,8 @@ python3 -m streamlit run app.py
 | 게임 룰 문서 · stamina · 조합 지목(용의자+증거 2) | ✅ | `docs/GAME_RULES.md`, `lib/game_rules.py` |
 | FastAPI 세션 / ask / search / tool / accuse / pass_turn | ✅ | `backend/` |
 | 공개 프로필 · 사건개요 API | ✅ | `GET .../suspects/{id}/profile`, `GET .../case` |
-| Streamlit: 초상·인벤·단서·프로필 dialog · Golden Route | ✅ | `app.py`, `assets/suspects/` |
+| Streamlit: 초상·인벤·단서·프로필 dialog · Golden Route | ✅ 백업 | `app.py`, `assets/suspects/` |
+| **React UI** (`web/game`) · 인트로 (`web/intro`) | ✅ 본선 | `web/game/`, `web/intro/` |
 | 증거 책상 보드 (10소품 · WebP · force_evidence/miss) | ✅ | `assets/ui/evidence_desk/` · `POST .../search` |
 | 지목 결과 모달 · 검거 도장 · `/game` 새로고침→인트로 | ✅ | `app.py` · `docker/nginx.conf` |
 | 프로필 열 때 타이머 pause / 닫으면 resume | ✅ | `app.py` (`_pause_timer` / `on_dismiss`) |
@@ -148,8 +151,9 @@ git push -u origin HEAD
 ## 8. 클라우드 데모
 
 - **라이브 (Railway):** https://web-production-072b8.up.railway.app  
-  - `/` 스크롤 인트로 → `/game/` Streamlit  
+  - `/` 스크롤 인트로 → `/game/` **React** 플레이
   - `/game/` **새로고침(F5)** → `/` 인트로 복귀
+  - Streamlit은 백업 (`app.py` · 선택적 `/game-streamlit/`)
 - 가이드: [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md)
 - Cloudflare Containers (Paid): [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md)
 

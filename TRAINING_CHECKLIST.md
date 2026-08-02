@@ -34,5 +34,5 @@
 - [x] `python3 evaluate.py`
 - [x] `python3 scripts/eval_ragas.py` (n=30 · py≥3.10)
 - [x] `python3 scripts/plot_metrics.py`
-- [x] API + Streamlit Golden Route 1회 · 또는 Railway https://web-production-072b8.up.railway.app
+- [x] API + **React** Golden Route 1회 · 또는 Railway https://web-production-072b8.up.railway.app
 - [x] `culprit_id` 클라이언트 미노출

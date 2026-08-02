@@ -38,12 +38,14 @@ Interactive Mystery · Advanced RAG · Multi-Agent(AutoGen 심문) DLthon 프로
             ↓
 [Eval]   evaluate (로컬 Faith) · RAGAS py3.12 n=30 · `scripts/plot_metrics.py`
             ↓
-[Service] FastAPI 세션/search/tool/ask/accuse → Streamlit UI (API only · 증거 책상·지목 모달)
+[Service] FastAPI 세션/search/tool/ask/accuse → **React UI** (`web/game`, API only) · Streamlit `app.py` 백업
             ↓
-[Deploy] Railway `/` 인트로 · `/game` 플레이
+[Deploy] Railway `/` 인트로 · `/game` React 플레이
             ↓
 [Docs]   README · PRT · 발표 · Notion
 ```
+
+**UI:** Streamlit → React 전환. **직접 원인** — Streamlit 한계로 상태·다이얼로그·리렌더 **오류가 반복**. 부가 — 게임 UX 정밀도·API only. 상세 [README.md §5](README.md).
 
 **라이브:** https://web-production-072b8.up.railway.app
 

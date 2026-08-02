@@ -24,7 +24,8 @@
     },
     {
       caption: "수사 개시",
-      image: "intro/scene_truth_door.webp",
+      image: "intro/scene_truth_door_closed.webp",
+      image_open: "intro/scene_truth_door.webp",
       text: "진범은 셋 중 한 명.\n결정적 증거를 조합해 지목하라.\n\n진실의 방이 열렸다.",
     },
   ];
@@ -36,9 +37,10 @@
   function defaultGameBase() {
     const fromQuery = params.get("game");
     if (fromQuery) return fromQuery.replace(/\/$/, "");
-    // 로컬 uvicorn(8000)만 쓸 때 → Streamlit 기본 포트
-    if (location.port === "8000") return "http://127.0.0.1:8501";
-    // docker/nginx
+    // legacy Streamlit 백업
+    if (params.get("legacy") === "1") return "http://127.0.0.1:8501";
+    // React 본편 (nginx /game 또는 Vite :5173)
+    if (location.port === "8000") return "http://127.0.0.1:5173/game";
     return "/game";
   }
   const GAME_BASE = defaultGameBase();
@@ -64,16 +66,16 @@
   const BGM_VOL = 0.12;
   const BGM_FADE_IN_MS = 900;
   let fadeToken = 0;
-  /** 씬당 체류 후 자동 스크롤 (7~8초) — 마지막 씬은 제외 */
-  const AUTO_SCENE_MS = 7500;
   const AUTO_SCROLL_MS = 1100;
-  let autoTimer = null;
   let autoSceneIndex = -1;
   let autoScrolling = false;
   let ctaRevealTimer = null;
   /** 마지막 씬 카드가 뜬 뒤 CTA 페이드인까지 */
   const CTA_REVEAL_MS = 2800;
   const CTA_REVEAL_REDUCED_MS = 400;
+  /** 입장하기 → 문 열림 페이드·효과음 길이 */
+  const DOOR_REVEAL_MS = 1450;
+  const DOOR_REVEAL_REDUCED_MS = 200;
 
   if (introBgm) {
     introBgm.volume = 0;
@@ -286,6 +288,37 @@
     return `${ASSET_BASE}/${key}`;
   }
 
+  function sleep(ms) {
+    return new Promise((resolve) => window.setTimeout(resolve, ms));
+  }
+
+  function playDoorOpenSfx() {
+    const a = new Audio(`${ASSET_BASE}/audio/sfx_door_open.mp3?v=1`);
+    a.volume = 0.72;
+    a.play().catch(() => {});
+  }
+
+  function resolveFinalDoorLayers(scene) {
+    const image = String(scene.image || "").trim();
+    const imageOpen = String(scene.image_open || "").trim();
+    if (!image) return { closed: "", open: "" };
+    if (imageOpen) return { closed: image, open: imageOpen };
+    if (/truth_door_closed/i.test(image)) {
+      return {
+        closed: image,
+        open: image.replace(/_closed(\.\w+)$/i, "$1"),
+      };
+    }
+    // API가 예전처럼 열린 문만 내려줘도 닫힌 문→열림 페이드 적용
+    if (/truth_door/i.test(image)) {
+      return {
+        closed: image.replace(/scene_truth_door(\.\w+)$/i, "scene_truth_door_closed$1"),
+        open: image,
+      };
+    }
+    return { closed: image, open: "" };
+  }
+
   function escapeHtml(s) {
     return String(s)
       .replace(/&/g, "&amp;")
@@ -298,13 +331,21 @@
     const last = list.length - 1;
     pinRoot.innerHTML = list
       .map((scene, i) => {
-        const img = assetUrl(scene.image);
         const caption = escapeHtml(scene.caption || "");
         const text = escapeHtml(scene.text || "");
         const isFinal = i === last;
-        const src = img
-          ? `<img src="${escapeHtml(img)}" alt="${caption || `scene ${i + 1}`}" />`
-          : "";
+        const layers = isFinal ? resolveFinalDoorLayers(scene) : null;
+        const baseKey = layers ? layers.closed : String(scene.image || "").trim();
+        const openKey = layers ? layers.open : "";
+        const baseImg = baseKey ? assetUrl(baseKey) : "";
+        const openImg = openKey ? assetUrl(openKey) : "";
+        let src = "";
+        if (isFinal && baseImg && openImg && openImg !== baseImg) {
+          src = `<img class="door-base" src="${escapeHtml(baseImg)}" alt="${caption || `scene ${i + 1}`}" />
+              <img class="door-open" src="${escapeHtml(openImg)}" alt="" aria-hidden="true" />`;
+        } else if (baseImg) {
+          src = `<img src="${escapeHtml(baseImg)}" alt="${caption || `scene ${i + 1}`}" />`;
+        }
         const cta = isFinal
           ? `<div class="scene-cta">
                <button type="button" class="scene-start-btn" data-start-game>
@@ -316,7 +357,7 @@
         return `
         <section class="scene${isFinal ? " scene--final" : ""}" data-index="${i}">
           <div class="scene-sticky">
-            <div class="scene-visual" data-visual>
+            <div class="scene-visual${isFinal && openImg && openImg !== baseImg ? " has-door-layers" : ""}" data-visual>
               ${src}
             </div>
             <div class="scene-veil" aria-hidden="true"></div>
@@ -358,16 +399,8 @@
     return nodes.length ? 0 : -1;
   }
 
-  function clearAutoAdvance() {
-    if (autoTimer) {
-      clearTimeout(autoTimer);
-      autoTimer = null;
-    }
-  }
-
   function scrollToY(y) {
     autoScrolling = true;
-    clearAutoAdvance();
     window.scrollTo({ top: Math.max(0, y), behavior: "smooth" });
     window.setTimeout(() => {
       autoScrolling = false;
@@ -378,26 +411,8 @@
   function advanceFromScene(idx) {
     const nodes = [...document.querySelectorAll(".scene")];
     if (!nodes.length || startingGame) return;
-    // 마지막 씬: 자동으로 게임 진입하지 않음 — 「입장하기」 클릭만
-    if (idx >= nodes.length - 1) {
-      clearAutoAdvance();
-      return;
-    }
-    scrollToY(nodes[idx + 1].offsetTop);
-  }
-
-  function scheduleAutoAdvance(idx) {
-    clearAutoAdvance();
-    if (startingGame || autoScrolling) return;
-    if (idx < 0) return;
-    const nodes = document.querySelectorAll(".scene");
     if (idx >= nodes.length - 1) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    autoTimer = window.setTimeout(() => {
-      autoTimer = null;
-      if (startingGame || autoScrolling) return;
-      advanceFromScene(idx);
-    }, AUTO_SCENE_MS);
+    scrollToY(nodes[idx + 1].offsetTop);
   }
 
   function clearCtaReveal() {
@@ -452,7 +467,6 @@
       const last = nodes.length - 1;
       if (idx !== autoSceneIndex) {
         autoSceneIndex = idx;
-        scheduleAutoAdvance(idx);
         if (idx === last && last >= 0) {
           scheduleCtaReveal(nodes[last]);
         } else {
@@ -468,7 +482,7 @@
           scrollHint.classList.remove("is-hide");
         }
       } else if (scrollHint && idx >= 0) {
-        scrollHint.textContent = "잠시 후 자동 진행 · 스크롤로도 이동";
+        scrollHint.textContent = "화면을 클릭하거나 스크롤로 이동";
       }
     }
   }
@@ -498,10 +512,23 @@
     return `${GAME_BASE}/?${q.toString()}`;
   }
 
+  async function revealFinalDoor() {
+    const finalScene = document.querySelector(".scene--final");
+    const visual = finalScene && finalScene.querySelector("[data-visual].has-door-layers");
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (visual) {
+      visual.classList.add("is-door-open");
+      playDoorOpenSfx();
+      await sleep(reduced ? DOOR_REVEAL_REDUCED_MS : DOOR_REVEAL_MS);
+    } else {
+      playDoorOpenSfx();
+      await sleep(reduced ? 120 : 450);
+    }
+  }
+
   async function startInvestigation(btn) {
     if (startingGame) return;
     startingGame = true;
-    clearAutoAdvance();
     hideBgmUnlock();
     const status = document.querySelector("[data-start-status]");
     if (btn) {
@@ -511,9 +538,7 @@
     if (status) status.textContent = "";
 
     try {
-      await fadeOutEl(introBgm, 700);
-      pauseEl(gameBgm);
-      setBgmUi(false);
+      const doorReveal = revealFinalDoor();
 
       if (!sessionId) {
         const res = await fetch(`${API_BASE}/v1/session`, {
@@ -525,11 +550,14 @@
         sessionId = data.session_id;
       }
 
-      // 인트로→게임 진입 표시(폴백). 새로고침 복귀는 nginx 스크립트가 담당.
+      await doorReveal;
+      await fadeOutEl(introBgm, 700);
+      pauseEl(gameBgm);
+      setBgmUi(false);
+
       try {
         sessionStorage.setItem("truth_room_enter", "1");
       } catch (e) {}
-      // iframe embed 없이 Streamlit 전체 페이지로 이동
       window.location.href = gameUrl(sessionId);
     } catch (err) {
       console.error(err);
@@ -545,13 +573,69 @@
     }
   }
 
-  function bindStartButton() {
+  function bindSceneInteractions() {
     if (!pinRoot) return;
+    const cursorEl = document.getElementById("sceneCursor");
+    const coarse =
+      window.matchMedia("(hover: none), (pointer: coarse)").matches;
+
+    const setCursorOn = (on) => {
+      if (!cursorEl || coarse) return;
+      cursorEl.classList.toggle("is-on", on);
+    };
+
+    const moveCursor = (e) => {
+      if (!cursorEl || coarse) return;
+      cursorEl.style.transform = `translate3d(${e.clientX - 8}px, ${e.clientY - 4}px, 0)`;
+    };
+
+    const syncCursorFromTarget = (target) => {
+      if (!target || !(target instanceof Element)) {
+        setCursorOn(false);
+        return;
+      }
+      const scene = target.closest(".scene");
+      const onTapScene =
+        Boolean(scene) &&
+        !scene.classList.contains("scene--final") &&
+        Boolean(scene.classList.contains("is-active")) &&
+        !target.closest("a, button, input, textarea, select, label, .topbar, .bgm-unlock");
+      setCursorOn(onTapScene);
+    };
+
+    if (cursorEl && !coarse) {
+      window.addEventListener(
+        "pointermove",
+        (e) => {
+          moveCursor(e);
+          syncCursorFromTarget(e.target);
+        },
+        { passive: true },
+      );
+      window.addEventListener(
+        "pointerover",
+        (e) => syncCursorFromTarget(e.target),
+        { passive: true },
+      );
+      document.addEventListener("mouseleave", () => setCursorOn(false));
+    }
+
     pinRoot.addEventListener("click", (e) => {
-      const btn = e.target.closest("[data-start-game]");
-      if (!btn) return;
+      const startBtn = e.target.closest("[data-start-game]");
+      if (startBtn) {
+        e.preventDefault();
+        startInvestigation(startBtn);
+        return;
+      }
+      if (startingGame || autoScrolling) return;
+      if (e.target.closest(".scene--final")) return;
+      if (e.target.closest("a, button, input, textarea, select, label")) return;
+      const scene = e.target.closest(".scene");
+      if (!scene || scene.classList.contains("scene--final")) return;
+      const idx = Number(scene.getAttribute("data-index"));
+      if (!Number.isFinite(idx) || idx < 0) return;
       e.preventDefault();
-      startInvestigation(btn);
+      advanceFromScene(idx);
     });
   }
 
@@ -560,7 +644,7 @@
     await bootBgm();
     await fetchPublicCase();
     renderScenes(scenes);
-    bindStartButton();
+    bindSceneInteractions();
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);

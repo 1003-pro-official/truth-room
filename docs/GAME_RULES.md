@@ -1,7 +1,9 @@
 # GAME_RULES — 진실의 방 진행 룰
 
-> **정본:** 팀 합의 게임플레이 규칙. 구현은 [TECH_SPEC.md](../TECH_SPEC.md) · `configs/agent.yaml` · `backend/game_engine.py` · `app.py`.  
-> **출처:** 팀원 진행 룰 아이디어 → 프로젝트 적용 가능분 정리 (3-Out · 멘탈 붕괴 UI · 타임어택).  
+> **정본:** 팀 합의 게임플레이 규칙. 구현은 [TECH_SPEC.md](../TECH_SPEC.md) · `configs/agent.yaml` · `backend/game_engine.py` · **React** `web/game/` · Streamlit `app.py`(백업).
+> **출처:** 팀원 진행 룰 아이디어 → 프로젝트 적용 가능분 정리 (3-Out · 멘탈 붕괴 UI · 타임어택).
+>
+> **UI:** 본선 React. Streamlit→React **직접 원인** — 상태·다이얼로그·리렌더 **오류 반복**. [README.md §5](../README.md).
 > **전제:** 핵심 파이프라인은 이미 있음. 본 룰은 그 위에 **압박·연출·긴장감**을 얹는다.  
 > LLM GM의 `is_alibi_broken` 정밀 판정·실페르소나 톤은 **AI 프롬프트 + 실 RAG 데이터** 이후 고도화.
 
@@ -66,7 +68,7 @@
 
 | 항목 | 내용 |
 | :--- | :--- |
-| **위치** | **클라이언트(Streamlit)** 타이머 + 서버 `pass_turn` |
+| **위치** | **클라이언트(React)** 타이머 + 서버 `pass_turn` |
 | **설정** | `game.turn_seconds` (기본 **20**) · `game.timeout_strike_max` (기본 **3**) |
 | **타임아웃 1회** | `timeout_strikes += 1` · 턴 패스 · **알리바이 `break_count`는 증가하지 않음** |
 | **턴 3진 아웃** | `timeout_strikes >= 3` → `status: "turn_out"` · 세션 종료(패배) |
@@ -187,7 +189,7 @@ game:
 | G1 | 본 문서 · TECH_SPEC 반영 | Docs/PM | ✅ |
 | G2 | Session `break_count` · mental 상태 · ask 판정 | Agent/API | ✅ |
 | G3 | 페르소나 `system_prompt_mental_break` | Prompt | ✅ 스텁 |
-| G4 | Streamlit 타이머 · mental_break UI 폴백 | Front | ✅ |
+| G4 | React 타이머 · mental_break UI 폴백 | Front | ✅ |
 | G4b | 턴 타임아웃 3진 아웃 (`timeout_strikes`) | Agent/API/Front | ✅ |
 | G7 | 수사 권한 stamina · 헛수색/오심 패널티 | Agent/API | ✅ |
 | G8 | 조합 지목 (용의자+증거 2) | API/Front | ✅ |

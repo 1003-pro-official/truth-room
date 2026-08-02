@@ -11,7 +11,7 @@
 | **Scenario / Prompt** | 사건·페르소나·자백 조건 | `data/scenarios/`, `data/personas/` | OS 무관 |
 | **RAG / Data** | 증거 코퍼스·인덱싱·검색·평가셋 · Function Calling | `data/raw/`, `lib/`, `ingest.py`, `build_index.py`, `rag_pipeline.py`, `evaluate.py` | 로컬·Colab |
 | **Agent / LangGraph** | 심문 상태머신·압력·툴 연쇄 · AutoGen ask | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml` | 로컬 (API 키) |
-| **Service / Demo** | API·UI·데모 | `backend/`, `app.py`, `configs/api.yaml` | 데모 PC |
+| **Service / Demo** | API·UI·데모 | `backend/`, `web/game/`, `web/intro/`, `app.py`(백업), `configs/api.yaml` | 데모 PC |
 | **PM / Docs** (선택) | 리포트·발표·PRT | `README.md`, `PRESENTATION.md`, `docs/PEER_REVIEW.md` | — |
 
 > **팀원 → main:** [INTEGRATION.md](INTEGRATION.md) · **CI:** `.github/workflows/smoke.yml`
@@ -26,7 +26,7 @@
 | **Scenario** (세계관·증거 원문) | 최병철 | 시나리오 기획 · 알리바이/모순 · RAG 원천 데이터 생성 | [@choi0310](https://github.com/choi0310) | `data/scenarios/`, `data/raw/` |
 | **Prompt** (페르소나) | 박성우 | 용의자 3 + 조수 프롬프트 · 스트레스별 대사 | [@parkjw8](https://github.com/parkjw8) | `data/personas/`, `gm_system_prompt` |
 | **RAG / Data** · Tools | 이근목 | Vector DB · Retrieval 최적화 · Function Calling | [@snarmse](https://github.com/snarmse) | `ingest`·`build_index`·`rag_pipeline`·`lib/` |
-| **Service / Demo** · QA | 천세문 | Streamlit 심문 UI · API 연동 · 데모·QA | [@1003-pro-official](https://github.com/1003-pro-official) | `app.py`, `backend/` |
+| **Service / Demo** · QA | 천세문 | React 심문 UI · API 연동 · 데모·QA · Streamlit 백업 | [@1003-pro-official](https://github.com/1003-pro-official) | `web/game/`, `web/intro/`, `backend/`, `app.py`(백업) |
 
 > **초대 상태 (2026-07-31):** 전원 GitHub ID 확인 · collaborator(write) 초대 발송. 각자 메일/알림에서 수락 필요.  
 > [.github/CODEOWNERS](../.github/CODEOWNERS) 역할별 리뷰어 반영.  
@@ -85,7 +85,7 @@
 | 작업 | 산출물 | 실행 |
 | :--- | :--- | :--- |
 | REST | `/api/v1/session*` | `uvicorn backend.main:app --port 8000` |
-| Demo | Streamlit → API only · Railway 라이브 | `streamlit run app.py` · https://web-production-072b8.up.railway.app |
+| Demo | **React** → API only · Railway 라이브 · Streamlit 백업 | `web/game/` · https://web-production-072b8.up.railway.app |
 
 **PR 전:** Swagger `/docs` · UI에서 LLM 직접 호출 없음 · 5분 데모 스크립트
 
@@ -98,7 +98,7 @@
 | Scenario | 「용의자 3 · 핵심 증거 4 ID(카드·슬랙·출입·네트워크) · 자백 임계값」 |
 | RAG | 「Baseline vs Hybrid/RRF+rerank, Faithfulness로 비교」 |
 | Agent | 「공식 LangGraph StateGraph로 심문-증거-툴-대질 루프 · ask는 AutoGen」 |
-| Service | 「FastAPI 세션 + Streamlit 진실의 방 데모」 |
+| Service | 「FastAPI 세션 + React 진실의 방 데모」(Streamlit 백업) |
 
 ---
 

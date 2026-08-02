@@ -26,7 +26,7 @@
 | Data / Scenario | `data/`, `ingest.py`, `configs/ingest.yaml` |
 | RAG / Eval | `build_index.py`, `rag_pipeline.py`, `evaluate.py`, `configs/rag.yaml`, `configs/eval.yaml`, `runs/rag/`, `runs/eval/` |
 | Agent | `agent_graph.py`, `lib/langgraph_runtime.py`, `lib/autogen_runtime.py`, `configs/agent.yaml`, `runs/agent/` · 페르소나 프롬프트 |
-| Service | `backend/`, `app.py`, `configs/api.yaml` |
+| Service | `backend/`, `web/game/`, `web/intro/`, `app.py`(백업), `configs/api.yaml` |
 | Docs / PM | `README.md`, `PRESENTATION.md`, `references.md`, `update_report.py`, `update_notion.py` |
 
 역할 밖 파일은 **해당 역할 PR/리뷰 없이** 대규모 수정 금지.

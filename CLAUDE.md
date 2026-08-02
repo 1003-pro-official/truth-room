@@ -27,7 +27,7 @@
 | **1c** | `agent_graph.py --smoke` (LangGraph) · AutoGen ask · `runs/agent/` | 🟢 |
 | **1d** | `runs/eval/` · RAGAS n=30 · `report/assets/` | 🟢 |
 | **2** | FastAPI session · `/tool` · `/ask` · `/docs` | 🟢 |
-| **3** | Streamlit → API only · Golden Route UI 연출 | 🟢 |
+| **3** | Streamlit → React 본선 · API only · Golden Route UI 연출 | 🟢 |
 
 **안티패턴 금지:** Only Me · UI에서 LLM 직결 · `culprit_id` 클라이언트 노출 · 무제한 AutoGen 티키타카 · YOLO/CV
 
@@ -59,7 +59,7 @@
 | Modular / Hybrid RAG | `lib/rag_core.py` · `rag_pipeline.py` | Routing·rerank·eval 개선 (RAG Survey 참고) |
 | Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `backend/game_engine.py` · pressure · **break_count** | Cyclic 분기 · `langgraph.enabled` · [docs/GAME_RULES.md](docs/GAME_RULES.md) |
 | AutoGen GroupChat 심문 | `lib/autogen_runtime.py` · `/ask` | `autogen.enabled` · max_round · timeout · 폴백 |
-| Streamlit 심문 UI | `app.py` | 심문·증거 책상·지목 · `st.chat_message` · **FastAPI만** |
+| **React 심문 UI (본선)** | `web/game/` · `/game/` | 심문·증거 책상·지목 · **FastAPI만** · Streamlit `app.py`는 백업 |
 | Function Calling | `lib/tools.py` · `/tool` | CCTV·포렌식 페이로드 확장 |
 | 리포트 자동화 | `update_report.py` · `update_notion.py` · `scripts/plot_metrics.py` | 실험 후 README/Notion/그래프 동기화 |
 
@@ -97,9 +97,10 @@ python3 scripts/eval_ragas.py         # RAGAS · Python ≥3.10 · n=30
 python3 scripts/plot_metrics.py       # report/assets/
 python3 update_report.py          # runs/ → README.md
 python3 update_notion.py          # .env NOTION_* 필수
-python3 -m uvicorn backend.main:app --port 8000   # `/` 스크롤 인트로 · `/api` · `/assets`
-python3 -m streamlit run app.py --server.port 8501
-# Docker 원페이지: `/` 인트로 스크롤 → `/game` Streamlit
+python3 -m uvicorn backend.main:app --port 8000   # `/` 인트로 · `/game` React · `/api` · `/assets`
+# React 개발(선택): cd web/game && npm run dev
+# Streamlit 백업(선택): python3 -m streamlit run app.py --server.port 8501
+# Docker: `/` 인트로 → `/game` React
 python3 -m pytest tests/smoke -q
 ```
 

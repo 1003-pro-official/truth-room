@@ -11,7 +11,7 @@
 feature/data-*     (시나리오·raw)     ─┐
 feature/rag-*      (ingest·index·eval) ─┼─ PR + 리뷰 + Smoke CI ─► main
 feature/agent-*    (agent_graph·tools) ─┤
-feature/service-*  (API·Streamlit)     ─┘
+feature/service-*  (API·React UI · Streamlit 백업)     ─┘
 ```
 
 | 역할 | 브랜치 예 | merge에 넣을 것 |
