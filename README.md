@@ -53,7 +53,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Ingest 결과
 
 <!-- report:auto:ingest -->
-- **갱신:** `runs/ingest/summary.yaml` · 2026-08-03 19:55:41
+- **갱신:** `runs/ingest/summary.yaml` · 2026-08-03 20:15:30
 - **총 청크:** **6665**
 - **evidence_id 포함 청크:** **5** (`ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`)
 
@@ -136,7 +136,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **Baseline** | dense only | `라운지 Wi-Fi 100GB` | — | ✅ `ev_card_03` ∈ top-5 (rank 4) | 관련 카드가 뒤로 밀림 |
 | **Advanced** | hybrid RRF + rerank | `라운지 Wi-Fi 100GB` | **`ev_net_01`** | ✅ `ev_net_01` top-1 | 결정타 증거 정밀 회수 |
 
-- **자동 반영:** 2026-08-03 19:55:41
+- **자동 반영:** 2026-08-03 20:15:30
 <!-- /report:auto:rag -->
 
 ### [정량] 고정 쿼리 세트 (동일 프로토콜 · top_k=5)
@@ -236,7 +236,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Agent 스모크 (1턴)
 
 <!-- report:auto:agent -->
-- **상태:** `ok` · case `case_01` · 2026-08-03 19:55:41
+- **상태:** `ok` · case `case_01` · 2026-08-03 20:15:30
 - **목표 입력:** 김팀장 알리바이 검증 + CCTV
 - **수집 evidence:** `ev_card_03`
 - **clue / pressure:** 1 / 0.3
@@ -279,7 +279,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | **Context Recall** | **1.000** | 골드 evidence_id가 검색 결과에 포함되는 비율 |
 | **Answer Relevancy** | **0.216** | 질문–답변 토큰 겹침 proxy |
 
-- **자동 반영:** 2026-08-03 19:55:41 · sample_size=18 · backend=`local_token_overlap_faithfulness`
+- **자동 반영:** 2026-08-03 20:15:30 · sample_size=18 · backend=`local_token_overlap_faithfulness`
 <!-- /report:auto:eval -->
 
 - **평가 백엔드:** `evaluate.py` 로컬 토큰 겹침 (RAGAS 패키지 미필수)
@@ -350,7 +350,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### Langfuse 관측 게시판
 
-심문 ask 턴의 **입력·출력·세션**을 발표·디버깅용으로 바로 보여 주기 위해, 작은 팝업 대신 **게임 화면을 덮는 게시판형 레이어**로 넣었다.
+심문 ask 턴의 **입력·출력·세션**을 디버깅용으로 바로 보여 주기 위해, 작은 팝업 대신 **게임 화면을 덮는 게시판형 레이어**로 넣었다.
 
 | 항목 | 내용 |
 | :--- | :--- |
