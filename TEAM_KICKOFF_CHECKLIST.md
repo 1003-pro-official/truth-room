@@ -5,12 +5,15 @@
 
 ---
 
-## 발표일 · 일정 (Day 0)
+## 발표일 · 일정 (Day 0) — **확정**
 
-- [ ] **발표일 (D-0):** `YYYY-MM-DD`
-- [ ] [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) 날짜 열 작성
-- [ ] DLthon2 Day 1~4 마일스톤 합의 (변경 시 일정표 갱신)
-- [ ] 합의: **D-3 Code Freeze** · **D-2 자료** · **D-1 연습** (발표 역산이 있을 때)
+- [x] **발표일 (D-0):** **2026-08-11 14:00**
+- [x] **발표 준비 (D-1):** **2026-08-10**
+- [x] **당일 오전 리허설:** **2026-08-11 오전**
+- [x] [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) — **확정 주간** (8/4~7 수집 · 8/7 오후 3B LoRA · 8/10 준비 · 8/11 오전 리허설 · **14:00 발표**)
+- [x] 수집: `scripts/auto_ask_collect.py` · `data/sft/auto_ask_questions.yaml` · **45+45+45+30 ≈165턴 · 변형 ON**
+- [ ] 8/4~7 일일 `auto_ask_collect` 실행 · 8/7 오후 export+LoRA
+- [ ] D-1(8/10) 자료 확정 · D-0 오전(8/11) 리허설 · **14:00 발표**
 
 ---
 

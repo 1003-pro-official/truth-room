@@ -38,6 +38,17 @@ python scripts/eval_ragas.py --limit 0   # 전체 n=30 → runs/eval/ragas_py312
 팀 합의: **실서버에서 테스트하며 쌓인 심문 채팅**을 모아 말투 재학습에 쓴다.  
 정본 운영·안정장치: **[docs/CONVERSATION_LOG.md](../docs/CONVERSATION_LOG.md)**
 
+방학 보완: 질문셋 자동 심문으로도 동일 JSONL에 적재 가능.
+
+```bash
+python3 scripts/auto_ask_collect.py --date 2026-08-04   # 스케줄 45턴
+python3 scripts/auto_ask_collect.py --smoke             # 3턴 스모크
+```
+
+질문셋: `data/sft/auto_ask_questions.yaml`  
+**확정:** 8/4~8/7 · 변형 ON · 합계 ≈165턴 → 8/7 오후 3B LoRA → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
+정본: [PROJECT_SCHEDULE.md](../../PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](../docs/CONVERSATION_LOG.md)
+
 ```bash
 # 실서버만: CONVERSATION_LOG=1 (또는 conversation_log.enabled: true)
 # → runs/conversation_log/ask_turns.jsonl

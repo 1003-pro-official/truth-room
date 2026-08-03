@@ -120,9 +120,10 @@ UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `ac
 
 | 항목 | 내용 |
 | :--- | :--- |
-| 구현 | `lib/conversation_log.py` · `scripts/export_conversation_log.py` |
-| 설정 | `configs/agent.yaml` `conversation_log` · env `CONVERSATION_LOG=1` |
-| 기본 | **OFF** (로컬). 실서버에서만 켠다 |
+| 구현 | `lib/conversation_log.py` · `scripts/export_conversation_log.py` · `scripts/auto_ask_collect.py` |
+| 설정 | `configs/agent.yaml` `conversation_log` · env `CONVERSATION_LOG=1` · 질문셋 `data/sft/auto_ask_questions.yaml` |
+| 기본 | **OFF** (로컬). 실서버/`auto_ask_collect`에서만 켠다 |
+| 확정 스케줄 | 8/4~7 ≈165턴 → 8/7 오후 3B LoRA → 8/10 준비 → **8/11 오전 리허설 · 14:00 발표** ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)) |
 | 안정장치 | ask 비차단 · culprit/secrets 미기록 · 누수 문구 편집 · 길이 상한 · 말투 전용 · `runs/` gitignore |
 | 문서 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
 

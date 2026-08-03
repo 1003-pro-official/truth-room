@@ -64,11 +64,22 @@ conversation_log:
 ## 4. 명령 치트시트
 
 ```bash
-# 실서버: CONVERSATION_LOG=1 후 플레이 테스트
-# 로그 확인 (서버 볼륨/SSH)
+# --- 8/4~8/7 자동 심문 수집 (로컬 · CONVERSATION_LOG 강제) ---
+# 질문셋: data/sft/auto_ask_questions.yaml
+# 4일 합계 목표 ≈165턴 (45+45+45+30) · 변형 ON
+
+python3 scripts/auto_ask_collect.py --date 2026-08-04   # 45턴
+python3 scripts/auto_ask_collect.py --date 2026-08-05   # 45턴
+python3 scripts/auto_ask_collect.py --date 2026-08-06   # 45턴
+python3 scripts/auto_ask_collect.py --date 2026-08-07   # 30턴 (오전 권장)
+# 또는 당일: python3 scripts/auto_ask_collect.py --today
+# 스모크: python3 scripts/auto_ask_collect.py --smoke
+
+# 실서버 사람 플레이: CONVERSATION_LOG=1 후 테스트
+# 로그 확인
 #   runs/conversation_log/ask_turns.jsonl
 
-# 말투 FT 후보로 보내기
+# 말투 FT 후보로 보내기 (금요일 재학습 전)
 python3 scripts/export_conversation_log.py
 # → runs/conversation_log/persona_ft_candidates.jsonl
 # → …manifest.yaml
@@ -80,6 +91,23 @@ python3 scripts/export_conversation_log.py --include-assistant
 python3 scripts/build_persona_sft.py
 python3 scripts/local_lora_persona.py --model Qwen/Qwen2.5-3B-Instruct ...
 ```
+
+### 8/4~8/11 확정 스케줄
+
+정본 일정표: [PROJECT_SCHEDULE.md § 확정 주간](../PROJECT_SCHEDULE.md#확정-주간-스케줄-2026-08-04--08-11)
+
+| 날짜 | 턴 / 할 일 | 비고 |
+| :--- | :--- | :--- |
+| 8/4 | **45** | 알리바이·공통 · **변형 ON** |
+| 8/5 | **45** | 증거 압박 · 변형 ON |
+| 8/6 | **45** | 압박·모순 · 변형 ON |
+| 8/7 오전 | **30** | 보충 · 합계 **≈165턴** |
+| **8/7 오후** | export → **3B LoRA** | 본선 ask 교체 없음 |
+| **8/10** | 발표 준비 · 예비 리허설 | D-1 |
+| **8/11 오전** | **최종 리허설** | D-0 오전 |
+| **8/11 14:00** | **발표** | D-0 |
+
+OpenAI 키 사용함(본선 ask). 하루 45턴 ≈ 수십 분(AutoGen 지연 포함). UI 크롤링 금지 — `GameEngine.ask` / `auto_ask_collect.py`만.
 
 ---
 

@@ -22,7 +22,7 @@ git pull origin main
 | 용의자 페르소나·공개 프로필 | `data/personas/suspect_*.yaml` |
 | 게임 룰 (3-Out·스태미나·조합 지목) | `docs/GAME_RULES.md` · `lib/game_rules.py` |
 | API 세션/심문/검색/지목/프로필 | `backend/main.py` · `backend/game_engine.py` |
-| 실서버 심문 로그 → 말투 재학습 | `lib/conversation_log.py` · `scripts/export_conversation_log.py` · [CONVERSATION_LOG.md](CONVERSATION_LOG.md) |
+| 실서버 심문 로그 → 말투 재학습 | `lib/conversation_log.py` · `scripts/auto_ask_collect.py` · `export_conversation_log.py` · [CONVERSATION_LOG.md](CONVERSATION_LOG.md) · **스케줄** [PROJECT_SCHEDULE.md](../PROJECT_SCHEDULE.md) |
 | Langfuse 관측 게시판 | `lib/langfuse_obs.py` · 사이드바「관측」· [LANGFUSE.md](LANGFUSE.md) · [README.md §5](../README.md) |
 | 중장기 (진범 랜덤·용의자 확장) | [ROADMAP_EXPANSION.md](ROADMAP_EXPANSION.md) · 발표 Q&A |
 | **React UI (본선)** · 인트로 | `web/game/` · `web/intro/` · `assets/ui/evidence_desk/` |

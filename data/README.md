@@ -8,6 +8,8 @@ python3 ingest.py
 python3 build_index.py
 ```
 
+초기 코랩 생성기 원본(보관): [`scripts/colab/dateset.py`](../scripts/colab/dateset.py) · [README](../scripts/colab/README.md)  
+본선 재생성은 위 `generate_rag_dataset.py` 경로를 쓴다.
 ## 스펙 (목표)
 
 | 유형 | 경로 | 목표 분량 |

@@ -85,8 +85,11 @@ python3 -m uvicorn backend.main:app --port 8000
 **단일 경로:** React(또는 Streamlit 백업) → FastAPI only ([docs/ANTIPATTERNS.md](docs/ANTIPATTERNS.md))  
 **데모 게이트:** Phase 3 완료 — 심문 · 증거 책상 · 조합 지목 · Golden Route UI
 
-**실서버 심문 로그 → 재학습:** 플레이 테스트 ask를 JSONL로 모아 말투 LoRA 후보로 쓴다.  
-켜기: `CONVERSATION_LOG=1`. 안정장치·절차: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
+**실서버·자동 심문 로그 → 재학습:** ask 턴 JSONL → 말투 LoRA 후보.  
+- 자동: `python3 scripts/auto_ask_collect.py --today` (질문셋 `data/sft/auto_ask_questions.yaml`)  
+- 켜기: `CONVERSATION_LOG=1`  
+- **확정:** 8/4~7 45+45+45+30 ≈165턴 → 8/7 오후 3B LoRA → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
+상세: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)
 
 **Langfuse 관측 게시판:** 사이드바「관측 (Langfuse)」→ 게임 화면 전체 보드 (Tracing / Sessions).  
 선택: `.env`에 `LANGFUSE_*` 또는 Railway Variables. 상세: [docs/LANGFUSE.md](docs/LANGFUSE.md) · [README.md §5](README.md)
@@ -100,7 +103,7 @@ python3 -m uvicorn backend.main:app --port 8000
 - **구현 현황·코드 맵 (팀원 필독):** [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)
 - 역할: [docs/ROLES.md](docs/ROLES.md)
 - Kickoff: [TEAM_KICKOFF_CHECKLIST.md](TEAM_KICKOFF_CHECKLIST.md)
-- DLthon2 일정: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)
+- DLthon2 · **확정 주간(8/4~11):** [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)
 - 발표: [PRESENTATION.md](PRESENTATION.md)
 - PRT: [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md)
 

@@ -77,7 +77,7 @@
 - [x] 5분 Golden Route 데모 (범인 지목 → 자백) 완주 · UI 연출  
   (라이브: https://web-production-072b8.up.railway.app · 인트로→심문→증거 책상→조합 지목·검거 도장)
 - [x] 게임 룰: 3-Out · 멘탈 붕괴 · 타이머 — [docs/GAME_RULES.md](docs/GAME_RULES.md)
-- [ ] 실서버 심문 로그 수집 → 말투 재학습 사이클 운영 — [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) (파이프라인·안정장치 ✅ · 운영 수집은 진행)
+- [ ] 심문 로그 수집 → 말투 재학습 사이클 — **확정:** 8/4~7 ≈165턴(`auto_ask_collect`) → 8/7 오후 3B LoRA → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표** ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
 
 ### 중장기 (PRT 이후 · 발표 Next)
 

@@ -6,7 +6,36 @@
 > **발표 초안:** [PRESENTATION.md](PRESENTATION.md)  
 > **역할:** [docs/ROLES.md](docs/ROLES.md)  
 > **마일스톤 매핑:** Data(ingest) → RAG → Agent → Eval → API → Demo  
-> **현황 (2026-08-01):** Phase 0~3 🟢 · RAG Hit@5 4/4 · LangGraph smoke · AutoGen ask · RAGAS n=30 · LoRA≤3B · Railway 라이브 · **데모 UI(골든 루트·증거 책상·지목 모달) 완료** · 남은 것은 **발표 리허설·PRT·슬라이드**
+> **현황 (2026-08-03):** Phase 0~3 🟢 · Railway 라이브 · 데모 UI 완료 · **확정:** 8/4~7 수집 → 8/7 오후 3B LoRA → **8/10 발표 준비** → **8/11 오전 리허설 · 오후 2시 발표**
+
+---
+
+## 확정 주간 스케줄 (2026-08-04 ~ 08-11)
+
+> **정본.** 말투 FT용 ask 로그 적재 → 금요일 재학습 → 월요일 발표 준비 → **화요일 오전 리허설 · 오후 2시 발표**.  
+> 세부 명령·안정장치: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · 질문셋: `data/sft/auto_ask_questions.yaml` · 수집: `scripts/auto_ask_collect.py`
+
+| 날짜 | 요일 | 목표 | 턴 / 산출 | 비고 |
+| :--- | :---: | :--- | :--- | :--- |
+| **8/4** | 화 | 자동 심문 수집 | **45** · 알리바이·공통 | `auto_ask_collect.py --date 2026-08-04` · **변형 ON** |
+| **8/5** | 수 | 자동 심문 수집 | **45** · 증거 압박 | 동일 · 변형 ON |
+| **8/6** | 목 | 자동 심문 수집 | **45** · 압박·모순 | 동일 · 변형 ON |
+| **8/7 오전** | 금 | 자동 심문 보충 | **30** | 합계 **≈165턴** |
+| **8/7 오후** | 금 | **재학습** | `export_conversation_log.py` → **Qwen2.5-3B LoRA** | 본선 ask 교체 없음 · 전후 샘플만 |
+| **8/8~9** | 토·일 | (버퍼) | — | 새 기능·대규모 리팩터 금지 |
+| **8/10** | 월 | **발표 준비** | 슬라이드·Q&A · 백업 녹화 · 예비 리허설 | Code Freeze 유지 |
+| **8/11 오전** | 화 | **최종 리허설** | 라이브 데모 2~3회 · PC/네트워크 점검 | 코드 손대기 금지 |
+| **8/11 14:00** | 화 | **발표 (D-0)** | 라이브 데모 · Q&A | 막히면 녹화 |
+
+**한 줄:** 화~목·금오전에 로그 쌓고, **금 오후만 LoRA**, **월 준비 · 화 오전 리허설 · 화 오후 2시 발표**. UI 크롤링 대신 API/`GameEngine.ask` 경로.
+
+```bash
+python3 scripts/auto_ask_collect.py --today          # 당일 스케줄
+python3 scripts/auto_ask_collect.py --smoke          # 3턴 스모크
+# 금 오후
+python3 scripts/export_conversation_log.py
+python3 scripts/local_lora_persona.py --model Qwen/Qwen2.5-3B-Instruct --max-steps 12 --max-len 320 --out-dir runs/sft/local_lora_qwen3b_conv
+```
 
 ---
 
@@ -42,19 +71,22 @@
 
 ---
 
-## 발표 역산 (발표일이 따로 있을 때)
+## 발표 역산 (**확정** · D-0 = 2026-08-11)
 
-| D-day | 날짜 (기입) | 이 날 하는 일 | 이 날 하지 말 것 |
+| D-day | 날짜 | 이 날 하는 일 | 이 날 하지 말 것 |
 | :---: | :--- | :--- | :--- |
-| **D-3** | | **Code Freeze** — API·RAG/Agent 요약·README·PRT 초안 | 새 EXP · 대규모 리팩터 |
-| **D-2** | | 발표 자료 · Golden Route 캡처 · [PRESENTATION.md](PRESENTATION.md) | 구조 변경 |
-| **D-1** | | 전원 리허설 · Live Demo 2~3회 | README 대폭 수정 |
-| **D-0** | | 발표 · Q&A | — |
+| **D-7~D-4** | 8/4~8/7 | 자동 심문 수집 · **8/7 오후 재학습** (위 확정 표) | 새 EXP · 본선 ask 모델 교체 |
+| **D-3~D-2** | 8/8~8/9 | 버퍼 · PRT 초안 · 숫자 고정 | 대규모 리팩터 · 범위 확장 |
+| **D-1** | **8/10** | **발표 준비** — 슬라이드·Q&A · 백업 녹화 · [PRESENTATION.md](PRESENTATION.md) | README 대폭 수정 · 코드 손대기 |
+| **D-0 오전** | **8/11** | **최종 리허설** — Live Demo 2~3회 · PC/네트워크 | 코드 변경 |
+| **D-0 14:00** | **8/11** | **발표** · Q&A | — |
 
 | 항목 | 값 |
 | :--- | :--- |
-| **발표일 (D-0)** | `YYYY-MM-DD` |
-| 발표 시간 / 장소 | |
+| **발표일 (D-0)** | **2026-08-11 14:00** |
+| **발표 준비 (D-1)** | **2026-08-10** |
+| **당일 리허설** | **2026-08-11 오전** |
+| 발표 시간 / 장소 | **오후 2시** / (장소 팀 기입) |
 | 발표 분량 | ___ 분 |
 
 ### D-3 Code Freeze 체크
@@ -67,10 +99,11 @@
 - [x] **React** → API Golden Route 동작 · Streamlit 백업
 - [x] Railway 라이브 데모 (https://web-production-072b8.up.railway.app)
 
-### D-2 · D-1
+### D-1 · D-0
 
-- [ ] 슬라이드 확정 · 역할별 멘트
-- [ ] 타임 리허설 · 데모 PC/네트워크 점검
+- [ ] **8/10** 슬라이드 확정 · 역할별 멘트 · 백업 녹화
+- [ ] **8/11 오전** 최종 리허설 · 데모 PC/네트워크 점검
+- [ ] **8/11 14:00** 발표
 
 ---
 
@@ -81,7 +114,7 @@
 | RAG 실험 부족 | Advanced 실험 횟수 | Baseline + Advanced 1회 비교 |
 | UI 미완 | 화려한 레이아웃 | API only · Golden Route 완주 |
 | 문서 부족 | 장문 회고 | README + PRT 초안 |
-| **절대 밀지 말 것** | — | **DLthon Day 산출물 · D-3 Freeze · D-1 리허설** |
+| **절대 밀지 말 것** | — | **8/7 재학습 · 8/11 오전 리허설 · 14:00 발표** |
 
 ---
 
@@ -93,4 +126,5 @@
 | [TRAINING_CHECKLIST.md](TRAINING_CHECKLIST.md) | RAG/Agent 실험 체크 |
 | [docs/ROLES.md](docs/ROLES.md) | 역할 |
 | [PRESENTATION.md](PRESENTATION.md) | 슬라이드 원본 |
+| [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) | 8/4~7 수집 · 금 재학습 · 안정장치 |
 | [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md) | PRT |

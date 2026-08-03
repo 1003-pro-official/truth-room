@@ -23,5 +23,5 @@
 | [../GETTING_STARTED.md](../GETTING_STARTED.md) | 로컬·Colab 환경 |
 | [ENVIRONMENTS.md](ENVIRONMENTS.md) | OS·venv·Colab · Railway 라이브 |
 | [ANTIPATTERNS.md](ANTIPATTERNS.md) | Only Me · API 우회 등 |
-| [../PROJECT_SCHEDULE.md](../PROJECT_SCHEDULE.md) | DLthon2 전략·마일스톤 |
+| [../PROJECT_SCHEDULE.md](../PROJECT_SCHEDULE.md) | **확정** 8/4~11 수집·재학습·발표 · DLthon2 |
 | [PEER_REVIEW.md](PEER_REVIEW.md) | AIFFEL PRT (**에이전트 수정 금지**) |

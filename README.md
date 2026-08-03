@@ -219,14 +219,18 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 
 ### 실서버 심문 로그 → 재학습 (계획·파이프라인)
 
-실서버(Railway) 플레이 테스트에서 나온 **심문 채팅(ask 턴)**을 데이터셋으로 모아, 페르소나 **말투** 소량 SFT/LoRA에 다시 넣는 흐름을 합의·구현해 두었다.
+실서버(Railway) 플레이 테스트 · **자동 심문**에서 나온 **심문 채팅(ask 턴)**을 데이터셋으로 모아, 페르소나 **말투** 소량 SFT/LoRA에 다시 넣는 흐름을 합의·구현해 두었다.
 
 | 항목 | 내용 |
 | :--- | :--- |
 | 수집 | `lib/conversation_log.py` — ask 성공 시 JSONL append (opt-in) |
+| 자동 심문 | `scripts/auto_ask_collect.py` · `data/sft/auto_ask_questions.yaml` |
 | 경로 | `runs/conversation_log/ask_turns.jsonl` → `scripts/export_conversation_log.py` |
 | 재학습 용도 | **말투(persona_speech) 후보만**. 알리바이·승패·GM 판정은 코드/YAML 권위 유지 |
 | 켜는 법 | 실서버 `CONVERSATION_LOG=1` 또는 `conversation_log.enabled: true` (로컬 기본 **OFF**) |
+
+**확정 스케줄:** 8/4~7 **45+45+45+30 ≈165턴** (변형 ON) → **8/7 오후** export+**3B LoRA** → **8/10** 준비 → **8/11 오전 리허설 · 14:00 발표**.  
+정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
 
 **안정장치:** 기본 OFF · 로깅 실패가 ask를 깨지 않음 · `culprit_id`/secrets 미기록 · 누수 문구 `[편집됨]` · 길이 상한 · export 필터 · `runs/` gitignore · UI 비노출.  
 상세: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [data/sft/README.md](data/sft/README.md)
@@ -392,8 +396,9 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 남은 작업
 
-- 실서버 심문 로그 수집(`CONVERSATION_LOG=1`) → export → 말투 LoRA 재학습 사이클 운영 ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
-- _(발표 리허설·PRT 과제 복사·슬라이드 확정은 팀 Day 4)_
+- **8/4~7** `auto_ask_collect` 일일 적재 → **8/7 오후** export+3B LoRA ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
+- **8/10** 발표 준비 · **8/11 오전** 리허설 · **14:00** 발표 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
+- PRT 과제 복사 · 슬라이드 확정 ([PRESENTATION.md](PRESENTATION.md))
 
 ### 중장기 (발표 Next · PRT 이후)
 
@@ -416,6 +421,6 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 확장 · 발표 Q&A |
 | [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
 | [docs/GAME_RULES.md](docs/GAME_RULES.md)               | 3-Out · 멘탈 붕괴 · 타임어택              |
-| [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)             | DLthon2 마일스톤                          |
+| [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)             | **확정** 8/4~11 수집·재학습·발표 · DLthon2 |
 | [PRESENTATION.md](PRESENTATION.md)                     | 발표 초안                                 |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                     | 팀 OS                                     |
