@@ -140,7 +140,7 @@ UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `ac
 
 ### 4.3 중장기 확장 (PRT 비범위)
 
-진범 세션 랜덤 · 용의자 5명은 **현행 `case_01` 스키마 유지** 전제에서 변형 케이스/`case_02`로 확장한다.  
+진범 세션 랜덤 · 용의자 확장은 **현행 `case_01` 스키마 유지** 전제에서 변형 케이스/`case_02`로 확장한다.  
 정본: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
 
 ---

@@ -82,7 +82,7 @@
 ### 중장기 (PRT 이후 · 발표 Next)
 
 - [ ] 진범 랜덤 — **변형 케이스 세트** 세션 로드 (ID만 스왑 금지)
-- [ ] 용의자 5명 — 권장 `case_02` 신규 사건
+- [ ] 용의자 확장 — 권장 `case_02` 신규 사건 (인원·구성은 설계에 따름)
 
 상세·Q&A 멘트: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
 
@@ -95,6 +95,6 @@
 - 상용 필수화 (로컬·Colab도 가능 — **Railway 데모:** https://web-production-072b8.up.railway.app )
 - 무제한 AutoGen 티키타카(상한·폴백 없는) · OpenAI embedding/Chroma 필수화 (선택 실험만 · Hit@5에서 Advanced 미상회)
 - 객체탐지(YOLO) · CV 학습 파이프라인
-- **PRT 범위 밖:** 진범 세션 랜덤 · 용의자 5명 — 중장기로만 ([docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md))
+- **PRT 범위 밖:** 진범 세션 랜덤 · 용의자 확장 — 중장기로만 ([docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md))
 
 상세 기술 → [TECH_SPEC.md](TECH_SPEC.md) · 코딩 규칙 → [AI_CONVENTION.md](AI_CONVENTION.md)
