@@ -1,7 +1,8 @@
-import { assetUrl } from '../api/client'
+import { useState } from 'react'
+import { api, assetUrl } from '../api/client'
 import { CLUE_FLAVOR, CLUE_LABELS } from '../data/deskItems'
 import { GOLDEN_ROUTE_STEPS } from '../data/goldenRoute'
-import { useGameStore } from '../state/gameStore'
+import { useGameStore, type ObsPayload, type ObsTrace } from '../state/gameStore'
 import { Modal } from './Modal'
 
 const PROFILE_IDENTITY: [string, string][] = [
@@ -42,6 +43,10 @@ export function DialogHost() {
   const confirmClue = useGameStore((s) => s.confirmClue)
   const ackAccuse = useGameStore((s) => s.ackAccuse)
   const ackRevoked = useGameStore((s) => s.ackRevoked)
+  const observability = useGameStore((s) => s.observability)
+  const obsLoading = useGameStore((s) => s.obsLoading)
+  const openObservability = useGameStore((s) => s.openObservability)
+  const game = useGameStore((s) => s.game)
 
   if (modal === 'briefing') {
     return (
@@ -146,7 +151,7 @@ export function DialogHost() {
 
   if (modal === 'desk_alert' && deskAlert) {
     return (
-      <Modal title="수색 결과" dismissible={false} alert>
+      <Modal title={deskAlert.title || '수색 결과'} dismissible={false} alert>
         {deskAlert.kind === 'warn' ? (
           <div className="alert-banner is-warn">{deskAlert.text}</div>
         ) : deskAlert.kind === 'error' ? (
@@ -255,7 +260,380 @@ export function DialogHost() {
     )
   }
 
+  if (modal === 'observability') {
+    return (
+      <ObservabilityModal
+        observability={observability}
+        obsLoading={obsLoading}
+        sessionId={game?.session_id || ''}
+        onRefresh={() => void openObservability()}
+        onClose={closeModal}
+      />
+    )
+  }
+
   return null
+}
+
+function ObservabilityModal({
+  observability,
+  obsLoading,
+  sessionId,
+  onRefresh,
+  onClose,
+}: {
+  observability: ObsPayload | null
+  obsLoading: boolean
+  sessionId: string
+  onRefresh: () => void
+  onClose: () => void
+}) {
+  const [tab, setTab] = useState<'tracing' | 'sessions'>('tracing')
+  const projectTraces = observability?.traces || []
+  const sessionTraces = observability?.session_traces || []
+  const sessions = observability?.sessions || []
+  const openUrl =
+    tab === 'tracing'
+      ? observability?.langfuse_traces_url || observability?.langfuse_sessions_url
+      : observability?.langfuse_sessions_url || observability?.langfuse_session_url
+
+  return (
+    <div className="obs-board" role="dialog" aria-modal="true" aria-label="Observability · Langfuse">
+      <div className="obs-board-inner">
+        <header className="obs-board-header">
+          <div className="obs-board-heading">
+            <p className="modal-kicker">FIELD OBSERVATORY</p>
+            <h2 className="obs-board-title">Observability · Langfuse</h2>
+            <p className="obs-session-id">
+              {sessionId ? `Current session ${sessionId}` : 'Langfuse board'}
+            </p>
+          </div>
+          <div className="obs-board-header-right">
+            <div className="obs-session-stats">
+              <span>
+                Traces{' '}
+                <strong>{obsLoading ? '…' : observability?.trace_count ?? projectTraces.length}</strong>
+              </span>
+              <span>
+                Sessions{' '}
+                <strong>{obsLoading ? '…' : observability?.session_count ?? sessions.length}</strong>
+              </span>
+              {observability?.langfuse_configured ? (
+                <span className="obs-pill is-on">Langfuse linked</span>
+              ) : (
+                <span className="obs-pill">local only</span>
+              )}
+            </div>
+            <button type="button" className="obs-board-close" aria-label="Close" onClick={onClose}>
+              ×
+            </button>
+          </div>
+        </header>
+
+        <div className="obs-board-toolbar">
+          <div className="tabs obs-tabs" role="tablist" aria-label="Observability views">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'tracing'}
+              className={`tab${tab === 'tracing' ? ' active' : ''}`}
+              onClick={() => setTab('tracing')}
+            >
+              Tracing
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={tab === 'sessions'}
+              className={`tab${tab === 'sessions' ? ' active' : ''}`}
+              onClick={() => setTab('sessions')}
+            >
+              Sessions
+            </button>
+          </div>
+          {openUrl ? (
+            <a className="obs-link obs-link-top" href={openUrl} target="_blank" rel="noreferrer">
+              Open in Langfuse ↗
+            </a>
+          ) : null}
+        </div>
+
+        <div className="obs-board-body">
+          {observability?.remote_error ? (
+            <p className="alert-banner is-warn">Langfuse 조회: {observability.remote_error}</p>
+          ) : null}
+
+          {obsLoading ? (
+            <p className="hint-muted">불러오는 중…</p>
+          ) : tab === 'tracing' ? (
+            <TracingPane traces={projectTraces} />
+          ) : (
+            <SessionsPane
+              sessions={sessions}
+              sessionTraces={sessionTraces}
+              projectTraces={projectTraces}
+              sessionId={sessionId}
+            />
+          )}
+        </div>
+
+        <footer className="obs-actions">
+          <button type="button" className="side-btn" onClick={onRefresh} disabled={obsLoading}>
+            새로고침
+          </button>
+          <button type="button" className="primary-btn" onClick={onClose}>
+            확인
+          </button>
+        </footer>
+      </div>
+    </div>
+  )
+}
+
+function TracingPane({ traces }: { traces: ObsTrace[] }) {
+  if (traces.length === 0) {
+    return (
+      <p className="hint-muted">
+        아직 프로젝트 트레이스가 없습니다. 심문 질문을 한 뒤 새로고침하면 Input / Output이 여기에
+        쌓입니다.
+      </p>
+    )
+  }
+  return (
+    <div className="obs-table-wrap">
+      <table className="obs-table">
+        <thead>
+          <tr>
+            <th>Start Time</th>
+            <th>Name</th>
+            <th>Input</th>
+            <th>Output</th>
+            <th>Session</th>
+          </tr>
+        </thead>
+        <tbody>
+          {traces.map((t) => (
+            <tr key={t.id}>
+              <td className="obs-td-time">{t.ts ? formatObsTime(t.ts) : '—'}</td>
+              <td>
+                <span className="obs-type">span</span>{' '}
+                <strong>{t.name || 'interrogation-ask'}</strong>
+              </td>
+              <td className="obs-td-io" title={t.question || ''}>
+                {t.question || '—'}
+              </td>
+              <td className="obs-td-io" title={t.answer || ''}>
+                {t.answer || '—'}
+              </td>
+              <td className="mono">{t.session_id || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
+function SessionsPane({
+  sessions,
+  sessionTraces,
+  projectTraces,
+  sessionId,
+}: {
+  sessions: NonNullable<ObsPayload['sessions']>
+  sessionTraces: ObsTrace[]
+  projectTraces: ObsTrace[]
+  sessionId: string
+}) {
+  const [openId, setOpenId] = useState<string | null>(null)
+  const [cache, setCache] = useState<Record<string, ObsTrace[]>>(() => {
+    const init: Record<string, ObsTrace[]> = {}
+    if (sessionId && sessionTraces.length) init[sessionId] = sessionTraces
+    return init
+  })
+  const [loadingId, setLoadingId] = useState<string | null>(null)
+  const [errorById, setErrorById] = useState<Record<string, string>>({})
+
+  const seedFor = (sid: string): ObsTrace[] => {
+    if (cache[sid]?.length) return cache[sid]
+    if (sid === sessionId && sessionTraces.length) return sessionTraces
+    const fromProject = projectTraces.filter((t) => t.session_id === sid)
+    return fromProject
+  }
+
+  const toggle = async (sid: string) => {
+    if (openId === sid) {
+      setOpenId(null)
+      return
+    }
+    setOpenId(sid)
+    if (cache[sid]?.length || (sid === sessionId && sessionTraces.length)) {
+      if (!cache[sid]?.length && sessionTraces.length) {
+        setCache((prev) => ({ ...prev, [sid]: sessionTraces }))
+      }
+      return
+    }
+    setLoadingId(sid)
+    try {
+      const data = await api.getObservabilitySession(sid, 12)
+      setCache((prev) => ({ ...prev, [sid]: data.traces || [] }))
+      setErrorById((prev) => {
+        const next = { ...prev }
+        delete next[sid]
+        return next
+      })
+    } catch (e) {
+      const seeded = seedFor(sid)
+      if (seeded.length) {
+        setCache((prev) => ({ ...prev, [sid]: seeded }))
+      } else {
+        setErrorById((prev) => ({
+          ...prev,
+          [sid]: e instanceof Error ? e.message : String(e),
+        }))
+      }
+    } finally {
+      setLoadingId(null)
+    }
+  }
+
+  if (sessions.length === 0) {
+    return <p className="hint-muted">세션 목록이 비어 있습니다.</p>
+  }
+
+  return (
+    <div className="obs-sessions-pane">
+      <ul className="obs-faq-list">
+        {sessions.map((s) => {
+          const expanded = openId === s.id
+          const traces = cache[s.id] || seedFor(s.id)
+          const loading = loadingId === s.id
+          const err = errorById[s.id]
+          return (
+            <li key={s.id} className={`obs-faq-item${s.current ? ' is-current' : ''}${expanded ? ' is-open' : ''}`}>
+              <button
+                type="button"
+                className="obs-faq-head"
+                aria-expanded={expanded}
+                onClick={() => void toggle(s.id)}
+              >
+                <div className="obs-faq-head-main">
+                  <strong className="mono">{s.id}</strong>
+                  {s.current ? <span className="obs-pill is-on">current</span> : null}
+                  <span className="obs-meta">
+                    {s.created_at ? formatObsTime(s.created_at) : ''}
+                    {s.environment ? ` · ${s.environment}` : ''}
+                  </span>
+                </div>
+                <span className="obs-faq-toggle">{expanded ? '접기' : '펼치기'}</span>
+              </button>
+              {expanded ? (
+                <div className="obs-faq-body">
+                  {loading ? <p className="hint-muted">트레이스 불러오는 중…</p> : null}
+                  {!loading && err ? <p className="alert-banner is-warn">{err}</p> : null}
+                  {!loading && !err && traces.length === 0 ? (
+                    <p className="hint-muted">이 세션에 기록된 ask가 없습니다.</p>
+                  ) : null}
+                  {!loading && traces.length > 0 ? (
+                    <ul className="obs-list">
+                      {traces.map((t) => (
+                        <ObsTraceCard key={t.id} t={t} />
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
+              ) : null}
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
+
+function ObsTraceCard({ t }: { t: ObsTrace }) {
+  const inputRows: [string, string][] = [
+    ['question', t.question || '—'],
+    ['suspect_id', t.suspect_id || '—'],
+    ['suspect_name', t.suspect_name || '—'],
+  ]
+  const outputRows: [string, string][] = [
+    ['answer', t.answer || '—'],
+    ['assistant_note', t.assistant_note || '—'],
+    ['gm_status', t.gm_status || '—'],
+    ['reply_source', t.reply_source || '—'],
+  ]
+  return (
+    <li className="obs-item">
+      <div className="obs-item-title">
+        <span className="obs-type">span</span>
+        <strong>{t.name || 'interrogation-ask'}</strong>
+        <span className="obs-meta">
+          {t.elapsed_sec != null ? `${t.elapsed_sec}s` : ''}
+          {t.ts ? ` · ${formatObsTime(t.ts)}` : ''}
+        </span>
+      </div>
+      <div className="obs-grid">
+        <div className="obs-main">
+          <section className="obs-block">
+            <h4>Input</h4>
+            <div className="obs-kv">
+              {inputRows.map(([k, v]) => (
+                <div key={k} className="obs-kv-row">
+                  <span className="obs-k">{k}</span>
+                  <span className="obs-v">{v}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+          <section className="obs-block">
+            <h4>Output</h4>
+            <div className="obs-kv">
+              {outputRows.map(([k, v]) => (
+                <div key={k} className="obs-kv-row">
+                  <span className="obs-k">{k}</span>
+                  <span className="obs-v">{v}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+        <aside className="obs-side">
+          <h4>Metadata</h4>
+          <div className="obs-kv obs-kv-compact">
+            <div className="obs-kv-row">
+              <span className="obs-k">id</span>
+              <span className="obs-v mono">{t.id.slice(0, 12)}…</span>
+            </div>
+            <div className="obs-kv-row">
+              <span className="obs-k">model</span>
+              <span className="obs-v">{t.model || '—'}</span>
+            </div>
+            <div className="obs-kv-row">
+              <span className="obs-k">roles</span>
+              <span className="obs-v">{(t.roles || []).join(', ') || '—'}</span>
+            </div>
+            <div className="obs-kv-row">
+              <span className="obs-k">synced</span>
+              <span className="obs-v">{t.langfuse_synced ? 'yes' : 'local'}</span>
+            </div>
+          </div>
+        </aside>
+      </div>
+    </li>
+  )
+}
+
+function formatObsTime(ts: string): string {
+  const d = new Date(ts)
+  if (Number.isNaN(d.getTime())) return ts
+  return d.toLocaleString('ko-KR', {
+    month: 'numeric',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  })
 }
 
 function CaseBody({ layout = 'default' }: { layout?: 'default' | 'briefing' }) {

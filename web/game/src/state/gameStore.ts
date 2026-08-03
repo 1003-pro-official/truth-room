@@ -32,8 +32,55 @@ export type ModalKind =
   | 'desk_clue'
   | 'accuse'
   | 'revoked'
+  | 'observability'
 
-type DeskAlert = { kind: 'ok' | 'warn' | 'info' | 'error'; text: string }
+export type ObsTrace = {
+  id: string
+  ts?: string
+  session_id?: string
+  name?: string
+  suspect_name?: string
+  suspect_id?: string
+  question?: string
+  answer?: string
+  assistant_note?: string
+  reply_source?: string
+  model?: string
+  gm_status?: string
+  elapsed_sec?: number | null
+  roles?: string[]
+  langfuse_synced?: boolean
+  langfuse_url?: string | null
+}
+
+export type ObsSession = {
+  id: string
+  created_at?: string | null
+  environment?: string
+  trace_count?: number | null
+  current?: boolean
+  langfuse_url?: string | null
+}
+
+export type ObsPayload = {
+  enabled: boolean
+  langfuse_configured: boolean
+  langfuse_host?: string | null
+  langfuse_traces_url?: string | null
+  langfuse_sessions_url?: string | null
+  langfuse_session_url?: string | null
+  source: string
+  remote_error?: string | null
+  count: number
+  trace_count?: number
+  session_count?: number
+  traces: ObsTrace[]
+  session_traces?: ObsTrace[]
+  sessions?: ObsSession[]
+  note?: string
+}
+
+type DeskAlert = { kind: 'ok' | 'warn' | 'info' | 'error'; text: string; title?: string }
 
 type AccuseFlash = { text: string; won: boolean; revoked: boolean }
 
@@ -62,6 +109,8 @@ type GameStore = {
   busy: boolean
   /** OpenAI 폴백 감지 후 — 대기 문구를 로컬 모드로 전환 */
   llmDegraded: null | 'quota' | 'auth'
+  observability: ObsPayload | null
+  obsLoading: boolean
 
   boot: () => Promise<void>
   startGame: () => void
@@ -71,6 +120,7 @@ type GameStore = {
   openHowto: () => void
   openCase: () => Promise<void>
   openDossier: () => Promise<void>
+  openObservability: () => Promise<void>
   closeModal: () => void
   ask: (question: string) => Promise<void>
   searchDesk: (item: DeskItem) => Promise<void>
@@ -118,6 +168,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   tab: 'ask',
   busy: false,
   llmDegraded: null,
+  observability: null,
+  obsLoading: false,
 
   deskItems: () => deskItemsForOrder(get().deskOrder),
 
@@ -192,6 +244,47 @@ export const useGameStore = create<GameStore>((set, get) => ({
       set({ dossier, modal: 'dossier' })
     } catch (e) {
       set({ bootError: e instanceof Error ? e.message : String(e) })
+    }
+  },
+
+  openObservability: async () => {
+    const g = get().game
+    if (!g) return
+    sfx.uiOpen()
+    // 좁은 화면에서는 표·세션 UI가 깨지므로 PC 안내만 표시
+    if (typeof window !== 'undefined' && window.matchMedia('(max-width: 900px)').matches) {
+      set({
+        sidebarOpen: false,
+        modal: 'desk_alert',
+        deskAlert: {
+          kind: 'info',
+          title: '관측 (Langfuse)',
+          text: '관측(Langfuse)은 PC 화면에서 확인해 주세요.',
+        },
+      })
+      return
+    }
+    set({
+      sidebarOpen: false,
+      obsLoading: true,
+      modal: 'observability',
+      observability: null,
+    })
+    try {
+      const data = await api.getObservability(g.session_id, 12)
+      set({ observability: data, obsLoading: false })
+    } catch (e) {
+      set({
+        obsLoading: false,
+        observability: {
+          enabled: true,
+          langfuse_configured: false,
+          source: 'error',
+          count: 0,
+          traces: [],
+          note: e instanceof Error ? e.message : String(e),
+        },
+      })
     }
   },
 

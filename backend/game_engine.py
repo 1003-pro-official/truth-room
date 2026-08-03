@@ -858,6 +858,35 @@ class GameEngine:
 
             llm_notice = llm_notice_for_local_fallback(openai_fail_kind)
 
+        try:
+            from lib.langfuse_obs import record_ask_observation
+
+            roles: list[str] = []
+            for row in agent_transcript:
+                role = str((row or {}).get("role") or "").strip()
+                if role and role not in roles:
+                    roles.append(role)
+            elapsed = autogen_meta.get("elapsed_sec")
+            try:
+                elapsed_f = float(elapsed) if elapsed is not None else None
+            except (TypeError, ValueError):
+                elapsed_f = None
+            record_ask_observation(
+                session_id=session.session_id,
+                suspect_id=suspect_id,
+                suspect_name=str(persona.get("name") or suspect_id),
+                question=question,
+                answer=answer,
+                assistant_note=assistant_note,
+                reply_source=str(reply_source or "stub"),
+                model=llm_model,
+                gm_status=str(verdict.get("status") or ""),
+                elapsed_sec=elapsed_f,
+                agent_roles=roles,
+            )
+        except Exception:  # noqa: BLE001
+            _log.warning("langfuse_obs 기록 실패", exc_info=False)
+
         return {
             "answer": answer,
             "pressure": pressure,

@@ -138,6 +138,35 @@ def get_suspect_profile(session_id: str, suspect_id: str) -> Dict[str, Any]:
     return profile
 
 
+@app.get("/api/v1/observability/status")
+def observability_status() -> Dict[str, Any]:
+    """사이드바 관측 버튼용 — Langfuse 설정 여부(시크릿 미노출)."""
+    from lib.langfuse_obs import observability_status as _status
+
+    return _status()
+
+
+@app.get("/api/v1/observability/sessions/{obs_session_id}")
+def observability_session_detail(obs_session_id: str, limit: int = 12) -> Dict[str, Any]:
+    """Sessions 아코디언용 — Langfuse/로컬 세션 트레이스 (게임 세션 없어도 OK)."""
+    from lib.langfuse_obs import fetch_session_detail
+
+    lim = max(1, min(int(limit or 12), 24))
+    return fetch_session_detail(obs_session_id, limit=lim)
+
+
+@app.get("/api/v1/session/{session_id}/observability")
+def session_observability(session_id: str, limit: int = 12) -> Dict[str, Any]:
+    """심문 ask 트레이스 요약 (로컬 버퍼 우선 · Langfuse는 선택 동기화)."""
+    session = engine.get_session(session_id)
+    if not session:
+        raise HTTPException(status_code=404, detail="session not found")
+    from lib.langfuse_obs import fetch_session_observations
+
+    lim = max(1, min(int(limit or 12), 24))
+    return fetch_session_observations(session_id, limit=lim)
+
+
 @app.post("/api/v1/session/{session_id}/ask")
 def ask(session_id: str, body: AskBody) -> Dict[str, Any]:
     session = engine.get_session(session_id)

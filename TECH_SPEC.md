@@ -178,6 +178,8 @@ OPENAI_API_KEY=
 # 선택
 LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
+LANGFUSE_BASE_URL=https://cloud.langfuse.com
+# LANGFUSE_HOST=  # deprecated alias of BASE_URL
 ```
 
 비밀값은 `.env` only — Git 커밋 금지.

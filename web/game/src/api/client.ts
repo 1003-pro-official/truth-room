@@ -111,6 +111,96 @@ export const api = {
       reply_source?: string
       llm_notice?: string | null
     }>(`/api/v1/session/${sid}/ask`, { method: 'POST', body: JSON.stringify(body) }),
+  observabilityStatus: () =>
+    req<{
+      enabled: boolean
+      langfuse_configured: boolean
+      langfuse_host?: string | null
+      note?: string
+    }>('/api/v1/observability/status'),
+  getObservability: (sid: string, limit = 12) =>
+    req<{
+      enabled: boolean
+      langfuse_configured: boolean
+      langfuse_host?: string | null
+      langfuse_traces_url?: string | null
+      langfuse_sessions_url?: string | null
+      langfuse_session_url?: string | null
+      source: string
+      remote_error?: string | null
+      count: number
+      trace_count?: number
+      session_count?: number
+      traces: Array<{
+        id: string
+        ts?: string
+        session_id?: string
+        name?: string
+        suspect_name?: string
+        suspect_id?: string
+        question?: string
+        answer?: string
+        assistant_note?: string
+        reply_source?: string
+        model?: string
+        gm_status?: string
+        elapsed_sec?: number | null
+        roles?: string[]
+        langfuse_synced?: boolean
+        langfuse_url?: string | null
+      }>
+      session_traces?: Array<{
+        id: string
+        ts?: string
+        session_id?: string
+        name?: string
+        suspect_name?: string
+        suspect_id?: string
+        question?: string
+        answer?: string
+        assistant_note?: string
+        reply_source?: string
+        model?: string
+        gm_status?: string
+        elapsed_sec?: number | null
+        roles?: string[]
+        langfuse_synced?: boolean
+        langfuse_url?: string | null
+      }>
+      sessions?: Array<{
+        id: string
+        created_at?: string | null
+        environment?: string
+        trace_count?: number | null
+        current?: boolean
+        langfuse_url?: string | null
+      }>
+    }>(`/api/v1/session/${sid}/observability?limit=${limit}`),
+  getObservabilitySession: (obsSessionId: string, limit = 12) =>
+    req<{
+      session_id: string
+      source: string
+      remote_error?: string | null
+      count: number
+      traces: Array<{
+        id: string
+        ts?: string
+        session_id?: string
+        name?: string
+        suspect_name?: string
+        suspect_id?: string
+        question?: string
+        answer?: string
+        assistant_note?: string
+        reply_source?: string
+        model?: string
+        gm_status?: string
+        elapsed_sec?: number | null
+        roles?: string[]
+        langfuse_synced?: boolean
+        langfuse_url?: string | null
+      }>
+    }>(`/api/v1/observability/sessions/${encodeURIComponent(obsSessionId)}?limit=${limit}`),
   search: (
     sid: string,
     body: { query: string; force_miss?: boolean; force_evidence_id?: string | null },

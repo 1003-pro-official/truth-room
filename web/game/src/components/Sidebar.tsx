@@ -7,6 +7,7 @@ export function Sidebar() {
   const caseWon = useGameStore((s) => s.caseWon)
   const openHowto = useGameStore((s) => s.openHowto)
   const openCase = useGameStore((s) => s.openCase)
+  const openObservability = useGameStore((s) => s.openObservability)
   const restart = useGameStore((s) => s.restart)
   const setSidebarOpen = useGameStore((s) => s.setSidebarOpen)
   const owned = game?.evidence_ids || []
@@ -49,6 +50,9 @@ export function Sidebar() {
         </button>
         <button type="button" className="side-btn" onClick={() => openCase()}>
           사건개요
+        </button>
+        <button type="button" className="side-btn" onClick={() => void openObservability()}>
+          관측 (Langfuse)
         </button>
       </div>
 
