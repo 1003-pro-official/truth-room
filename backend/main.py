@@ -157,10 +157,11 @@ def observability_session_detail(obs_session_id: str, limit: int = 12) -> Dict[s
 
 @app.get("/api/v1/session/{session_id}/observability")
 def session_observability(session_id: str, limit: int = 12) -> Dict[str, Any]:
-    """심문 ask 트레이스 요약 (로컬 버퍼 우선 · Langfuse는 선택 동기화)."""
-    session = engine.get_session(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail="session not found")
+    """심문 ask 트레이스 요약.
+
+    게임 세션 메모리는 재배포 시 비지만 Langfuse 이력은 남으므로,
+    세션 존재 여부와 무관하게 관측 보드용 데이터를 반환한다.
+    """
     from lib.langfuse_obs import fetch_session_observations
 
     lim = max(1, min(int(limit or 12), 24))
