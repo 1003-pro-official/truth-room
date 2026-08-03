@@ -53,23 +53,19 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Ingest 결과
 
 <!-- report:auto:ingest -->
-
-- **갱신:** `runs/ingest/summary.yaml` · 2026-07-31 20:05:12
+- **갱신:** `runs/ingest/summary.yaml` · 2026-08-03 16:32:01
 - **총 청크:** **6665**
 - **evidence_id 포함 청크:** **5** (`ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`)
 
-| source_type    |  청크 수 |
-| :------------- | -------: |
-| statements     |        9 |
-| forensics      |        4 |
-| messenger      |     3321 |
-| logs           |     2747 |
-| corporate_card |       74 |
-| network        |      510 |
-| **합계**       | **6665** |
-
-![Ingest chunks by source](report/assets/eda/chunk_source_distribution.png)
-
+| source_type | 청크 수 |
+| :--- | ---: |
+| statements | 9 |
+| forensics | 4 |
+| messenger | 3321 |
+| logs | 2747 |
+| corporate_card | 74 |
+| network | 510 |
+| **합계** | **6665** |
 <!-- /report:auto:ingest -->
 
 청크 길이(평균 문자): statements 406 · forensics 435 · corporate_card 499 · network 500 · messenger/logs ≈500 (상한에 근접 → 청킹이 잘 먹힌 상태).
@@ -135,13 +131,12 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### [정량] 자동 스모크 (update_report)
 
 <!-- report:auto:rag -->
+| 파이프라인 | 모드 | 대표 쿼리 | top-1 evidence | Hit@5 (목표 ID) | 비고 |
+| :--- | :--- | :--- | :--- | :---: | :--- |
+| **Baseline** | dense only | `라운지 Wi-Fi 100GB` | — | ✅ `ev_card_03` ∈ top-5 (rank 4) | 관련 카드가 뒤로 밀림 |
+| **Advanced** | hybrid RRF + rerank | `라운지 Wi-Fi 100GB` | **`ev_net_01`** | ✅ `ev_net_01` top-1 | 결정타 증거 정밀 회수 |
 
-| 파이프라인   | 모드                | 대표 쿼리            | top-1 evidence  |         Hit@5 (목표 ID)          | 비고                  |
-| :----------- | :------------------ | :------------------- | :-------------- | :------------------------------: | :-------------------- |
-| **Baseline** | dense only          | `라운지 Wi-Fi 100GB` | —               | ✅ `ev_card_03` ∈ top-5 (rank 4) | 관련 카드가 뒤로 밀림 |
-| **Advanced** | hybrid RRF + rerank | `라운지 Wi-Fi 100GB` | **`ev_net_01`** |       ✅ `ev_net_01` top-1       | 결정타 증거 정밀 회수 |
-
-- **자동 반영:** 2026-07-31 20:05:12
+- **자동 반영:** 2026-08-03 16:32:01
 <!-- /report:auto:rag -->
 
 ### [정량] 고정 쿼리 세트 (동일 프로토콜 · top_k=5)
@@ -240,13 +235,12 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Agent 스모크 (1턴)
 
 <!-- report:auto:agent -->
-
-- **상태:** `ok` · backend **`langgraph`** · case `case_01`
+- **상태:** `ok` · case `case_01` · 2026-08-03 16:32:01
 - **목표 입력:** 김팀장 알리바이 검증 + CCTV
-- **수집 evidence:** `ev_card_03` (+ RAG top-k)
-- **툴:** `request_cctv_log`(lobby) → status `unavailable`
-- **노드:** `START → route → interrogate → retrieve_evidence → call_tool → update_pressure → confront → judge_ending → END`
-- **재현:** `python3 agent_graph.py --smoke` · `runs/agent/smoke.json`
+- **수집 evidence:** `ev_card_03`
+- **clue / pressure:** 1 / 0.3
+- **툴:** `request_cctv_log`(lobby) → status `unavailable` (폭우·정전으로 로비 CCTV 녹화 구간 결측 (23:00~24:00))
+- **노드:** `route → interrogate → retrieve_evidence → call_tool → update_pressure → confront → judge_ending`
 <!-- /report:auto:agent -->
 
 ### Function Calling (탐정 특수기)
@@ -277,15 +271,14 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 ### 4.2 메트릭 결과 (로컬 evaluate sample n=18 · 데이터셋 정본 n=30)
 
 <!-- report:auto:eval -->
+| 메트릭 | 값 | 해석 |
+| :--- | ---: | :--- |
+| **Faithfulness** | **0.266** | 답변 토큰이 제공 컨텍스트에 근거하는 비율 (로컬 overlap) |
+| **Context Precision** | **0.400** | 검색 top-k 중 골드 근거와 맞는 비율 |
+| **Context Recall** | **1.000** | 골드 evidence_id가 검색 결과에 포함되는 비율 |
+| **Answer Relevancy** | **0.216** | 질문–답변 토큰 겹침 proxy |
 
-| 메트릭                |        값 | 해석                                                     |
-| :-------------------- | --------: | :------------------------------------------------------- |
-| **Faithfulness**      | **0.266** | 답변 토큰이 제공 컨텍스트에 근거하는 비율 (로컬 overlap) |
-| **Context Precision** | **0.400** | 검색 top-k 중 골드 근거와 맞는 비율                      |
-| **Context Recall**    | **1.000** | 골드 evidence_id가 검색 결과에 포함되는 비율             |
-| **Answer Relevancy**  | **0.216** | 질문–답변 토큰 겹침 proxy                                |
-
-- **자동 반영:** 2026-07-31 20:05:12 · sample_size=18 · backend=`local_token_overlap_faithfulness`
+- **자동 반영:** 2026-08-03 16:32:01 · sample_size=18 · backend=`local_token_overlap_faithfulness`
 <!-- /report:auto:eval -->
 
 - **평가 백엔드:** `evaluate.py` 로컬 토큰 겹침 (RAGAS 패키지 미필수)
