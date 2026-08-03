@@ -38,6 +38,8 @@ Internet ──HTTPS──► Railway ($PORT)
    - `CORS_ALLOW_ALL` = `1`
    - `OPENAI_API_KEY` = (권장 · AutoGen 심문 ask 본선. 없으면 스텁 폴백)
    - `CONVERSATION_LOG` = `1` (선택 · 실서버 심문 JSONL 수집 → 말투 재학습. [CONVERSATION_LOG.md](CONVERSATION_LOG.md))
+   - `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` (선택 · ask 관측 게시판. [LANGFUSE.md](LANGFUSE.md))
+   - `LANGFUSE_PROJECT_ID` = (선택 · 딥링크용 project id)
 5. **Settings → Networking → Generate Domain** (공개 URL)
 6. Deploy 완료 후 접속 → **새 수사 개시**  
    **현 배포 URL:** https://web-production-072b8.up.railway.app  
@@ -58,6 +60,7 @@ npx @railway/cli domain        # 공개 도메인 발급
 npx @railway/cli variables set CORS_ALLOW_ALL=1 API_URL=http://127.0.0.1:8000
 # npx @railway/cli variables set OPENAI_API_KEY=sk-...
 # npx @railway/cli variables set CONVERSATION_LOG=1   # 실서버 심문 로그 수집 (말투 재학습)
+# npx @railway/cli variables set LANGFUSE_PUBLIC_KEY=pk-lf-... LANGFUSE_SECRET_KEY=sk-lf-... LANGFUSE_BASE_URL=https://us.cloud.langfuse.com
 ```
 
 ---

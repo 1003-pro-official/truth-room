@@ -13,7 +13,8 @@
 5. **데이터** — 용의자 3 · 증거 소스 6종 · Smoking Gun 4 ID · win_condition
 6. **실험** — Baseline vs Advanced Hit@5 **0/4→4/4** · RAGAS n=30 · LoRA ladder · AutoGen ask
 7. **데모** — Golden Route 라이브 (https://web-production-072b8.up.railway.app) 또는 녹화 2~3분  
-   _(UI: Streamlit→React — Streamlit 한계로 오류 반복 → 본선 이전)_
+   _(UI: Streamlit→React — Streamlit 한계로 오류 반복 → 본선 이전)_  
+   _(선택: 사이드바「관측」→ Langfuse 게시판으로 ask I/O 시연)_
 8. **회고 · 한계 · Next** (Embedding 미채택 · 7B memory_limit · **진범 랜덤·용의자 5 = 중장기**)
 9. **역할 분담 · Q&A**
 
@@ -26,9 +27,11 @@
 3. 박신입 심문 → 슬랙 DM 확보 → 목격자화 (1분)
 4. 이대리 대질 → Wi-Fi 100GB 확보 → 조합 지목 (1분 30초)
 5. 지목 확정 → 결과 모달 · 검거 도장 (30초)
-6. 기술 한 줄: Hybrid RAG + Function Calling + LangGraph + AutoGen (30초)
+6. 기술 한 줄: Hybrid RAG + Function Calling + LangGraph + AutoGen (30초)  
+   _(여유 있으면「관측」보드 — Tracing/Sessions로 LLM 입출력 관측 한 컷)_
 
-> 라이브: https://web-production-072b8.up.railway.app · `/game/` 새로고침 시 인트로로 돌아감.
+> 라이브: https://web-production-072b8.up.railway.app · `/game/` 새로고침 시 인트로로 돌아감.  
+> 관측 보드: [docs/LANGFUSE.md](docs/LANGFUSE.md) · [README.md §5](README.md)
 
 ---
 

@@ -88,6 +88,9 @@ python3 -m uvicorn backend.main:app --port 8000
 **실서버 심문 로그 → 재학습:** 플레이 테스트 ask를 JSONL로 모아 말투 LoRA 후보로 쓴다.  
 켜기: `CONVERSATION_LOG=1`. 안정장치·절차: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
 
+**Langfuse 관측 게시판:** 사이드바「관측 (Langfuse)」→ 게임 화면 전체 보드 (Tracing / Sessions).  
+선택: `.env`에 `LANGFUSE_*` 또는 Railway Variables. 상세: [docs/LANGFUSE.md](docs/LANGFUSE.md) · [README.md §5](README.md)
+
 **라이브 데모:** https://web-production-072b8.up.railway.app
 
 ---

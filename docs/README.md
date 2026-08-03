@@ -15,6 +15,7 @@
 | [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
 | [GAME_RULES.md](GAME_RULES.md) | 3-Out · 멘탈 붕괴 · 타임어택 · 증거 책상·지목 |
 | [CONVERSATION_LOG.md](CONVERSATION_LOG.md) | 실서버 심문 로그 → 말투 재학습 · **안정장치** |
+| [LANGFUSE.md](LANGFUSE.md) | ask 관측 게시판 · Tracing/Sessions · Railway Variables |
 | [ROADMAP_EXPANSION.md](ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 5명 · **발표 Q&A** |
 | [../assets/ui/evidence_desk/README.md](../assets/ui/evidence_desk/README.md) | 증거 수색 책상 에셋 스펙 |
 | [WORKFLOW.md](WORKFLOW.md) | Git · 파이프라인 명령 |

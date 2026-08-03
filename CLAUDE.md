@@ -60,6 +60,7 @@
 | Stateful 압박 루프 | `lib/langgraph_runtime.py` · `agent_graph.py` · `backend/game_engine.py` · pressure · **break_count** | Cyclic 분기 · `langgraph.enabled` · [docs/GAME_RULES.md](docs/GAME_RULES.md) |
 | AutoGen GroupChat 심문 | `lib/autogen_runtime.py` · `/ask` | `autogen.enabled` · max_round · timeout · 폴백 |
 | 실서버 ask 로그 → 말투 FT | `lib/conversation_log.py` · `scripts/export_conversation_log.py` | 기본 OFF · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
+| Langfuse ask 관측 게시판 | `lib/langfuse_obs.py` · `web/game`「관측」 | opt-in `LANGFUSE_*` · [docs/LANGFUSE.md](docs/LANGFUSE.md) |
 | **React 심문 UI (본선)** | `web/game/` · `/game/` | 심문·증거 책상·지목 · **FastAPI만** · Streamlit `app.py`는 백업 |
 | Function Calling | `lib/tools.py` · `/tool` | CCTV·포렌식 페이로드 확장 |
 | 리포트 자동화 | `update_report.py` · `update_notion.py` · `scripts/plot_metrics.py` | 실험 후 README/Notion/그래프 동기화 |

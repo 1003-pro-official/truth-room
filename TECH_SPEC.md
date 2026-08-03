@@ -108,6 +108,9 @@ system_prompt: |               # 정적 스냅샷 · 런타임은 lib/persona_pr
 | `GET` | `/api/v1/case/public` | 세션 없이 공개 개요·`intro_scenes` (스크롤 인트로) |
 | `GET` | `/api/v1/session/{id}/case` | 공개 사건개요 (`public_overview`, `culprit_id` 미포함) |
 | `GET` | `/api/v1/session/{id}/suspects/{sid}/profile` | 공개 프로필 + `case_overview` (`secrets`/`role` 미포함) |
+| `GET` | `/api/v1/observability/status` | Langfuse 설정 여부 (시크릿 미노출) |
+| `GET` | `/api/v1/session/{id}/observability` | ask 관측 요약 (Tracing + Sessions) |
+| `GET` | `/api/v1/observability/sessions/{obs_id}` | Sessions 아코디언용 세션 상세 |
 
 UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `accuse` 판정에만 사용.
 
@@ -123,7 +126,19 @@ UI는 위 API만 호출. LLM/인덱스 직접 로드 금지. `culprit_id`는 `ac
 | 안정장치 | ask 비차단 · culprit/secrets 미기록 · 누수 문구 편집 · 길이 상한 · 말투 전용 · `runs/` gitignore |
 | 문서 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
 
-### 4.2 중장기 확장 (PRT 비범위)
+### 4.2 Langfuse 관측 게시판 (opt-in)
+
+심문 ask의 Input/Output을 **게임 전체 화면 게시판 레이어**로 보여 발표·디버깅에 쓴다 (작은 팝업 아님).
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 구현 | `lib/langfuse_obs.py` · React 사이드바「관측 (Langfuse)」 |
+| UI | Tracing 표 · Sessions 아코디언 · PC 전용(모바일은 안내) |
+| 설정 | `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_SECRET_KEY` · `LANGFUSE_BASE_URL` · (선택) `LANGFUSE_PROJECT_ID` |
+| 기본 | 키 없으면 로컬 버퍼만 · 키 있으면 Langfuse ingestion/조회 |
+| 문서 | [docs/LANGFUSE.md](docs/LANGFUSE.md) · [README.md §5](README.md) |
+
+### 4.3 중장기 확장 (PRT 비범위)
 
 진범 세션 랜덤 · 용의자 5명은 **현행 `case_01` 스키마 유지** 전제에서 변형 케이스/`case_02`로 확장한다.  
 정본: [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md)
@@ -180,6 +195,7 @@ LANGFUSE_PUBLIC_KEY=
 LANGFUSE_SECRET_KEY=
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
 # LANGFUSE_HOST=  # deprecated alias of BASE_URL
+# LANGFUSE_PROJECT_ID=  # optional UI deep-link
 ```
 
-비밀값은 `.env` only — Git 커밋 금지.
+비밀값은 `.env` only — Git 커밋 금지. Langfuse 관측: [docs/LANGFUSE.md](docs/LANGFUSE.md).

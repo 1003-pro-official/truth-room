@@ -37,3 +37,12 @@ cd web/game && npm ci && npm run build
 ```
 
 Streamlit `app.py`는 로컬 백업. nginx `/game-streamlit/` + `ENABLE_STREAMLIT_BACKUP=1`.
+
+## 관측 (Langfuse)
+
+사이드바 **「관측 (Langfuse)」** → 게임 전체를 덮는 **게시판 레이어** (팝업 아님).
+
+- **Tracing** — 프로젝트 ask trace 표
+- **Sessions** — 세션 FAQ 펼침 (Input/Output)
+- PC 권장 · 모바일은 PC 확인 안내
+- API: `/api/v1/session/{id}/observability` · 설정: [docs/LANGFUSE.md](../../docs/LANGFUSE.md)

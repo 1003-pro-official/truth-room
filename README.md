@@ -53,7 +53,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Ingest 결과
 
 <!-- report:auto:ingest -->
-- **갱신:** `runs/ingest/summary.yaml` · 2026-08-03 16:32:01
+- **갱신:** `runs/ingest/summary.yaml` · 2026-08-03 19:30:12
 - **총 청크:** **6665**
 - **evidence_id 포함 청크:** **5** (`ev_card_03` · `ev_msg_12` · `ev_log_07` · `ev_net_01`)
 
@@ -136,7 +136,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **Baseline** | dense only | `라운지 Wi-Fi 100GB` | — | ✅ `ev_card_03` ∈ top-5 (rank 4) | 관련 카드가 뒤로 밀림 |
 | **Advanced** | hybrid RRF + rerank | `라운지 Wi-Fi 100GB` | **`ev_net_01`** | ✅ `ev_net_01` top-1 | 결정타 증거 정밀 회수 |
 
-- **자동 반영:** 2026-08-03 16:32:01
+- **자동 반영:** 2026-08-03 19:30:12
 <!-- /report:auto:rag -->
 
 ### [정량] 고정 쿼리 세트 (동일 프로토콜 · top_k=5)
@@ -186,6 +186,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-RAGAS**     | ragas on **Python 3.12**                            | **ok** Faith≈**0.64** · C-Prec≈**0.75** · C-Recall≈**0.77** (**n=30**) | `scripts/eval_ragas.py` · `runs/eval/ragas_py312_report.json`              |
 | **EXP-SFT-KO3B**  | Qwen2.5-**3B** LoRA (본선)                          | train_loss≈2.66 · 알리바이 유지 · 재학습 완주          | `runs/sft/local_lora_qwen3b/` · `scripts/local_lora_persona.py` |
 | **EXP-CONV-LOG**  | 실서버 ask JSONL → 말투 FT 후보                     | opt-in · 안정장치 문서화                               | `lib/conversation_log.py` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
+| **EXP-LANGFUSE**  | ask 관측 · 게임 내 게시판 보드                      | Tracing/Sessions · Railway Variables 연동              | `lib/langfuse_obs.py` · 사이드바「관측」 · §5                         |
 | **EXP-SFT-KO7B**  | Qwen2.5-**7B** LoRA (16GB)                      | **memory_limit** — 로드·trainable% 확인, 1step 스왑 정체 | `runs/sft/local_lora_qwen7b/report.json`                       |
 | **EXP-ROUTE**     | source soft routing                                 | Context Precision **0.22→0.40**, Hit@5 4/4 유지                        | `lib/rag_core.py` `source_routing`                                         |
 | **EXP-AUTOGEN**   | pyautogen GroupChat → **본선 ask**                  | max_round=5 · timeout=60s · transcript UI                              | `lib/autogen_runtime.py`                                                   |
@@ -235,7 +236,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 ### Agent 스모크 (1턴)
 
 <!-- report:auto:agent -->
-- **상태:** `ok` · case `case_01` · 2026-08-03 16:32:01
+- **상태:** `ok` · case `case_01` · 2026-08-03 19:30:12
 - **목표 입력:** 김팀장 알리바이 검증 + CCTV
 - **수집 evidence:** `ev_card_03`
 - **clue / pressure:** 1 / 0.3
@@ -278,7 +279,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | **Context Recall** | **1.000** | 골드 evidence_id가 검색 결과에 포함되는 비율 |
 | **Answer Relevancy** | **0.216** | 질문–답변 토큰 겹침 proxy |
 
-- **자동 반영:** 2026-08-03 16:32:01 · sample_size=18 · backend=`local_token_overlap_faithfulness`
+- **자동 반영:** 2026-08-03 19:30:12 · sample_size=18 · backend=`local_token_overlap_faithfulness`
 <!-- /report:auto:eval -->
 
 - **평가 백엔드:** `evaluate.py` 로컬 토큰 겹침 (RAGAS 패키지 미필수)
@@ -345,6 +346,22 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | **React** (`web/game`) → API only · Streamlit은 백업                 | ✅                                          |
 | Golden Route (카드→슬랙→네트워크→이대리 지목)                        | ✅ UI 연출 (트래커·수색 칩·단서 STEP·엔딩) |
 | Railway 라이브                                                       | ✅ https://web-production-072b8.up.railway.app |
+| **Langfuse 관측 게시판** (사이드바「관측」)                           | ✅ Tracing / Sessions · ask I/O 보드      |
+
+### Langfuse 관측 게시판
+
+심문 ask 턴의 **입력·출력·세션**을 발표·디버깅용으로 바로 보여 주기 위해, 작은 팝업 대신 **게임 화면을 덮는 게시판형 레이어**로 넣었다.
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 진입 | React 사이드바 **「관측 (Langfuse)」** (PC). 모바일은 PC 확인 안내 |
+| UI | 전체 화면 보드 · 탭 **Tracing**(프로젝트 trace 표) / **Sessions**(세션 아코디언 펼침) |
+| 연동 | `lib/langfuse_obs.py` — 로컬 링버퍼 + 선택적 Langfuse ingestion/조회 |
+| 설정 | `.env` / Railway Variables: `LANGFUSE_PUBLIC_KEY` · `LANGFUSE_SECRET_KEY` · `LANGFUSE_BASE_URL` (선택 `LANGFUSE_PROJECT_ID`) |
+| 외부 | 보드에서 **Open in Langfuse**로 클라우드 Tracing/Sessions 목록 이동 가능 |
+| 문서 | [docs/LANGFUSE.md](docs/LANGFUSE.md) · [TECH_SPEC.md](TECH_SPEC.md) §4.2 |
+
+키를 넣지 않으면 세션 로컬 관측만 표시되고, 키가 있으면 실서버 ask도 같은 Langfuse 프로젝트로 쌓인다.
 
 실행: [GETTING_STARTED.md](GETTING_STARTED.md) · UI 상세: [web/game/README.md](web/game/README.md)
 
@@ -395,6 +412,7 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | [docs/ROLES.md](docs/ROLES.md)                         | 역할 (최승현·최병철·박성우·이근목·천세문) |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)           | 팀원용 구현 현황 · 코드 맵 · 데모         |
 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)   | 실서버 심문 로그 → 재학습 · **안정장치**  |
+| [docs/LANGFUSE.md](docs/LANGFUSE.md)                   | ask 관측 게시판 · Tracing/Sessions · env  |
 | [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 5명 · 발표 Q&A |
 | [docs/DEPLOY_CLOUDFLARE.md](docs/DEPLOY_CLOUDFLARE.md) | Docker + Cloudflare Containers            |
 | [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
