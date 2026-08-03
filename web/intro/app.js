@@ -640,14 +640,32 @@
   }
 
   async function boot() {
+    // 새로고침·뒤로가기 시 브라우저가 이전 스크롤(예: 5번 씬)을 복원하지 않게
+    if ("scrollRestoration" in history) {
+      history.scrollRestoration = "manual";
+    }
+    window.scrollTo(0, 0);
+
     setBgmUi(false);
     await bootBgm();
     await fetchPublicCase();
     renderScenes(scenes);
     bindSceneInteractions();
+    window.scrollTo(0, 0);
+    autoSceneIndex = -1;
+    clearCtaReveal();
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll);
+    window.addEventListener("pageshow", (e) => {
+      // bfcache 복원 시에도 1번 씬부터
+      if (e.persisted) {
+        window.scrollTo(0, 0);
+        autoSceneIndex = -1;
+        clearCtaReveal();
+        onScroll();
+      }
+    });
   }
 
   boot();
