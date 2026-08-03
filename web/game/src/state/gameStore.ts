@@ -223,9 +223,6 @@ export const useGameStore = create<GameStore>((set, get) => ({
         .replace(/\s*\(질문\s*요약:\s*[^)]*\)\s*$/u, '')
         .replace(/\s*\(질문:\s*[^)]*\)\s*$/u, '')
         .trim()
-      if (data.is_alibi_broken) {
-        line = `알리바이 붕괴! (break ${data.break_count}/3) — ${line}`
-      }
       const chat = [
         ...get().chat,
         { role: 'user' as const, name: '탐정', content: q },

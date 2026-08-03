@@ -191,27 +191,30 @@ function SearchPanel() {
       <p className="hint-muted">
         책상 위 증거 후보를 클릭해 수색하세요. 헛수색 시 수사 권한이 감소합니다.
       </p>
-      <div className="desk-board">
-        {deskItems().map((item) => {
-          const already =
-            (!item.decoy && item.evidence_id && owned.has(item.evidence_id)) ||
-            inspected.includes(item.id)
-          return (
-            <button
-              key={item.id}
-              type="button"
-              className="desk-item"
-              disabled={Boolean(already) || busy || Boolean(game?.ended)}
-              title={item.hint}
-              style={{
-                backgroundImage: `url(${assetUrl(`ui/evidence_desk/${item.file}`)})`,
-              }}
-              onClick={() => void searchDesk(item)}
-            >
-              <span>{item.short}</span>
-            </button>
-          )
-        })}
+      <p className="desk-swipe-hint">좌우로 밀어 책상을 살펴보세요.</p>
+      <div className="desk-scroll">
+        <div className="desk-board">
+          {deskItems().map((item) => {
+            const already =
+              (!item.decoy && item.evidence_id && owned.has(item.evidence_id)) ||
+              inspected.includes(item.id)
+            return (
+              <button
+                key={item.id}
+                type="button"
+                className="desk-item"
+                disabled={Boolean(already) || busy || Boolean(game?.ended)}
+                title={item.hint}
+                style={{
+                  backgroundImage: `url(${assetUrl(`ui/evidence_desk/${item.file}`)})`,
+                }}
+                onClick={() => void searchDesk(item)}
+              >
+                <span>{item.short}</span>
+              </button>
+            )
+          })}
+        </div>
       </div>
     </div>
   )
