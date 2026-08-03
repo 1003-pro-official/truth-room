@@ -981,6 +981,25 @@ button {
   opacity: 0.72;
 }
 
+.chat-msg.role-system {
+  justify-content: center;
+  padding: 0.35rem 0.5rem;
+  margin-bottom: 0.35rem;
+}
+
+.chat-system-text {
+  width: 100%;
+  text-align: center;
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: #c9a86c;
+  background: rgba(201, 168, 108, 0.1);
+  border: 1px solid rgba(201, 168, 108, 0.28);
+  border-radius: 6px;
+  padding: 0.4rem 0.65rem;
+  line-height: 1.35;
+}
+
 .chat-avatar {
   flex: 0 0 auto;
   width: 2.15rem;

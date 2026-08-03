@@ -487,10 +487,10 @@ class GameEngine:
         pressure: float,
         model: str,
         dialogue: str = "",
-    ) -> str | None:
-        """AutoGen 실패 시 단발 LLM 대사. 실패하면 None."""
+    ) -> tuple[str | None, str | None]:
+        """AutoGen 실패 시 단발 LLM 대사. (답변, 오류문자열) — 실패 시 (None, err)."""
         if not os.environ.get("OPENAI_API_KEY"):
-            return None
+            return None, "OPENAI_API_KEY missing"
         try:
             from openai import OpenAI
 
@@ -521,9 +521,9 @@ class GameEngine:
                 ],
             )
             text = (resp.choices[0].message.content or "").strip()
-            return text or None
-        except Exception:
-            return None
+            return (text or None), None
+        except Exception as exc:  # noqa: BLE001
+            return None, str(exc)[:200]
 
     def ask(self, session: Session, suspect_id: str, question: str) -> dict[str, Any]:
         if session.ended:
@@ -559,6 +559,9 @@ class GameEngine:
         assistant_note = ""
         autogen_meta: dict[str, Any] = {"used": False}
         verdict: dict[str, Any] | None = None
+        openai_fail_kind: str | None = None
+        llm_notice: str | None = None
+        reply_source = "stub"
 
         draft_answer = self._compose_answer(
             persona, suspect_id, question, mental=mental_pre, pressure=pressure
@@ -658,19 +661,24 @@ class GameEngine:
                     "tool_pack": ag.get("tool_pack"),
                 }
             except Exception as exc:  # noqa: BLE001 — 데모 안정: 폴백
+                from lib.openai_errors import classify_openai_error
+
+                openai_fail_kind = classify_openai_error(exc) or openai_fail_kind
                 autogen_meta = {
                     "used": False,
                     "fallback": True,
                     "error": str(exc)[:200],
+                    "error_kind": openai_fail_kind,
                 }
                 _log.warning("AutoGen 폴백: %s", autogen_meta["error"])
 
         # AutoGen 미사용 시: 단발 LLM → 질문 분기 스텁 (무의미 입력은 스텁 되묻기 유지)
         if unclear_input:
             answer = draft_answer
+            reply_source = "stub"
             _log.info("심문 경로: unclear_gate (되묻기만)")
         elif not autogen_meta.get("used"):
-            llm_answer = self._llm_compose_answer(
+            llm_answer, llm_err = self._llm_compose_answer(
                 persona,
                 question,
                 mental=mental_pre,
@@ -678,14 +686,21 @@ class GameEngine:
                 model=llm_model,
                 dialogue=mem.get("focus_dialogue") or "",
             )
+            if llm_err:
+                from lib.openai_errors import classify_openai_error
+
+                openai_fail_kind = classify_openai_error(llm_err) or openai_fail_kind
             if llm_answer:
                 answer = llm_answer
+                reply_source = "llm_direct"
                 autogen_meta = {**autogen_meta, "llm_direct": True}
                 _log.info("심문 경로: llm_direct (AutoGen 미사용/실패)")
             else:
                 answer = draft_answer
+                reply_source = "stub"
                 _log.info("심문 경로: stub (AutoGen·LLM 모두 실패/미사용)")
         else:
+            reply_source = "autogen"
             _log.info(
                 "심문 경로: autogen elapsed=%ss msgs=%s",
                 autogen_meta.get("elapsed_sec"),
@@ -838,6 +853,11 @@ class GameEngine:
         except Exception:  # noqa: BLE001
             _log.warning("conversation_log 호출 실패", exc_info=False)
 
+        if reply_source == "stub" and not unclear_input:
+            from lib.openai_errors import llm_notice_for_local_fallback
+
+            llm_notice = llm_notice_for_local_fallback(openai_fail_kind)
+
         return {
             "answer": answer,
             "pressure": pressure,
@@ -851,6 +871,8 @@ class GameEngine:
             "assistant_note": assistant_note,
             "autogen": autogen_meta,
             "story_branch": autogen_meta.get("story_branch"),
+            "reply_source": reply_source,
+            "llm_notice": llm_notice,
         }
 
     def pass_turn(self, session: Session, reason: str = "timeout") -> dict[str, Any]:

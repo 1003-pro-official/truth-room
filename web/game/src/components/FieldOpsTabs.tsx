@@ -38,6 +38,7 @@ function AskPanel() {
   const game = useGameStore((s) => s.game)
   const chat = useGameStore((s) => s.chat)
   const busy = useGameStore((s) => s.busy)
+  const llmDegraded = useGameStore((s) => s.llmDegraded)
   const ask = useGameStore((s) => s.ask)
   const suspectId = useGameStore((s) => s.suspectId)
   const setSuspect = useGameStore((s) => s.setSuspect)
@@ -70,27 +71,37 @@ function AskPanel() {
 
       {chat.length > 0 ? (
         <div className="chat-log" ref={logRef}>
-          {chat.map((m, i) => (
-            <div key={`${m.role}-${i}`} className={`chat-msg role-${m.role}`}>
-              <img
-                className="chat-avatar"
-                src={chatAvatarUrl(m)}
-                alt=""
-                onError={(e) => {
-                  const img = e.currentTarget
-                  if (img.dataset.fallback) return
-                  img.dataset.fallback = '1'
-                  if (m.role === 'suspect' && m.suspect_id) {
-                    img.src = assetUrl(`suspects/${m.suspect_id}.webp`)
-                  }
-                }}
-              />
-              <div className="chat-body">
-                <div className="chat-name">{m.name || roleLabel(m.role)}</div>
-                <div className="chat-text">{m.content}</div>
+          {chat.map((m, i) =>
+            m.role === 'system' ? (
+              <div
+                key={`${m.role}-${i}`}
+                className="chat-msg role-system"
+                role="status"
+              >
+                <div className="chat-system-text">{m.content}</div>
               </div>
-            </div>
-          ))}
+            ) : (
+              <div key={`${m.role}-${i}`} className={`chat-msg role-${m.role}`}>
+                <img
+                  className="chat-avatar"
+                  src={chatAvatarUrl(m)}
+                  alt=""
+                  onError={(e) => {
+                    const img = e.currentTarget
+                    if (img.dataset.fallback) return
+                    img.dataset.fallback = '1'
+                    if (m.role === 'suspect' && m.suspect_id) {
+                      img.src = assetUrl(`suspects/${m.suspect_id}.webp`)
+                    }
+                  }}
+                />
+                <div className="chat-body">
+                  <div className="chat-name">{m.name || roleLabel(m.role)}</div>
+                  <div className="chat-text">{m.content}</div>
+                </div>
+              </div>
+            ),
+          )}
         </div>
       ) : null}
 
@@ -133,7 +144,13 @@ function AskPanel() {
       {busy ? (
         <div className="ask-spinner" role="status" aria-live="polite">
           <span className="ask-spinner-icon" aria-hidden="true" />
-          <span>에이전트 협의 중… (용의자 · 조수 · 심판)</span>
+          <span>
+            {llmDegraded === 'quota'
+              ? 'OpenAI 토큰 소진으로 로컬 답변 중…'
+              : llmDegraded === 'auth'
+                ? 'OpenAI 키 문제로 로컬 답변 중…'
+                : '에이전트 협의 중… (용의자 · 조수 · 심판)'}
+          </span>
         </div>
       ) : null}
     </div>

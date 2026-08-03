@@ -63,17 +63,33 @@ async function req<T>(path: string, init?: RequestInit): Promise<T> {
     headers: { 'Content-Type': 'application/json', ...(init?.headers || {}) },
     ...init,
   })
-  if (!res.ok) {
-    let detail = ''
+  // body는 한 번만 읽음 (json 실패 후 text 재읽기 → stream already read 방지)
+  const raw = await res.text()
+  let data: unknown = null
+  if (raw) {
     try {
-      const j = await res.json()
-      detail = String(j?.detail || '')
+      data = JSON.parse(raw)
     } catch {
-      detail = (await res.text()).slice(0, 200)
+      data = null
     }
-    throw new Error(detail || `HTTP ${res.status}`)
   }
-  return res.json() as Promise<T>
+  if (!res.ok) {
+    const detail =
+      data && typeof data === 'object' && data !== null && 'detail' in data
+        ? String((data as { detail?: unknown }).detail || '')
+        : ''
+    if (detail) throw new Error(detail)
+    if (res.status === 502 || res.status === 503 || res.status === 504) {
+      throw new Error(
+        `API 서버(127.0.0.1:8000)에 연결할 수 없습니다 (HTTP ${res.status}). uvicorn이 켜져 있는지 확인하세요.`,
+      )
+    }
+    throw new Error(raw.slice(0, 200) || `HTTP ${res.status}`)
+  }
+  if (data === null && raw) {
+    throw new Error('Invalid JSON response')
+  }
+  return data as T
 }
 
 export const api = {
@@ -92,6 +108,8 @@ export const api = {
       agent_transcript?: unknown[]
       autogen?: Record<string, unknown>
       gm_status?: string
+      reply_source?: string
+      llm_notice?: string | null
     }>(`/api/v1/session/${sid}/ask`, { method: 'POST', body: JSON.stringify(body) }),
   search: (
     sid: string,

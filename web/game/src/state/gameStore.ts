@@ -15,7 +15,7 @@ import {
 import { sfx } from '../audio/sfx'
 
 export type ChatMsg = {
-  role: 'user' | 'suspect' | 'assistant'
+  role: 'user' | 'suspect' | 'assistant' | 'system'
   name?: string
   content: string
   suspect_id?: string
@@ -60,6 +60,8 @@ type GameStore = {
   sidebarOpen: boolean
   tab: 'ask' | 'search' | 'accuse'
   busy: boolean
+  /** OpenAI 폴백 감지 후 — 대기 문구를 로컬 모드로 전환 */
+  llmDegraded: null | 'quota' | 'auth'
 
   boot: () => Promise<void>
   startGame: () => void
@@ -115,11 +117,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
   sidebarOpen: false,
   tab: 'ask',
   busy: false,
+  llmDegraded: null,
 
   deskItems: () => deskItemsForOrder(get().deskOrder),
 
   boot: async () => {
-    set({ loading: true, bootError: null })
+    set({ loading: true, bootError: null, llmDegraded: null })
     try {
       const qSid = sessionFromQuery()
       let game: GameState
@@ -241,11 +244,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
           content: data.assistant_note.trim(),
         })
       }
+      const notice = String(data.llm_notice || '').trim()
+      let llmDegraded = get().llmDegraded
+      if (notice.includes('토큰 소진')) llmDegraded = 'quota'
+      else if (notice.includes('키 문제')) llmDegraded = 'auth'
       set({
         game: state,
         chat,
         portraitStage: { ...get().portraitStage, [suspectId]: stage },
         busy: false,
+        llmDegraded,
       })
     } catch (e) {
       set({
@@ -449,6 +457,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
       deskAlert: null,
       gameStarted: false,
       tab: 'ask',
+      llmDegraded: null,
     })
     await get().boot()
   },
