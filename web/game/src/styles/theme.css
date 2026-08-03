@@ -1988,6 +1988,67 @@ button {
   margin: 0;
 }
 
+.obs-pane {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+  min-height: 0;
+}
+
+.obs-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem 0.55rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(200, 210, 220, 0.12);
+  border-radius: 6px;
+  background: rgba(12, 16, 22, 0.72);
+}
+
+.obs-filter-input {
+  flex: 1 1 12rem;
+  min-width: 10rem;
+  min-height: 2.1rem;
+  padding: 0.35rem 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(200, 210, 220, 0.2);
+  background: rgba(20, 26, 34, 0.9);
+  color: #e8eef4;
+  font-size: 0.82rem;
+}
+
+.obs-filter-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: #9aa3b0;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.obs-filter-field select {
+  min-height: 2.1rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.35rem;
+  border: 1px solid rgba(200, 210, 220, 0.2);
+  background: rgba(20, 26, 34, 0.9);
+  color: #e8eef4;
+  font-size: 0.78rem;
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: 500;
+}
+
+.obs-filter-count {
+  margin-left: auto;
+  color: #a8b4c4;
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+}
+
 .obs-board .obs-table-wrap,
 .obs-board .obs-faq-list {
   max-height: none;

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { api, assetUrl } from '../api/client'
 import { CLUE_FLAVOR, CLUE_LABELS } from '../data/deskItems'
 import { GOLDEN_ROUTE_STEPS } from '../data/goldenRoute'
@@ -391,6 +391,52 @@ function ObservabilityModal({
 }
 
 function TracingPane({ traces }: { traces: ObsTrace[] }) {
+  const [q, setQ] = useState('')
+  const [name, setName] = useState('all')
+  const [session, setSession] = useState('all')
+  const [synced, setSynced] = useState<'all' | 'yes' | 'local'>('all')
+
+  const nameOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of traces) set.add(t.name || 'interrogation-ask')
+    return Array.from(set).sort()
+  }, [traces])
+
+  const sessionOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const t of traces) {
+      if (t.session_id) set.add(t.session_id)
+    }
+    return Array.from(set).sort()
+  }, [traces])
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    return traces.filter((t) => {
+      const tName = t.name || 'interrogation-ask'
+      if (name !== 'all' && tName !== name) return false
+      if (session !== 'all' && (t.session_id || '') !== session) return false
+      if (synced === 'yes' && !t.langfuse_synced) return false
+      if (synced === 'local' && t.langfuse_synced) return false
+      if (!needle) return true
+      const hay = [
+        tName,
+        t.session_id,
+        t.question,
+        t.answer,
+        t.suspect_name,
+        t.suspect_id,
+        t.reply_source,
+        t.model,
+        t.gm_status,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+      return hay.includes(needle)
+    })
+  }, [traces, q, name, session, synced])
+
   if (traces.length === 0) {
     return (
       <p className="hint-muted">
@@ -399,37 +445,90 @@ function TracingPane({ traces }: { traces: ObsTrace[] }) {
       </p>
     )
   }
+
   return (
-    <div className="obs-table-wrap">
-      <table className="obs-table">
-        <thead>
-          <tr>
-            <th>Start Time</th>
-            <th>Name</th>
-            <th>Input</th>
-            <th>Output</th>
-            <th>Session</th>
-          </tr>
-        </thead>
-        <tbody>
-          {traces.map((t) => (
-            <tr key={t.id}>
-              <td className="obs-td-time">{t.ts ? formatObsTime(t.ts) : '—'}</td>
-              <td>
-                <span className="obs-type">span</span>{' '}
-                <strong>{t.name || 'interrogation-ask'}</strong>
-              </td>
-              <td className="obs-td-io" title={t.question || ''}>
-                {t.question || '—'}
-              </td>
-              <td className="obs-td-io" title={t.answer || ''}>
-                {t.answer || '—'}
-              </td>
-              <td className="mono">{t.session_id || '—'}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+    <div className="obs-pane">
+      <div className="obs-filters" role="search" aria-label="Tracing filters">
+        <input
+          type="search"
+          className="obs-filter-input"
+          placeholder="검색 · question / answer / session…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <label className="obs-filter-field">
+          <span>Name</span>
+          <select value={name} onChange={(e) => setName(e.target.value)}>
+            <option value="all">All ({traces.length})</option>
+            {nameOptions.map((n) => (
+              <option key={n} value={n}>
+                {n}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="obs-filter-field">
+          <span>Session</span>
+          <select value={session} onChange={(e) => setSession(e.target.value)}>
+            <option value="all">All</option>
+            {sessionOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="obs-filter-field">
+          <span>Synced</span>
+          <select
+            value={synced}
+            onChange={(e) => setSynced(e.target.value as 'all' | 'yes' | 'local')}
+          >
+            <option value="all">All</option>
+            <option value="yes">Langfuse</option>
+            <option value="local">local</option>
+          </select>
+        </label>
+        <span className="obs-filter-count">
+          {filtered.length} / {traces.length}
+        </span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="hint-muted">필터 조건에 맞는 트레이스가 없습니다.</p>
+      ) : (
+        <div className="obs-table-wrap">
+          <table className="obs-table">
+            <thead>
+              <tr>
+                <th>Start Time</th>
+                <th>Name</th>
+                <th>Input</th>
+                <th>Output</th>
+                <th>Session</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((t) => (
+                <tr key={t.id}>
+                  <td className="obs-td-time">{t.ts ? formatObsTime(t.ts) : '—'}</td>
+                  <td>
+                    <span className="obs-type">span</span>{' '}
+                    <strong>{t.name || 'interrogation-ask'}</strong>
+                  </td>
+                  <td className="obs-td-io" title={t.question || ''}>
+                    {t.question || '—'}
+                  </td>
+                  <td className="obs-td-io" title={t.answer || ''}>
+                    {t.answer || '—'}
+                  </td>
+                  <td className="mono">{t.session_id || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   )
 }
@@ -453,6 +552,28 @@ function SessionsPane({
   })
   const [loadingId, setLoadingId] = useState<string | null>(null)
   const [errorById, setErrorById] = useState<Record<string, string>>({})
+  const [q, setQ] = useState('')
+  const [scope, setScope] = useState<'all' | 'current'>('all')
+  const [env, setEnv] = useState('all')
+
+  const envOptions = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of sessions) {
+      if (s.environment) set.add(s.environment)
+    }
+    return Array.from(set).sort()
+  }, [sessions])
+
+  const filtered = useMemo(() => {
+    const needle = q.trim().toLowerCase()
+    return sessions.filter((s) => {
+      if (scope === 'current' && !s.current && s.id !== sessionId) return false
+      if (env !== 'all' && (s.environment || 'default') !== env) return false
+      if (!needle) return true
+      const hay = [s.id, s.environment, s.created_at].filter(Boolean).join(' ').toLowerCase()
+      return hay.includes(needle)
+    })
+  }, [sessions, q, scope, env, sessionId])
 
   const seedFor = (sid: string): ObsTrace[] => {
     if (cache[sid]?.length) return cache[sid]
@@ -503,50 +624,90 @@ function SessionsPane({
 
   return (
     <div className="obs-sessions-pane">
-      <ul className="obs-faq-list">
-        {sessions.map((s) => {
-          const expanded = openId === s.id
-          const traces = cache[s.id] || seedFor(s.id)
-          const loading = loadingId === s.id
-          const err = errorById[s.id]
-          return (
-            <li key={s.id} className={`obs-faq-item${s.current ? ' is-current' : ''}${expanded ? ' is-open' : ''}`}>
-              <button
-                type="button"
-                className="obs-faq-head"
-                aria-expanded={expanded}
-                onClick={() => void toggle(s.id)}
+      <div className="obs-filters" role="search" aria-label="Sessions filters">
+        <input
+          type="search"
+          className="obs-filter-input"
+          placeholder="검색 · session id…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+        <label className="obs-filter-field">
+          <span>Scope</span>
+          <select value={scope} onChange={(e) => setScope(e.target.value as 'all' | 'current')}>
+            <option value="all">All sessions</option>
+            <option value="current">Current only</option>
+          </select>
+        </label>
+        {envOptions.length > 0 ? (
+          <label className="obs-filter-field">
+            <span>Environment</span>
+            <select value={env} onChange={(e) => setEnv(e.target.value)}>
+              <option value="all">All</option>
+              {envOptions.map((e) => (
+                <option key={e} value={e}>
+                  {e}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        <span className="obs-filter-count">
+          {filtered.length} / {sessions.length}
+        </span>
+      </div>
+
+      {filtered.length === 0 ? (
+        <p className="hint-muted">필터 조건에 맞는 세션이 없습니다.</p>
+      ) : (
+        <ul className="obs-faq-list">
+          {filtered.map((s) => {
+            const expanded = openId === s.id
+            const traces = cache[s.id] || seedFor(s.id)
+            const loading = loadingId === s.id
+            const err = errorById[s.id]
+            return (
+              <li
+                key={s.id}
+                className={`obs-faq-item${s.current ? ' is-current' : ''}${expanded ? ' is-open' : ''}`}
               >
-                <div className="obs-faq-head-main">
-                  <strong className="mono">{s.id}</strong>
-                  {s.current ? <span className="obs-pill is-on">current</span> : null}
-                  <span className="obs-meta">
-                    {s.created_at ? formatObsTime(s.created_at) : ''}
-                    {s.environment ? ` · ${s.environment}` : ''}
-                  </span>
-                </div>
-                <span className="obs-faq-toggle">{expanded ? '접기' : '펼치기'}</span>
-              </button>
-              {expanded ? (
-                <div className="obs-faq-body">
-                  {loading ? <p className="hint-muted">트레이스 불러오는 중…</p> : null}
-                  {!loading && err ? <p className="alert-banner is-warn">{err}</p> : null}
-                  {!loading && !err && traces.length === 0 ? (
-                    <p className="hint-muted">이 세션에 기록된 ask가 없습니다.</p>
-                  ) : null}
-                  {!loading && traces.length > 0 ? (
-                    <ul className="obs-list">
-                      {traces.map((t) => (
-                        <ObsTraceCard key={t.id} t={t} />
-                      ))}
-                    </ul>
-                  ) : null}
-                </div>
-              ) : null}
-            </li>
-          )
-        })}
-      </ul>
+                <button
+                  type="button"
+                  className="obs-faq-head"
+                  aria-expanded={expanded}
+                  onClick={() => void toggle(s.id)}
+                >
+                  <div className="obs-faq-head-main">
+                    <strong className="mono">{s.id}</strong>
+                    {s.current ? <span className="obs-pill is-on">current</span> : null}
+                    <span className="obs-meta">
+                      {s.created_at ? formatObsTime(s.created_at) : ''}
+                      {s.environment ? ` · ${s.environment}` : ''}
+                    </span>
+                  </div>
+                  <span className="obs-faq-toggle">{expanded ? '접기' : '펼치기'}</span>
+                </button>
+                {expanded ? (
+                  <div className="obs-faq-body">
+                    {loading ? <p className="hint-muted">트레이스 불러오는 중…</p> : null}
+                    {!loading && err ? <p className="alert-banner is-warn">{err}</p> : null}
+                    {!loading && !err && traces.length === 0 ? (
+                      <p className="hint-muted">이 세션에 기록된 ask가 없습니다.</p>
+                    ) : null}
+                    {!loading && traces.length > 0 ? (
+                      <ul className="obs-list">
+                        {traces.map((t) => (
+                          <ObsTraceCard key={t.id} t={t} />
+                        ))}
+                      </ul>
+                    ) : null}
+                  </div>
+                ) : null}
+              </li>
+            )
+          })}
+        </ul>
+      )}
     </div>
   )
 }
