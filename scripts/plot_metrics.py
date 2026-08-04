@@ -76,17 +76,28 @@ def plot_chunk_sources() -> None:
     for i, v in enumerate(values[::-1]):
         axes[0].text(v + max(values) * 0.01, i, str(v), va="center", fontsize=9)
 
-    axes[1].pie(
+    total = sum(values)
+    wedges, _, _ = axes[1].pie(
         values,
-        labels=labels,
+        labels=None,
         autopct=lambda p: f"{p:.1f}%" if p >= 3 else "",
         colors=colors[: len(labels)],
         startangle=90,
+        pctdistance=0.62,
         textprops={"fontsize": 8},
     )
-    axes[1].set_title(f"Share of {sum(values)} chunks")
+    legend_labels = [f"{lab}  {v:,} ({100.0 * v / total:.1f}%)" for lab, v in zip(labels, values)]
+    axes[1].legend(
+        wedges,
+        legend_labels,
+        loc="center left",
+        bbox_to_anchor=(1.02, 0.5),
+        fontsize=8,
+        frameon=False,
+    )
+    axes[1].set_title(f"Share of {total} chunks")
     fig.suptitle(
-        f"EDA · evidence_id chunks={summary.get('with_evidence_id', '?')} / {summary.get('n_chunks', sum(values))}",
+        f"EDA · evidence_id chunks={summary.get('with_evidence_id', '?')} / {summary.get('n_chunks', total)}",
         fontsize=11,
         y=1.02,
     )
