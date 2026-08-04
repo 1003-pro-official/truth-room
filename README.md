@@ -4,7 +4,8 @@
 > **실행·온보딩:** [GETTING_STARTED.md](GETTING_STARTED.md)  
 > **리포트 동기화:** `python3 update_report.py` · Notion: `python3 update_notion.py`  
 > **메트릭 그래프:** `python3 scripts/plot_metrics.py` → `report/assets/{eda,metrics}/`  
-> **AIFFEL Peer Review(PRT):** [docs/PEER_REVIEW.md](docs/PEER_REVIEW.md)  
+> **초기 RAW (Colab 보관):** [`scripts/colab/dateset.py`](scripts/colab/dateset.py) · [scripts/colab/README.md](scripts/colab/README.md) — 본선 재생성은 `scripts/generate_rag_dataset.py`  
+> **말투 로그 자동 수집:** `python3 scripts/auto_ask_collect.py --today` · 질문셋 `data/sft/auto_ask_questions.yaml` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · 일정 [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)  
 > **계획·스펙:** [MASTER_PLAN.md](MASTER_PLAN.md) · [TECH_SPEC.md](TECH_SPEC.md)
 
 **케이스 `case_01`:** 「100억의 야근자들」— 2026-07-29 야근 중 Omega 가중치 불법 반출.  
@@ -18,7 +19,8 @@
 
 ## 1. 데이터셋 구축 및 전처리
 
-진술·현장기술·메신저·출입로그·법인카드·네트워크 로그를 `data/raw/`에 두고 `ingest.py`로 청킹했습니다. 청크는 `data/processed/chunks.jsonl`에 저장되고, `build_index.py`가 로컬 Hybrid 인덱스(`runs/rag/index/`)를 만듭니다. 재생성: `python3 scripts/generate_rag_dataset.py`.
+진술·현장기술·메신저·출입로그·법인카드·네트워크 로그를 `data/raw/`에 두고 `ingest.py`로 청킹했습니다. 청크는 `data/processed/chunks.jsonl`에 저장되고, `build_index.py`가 로컬 Hybrid 인덱스(`runs/rag/index/`)를 만듭니다. 재생성: `python3 scripts/generate_rag_dataset.py`.  
+초기 Colab 생성기 원본(보관·본선 아님): [`scripts/colab/dateset.py`](scripts/colab/dateset.py) · [scripts/colab/README.md](scripts/colab/README.md) · [data/README.md](data/README.md).
 
 ### 1.1 EDA (탐색적 데이터 분석)
 
@@ -398,9 +400,9 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 - **8/4~7** `auto_ask_collect` 일일 적재 → **8/7 오후** export+3B LoRA ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
 - **8/10** 발표 준비 · **8/11 오전** 리허설 · **14:00** 발표 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
-- PRT 과제 복사 · 슬라이드 확정 ([PRESENTATION.md](PRESENTATION.md))
+- 슬라이드 확정 ([PRESENTATION.md](PRESENTATION.md))
 
-### 중장기 (발표 Next · PRT 이후)
+### 중장기 (발표 Next)
 
 | 방향 | 요지 | 문서 |
 | :--- | :--- | :--- |

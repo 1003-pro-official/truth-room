@@ -42,6 +42,7 @@ ROOT = Path(__file__).resolve().parent
 IMAGE_MD_PATTERN = re.compile(r"^!\[(.*?)\]\((.+?)\)\s*$")
 HTML_COMMENT_PATTERN = re.compile(r"<!--.*?-->", re.DOTALL)
 BULLET_LINE_PATTERN = re.compile(r"^(\s*)[-*]\s+(.*)$")
+NUMBERED_LINE_PATTERN = re.compile(r"^(\s*)\d+\.\s+(.*)$")
 
 # Notion code block language allowlist aliases
 _NOTION_LANG_ALIAS = {
@@ -216,15 +217,23 @@ def resolve_image_blocks(token: str, blocks: list[dict], root: Path) -> list[dic
 
 def parse_inline_rich_text(text: str) -> list[dict]:
     parts: list[dict] = []
-    pattern = re.compile(r"(\*\*.+?\*\*|`[^`]+`)")
+    # 링크를 먼저 잡아 [이름](경로)가 두 줄로 깨져 보이는 문제를 막는다.
+    pattern = re.compile(
+        r"(\[[^\]]+\]\([^)]+\)|\*\*.+?\*\*|~~.+?~~|`[^`]+`)"
+    )
     cursor = 0
 
     for match in pattern.finditer(text):
         if match.start() > cursor:
             parts.append(_text_segment(text[cursor : match.start()]))
         token = match.group(0)
-        if token.startswith("**"):
+        if token.startswith("[") and "](" in token:
+            label, href = _split_md_link(token)
+            parts.append(_text_segment(label, link=_resolve_md_href(href)))
+        elif token.startswith("**"):
             parts.append(_text_segment(token[2:-2], bold=True))
+        elif token.startswith("~~"):
+            parts.append(_text_segment(token[2:-2], strikethrough=True))
         else:
             parts.append(_text_segment(token[1:-1], code=True))
         cursor = match.end()
@@ -234,13 +243,39 @@ def parse_inline_rich_text(text: str) -> list[dict]:
     return parts or [_text_segment("")]
 
 
-def _text_segment(content: str, bold: bool = False, code: bool = False) -> dict:
-    segment: dict = {"type": "text", "text": {"content": content}}
+def _split_md_link(token: str) -> tuple[str, str]:
+    """'[label](href)' → (label, href)."""
+    close = token.index("](")
+    return token[1:close], token[close + 2 : -1]
+
+
+def _resolve_md_href(href: str) -> str:
+    """상대 경로 마크다운 링크 → GitHub blob URL (Notion은 절대 URL만 링크 가능)."""
+    raw = (href or "").strip()
+    if raw.startswith(("http://", "https://", "mailto:")):
+        return raw
+    path = raw.lstrip("./")
+    return f"https://github.com/toryhyeon80/truth-room/blob/main/{path}"
+
+
+def _text_segment(
+    content: str,
+    bold: bool = False,
+    code: bool = False,
+    strikethrough: bool = False,
+    link: str | None = None,
+) -> dict:
+    text_payload: dict = {"content": content}
+    if link:
+        text_payload["link"] = {"url": link}
+    segment: dict = {"type": "text", "text": text_payload}
     annotations: dict[str, bool] = {}
     if bold:
         annotations["bold"] = True
     if code:
         annotations["code"] = True
+    if strikethrough:
+        annotations["strikethrough"] = True
     if annotations:
         segment["annotations"] = annotations
     return segment
@@ -298,15 +333,23 @@ def _is_bullet_line(line: str) -> bool:
     return bool(BULLET_LINE_PATTERN.match(line))
 
 
-def _nest_bullet_blocks(items: list[tuple[int, str]]) -> list[dict]:
+def _is_numbered_line(line: str) -> bool:
+    return bool(NUMBERED_LINE_PATTERN.match(line))
+
+
+def _nest_list_blocks(
+    items: list[tuple[int, str]],
+    block_type: str,
+) -> list[dict]:
+    """bulleted_list_item / numbered_list_item 공통 중첩."""
     roots: list[dict] = []
     stack: list[tuple[int, dict]] = []
 
     for indent, text in items:
         block: dict = {
             "object": "block",
-            "type": "bulleted_list_item",
-            "bulleted_list_item": {
+            "type": block_type,
+            block_type: {
                 "rich_text": parse_inline_rich_text(text),
                 "children": [],
             },
@@ -316,16 +359,16 @@ def _nest_bullet_blocks(items: list[tuple[int, str]]) -> list[dict]:
             stack.pop()
 
         if stack:
-            stack[-1][1]["bulleted_list_item"]["children"].append(block)
+            stack[-1][1][block_type]["children"].append(block)
         else:
             roots.append(block)
 
         stack.append((indent, block))
 
     def _strip_empty_children(node: dict) -> None:
-        children = node["bulleted_list_item"].get("children", [])
+        children = node[block_type].get("children", [])
         if not children:
-            node["bulleted_list_item"].pop("children", None)
+            node[block_type].pop("children", None)
         else:
             for child in children:
                 _strip_empty_children(child)
@@ -334,6 +377,14 @@ def _nest_bullet_blocks(items: list[tuple[int, str]]) -> list[dict]:
         _strip_empty_children(root)
 
     return roots
+
+
+def _nest_bullet_blocks(items: list[tuple[int, str]]) -> list[dict]:
+    return _nest_list_blocks(items, "bulleted_list_item")
+
+
+def _nest_numbered_blocks(items: list[tuple[int, str]]) -> list[dict]:
+    return _nest_list_blocks(items, "numbered_list_item")
 
 
 def _ends_with_hard_break(raw_line: str) -> bool:
@@ -431,6 +482,16 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
             blocks.extend(_nest_bullet_blocks(items))
             continue
 
+        if _is_numbered_line(line):
+            items = []
+            while i < len(lines) and _is_numbered_line(lines[i]):
+                match = NUMBERED_LINE_PATTERN.match(lines[i])
+                assert match is not None
+                items.append((len(match.group(1)), match.group(2).strip()))
+                i += 1
+            blocks.extend(_nest_numbered_blocks(items))
+            continue
+
         image_match = IMAGE_MD_PATTERN.match(stripped)
         if image_match:
             caption, src = image_match.groups()
@@ -474,6 +535,7 @@ def markdown_to_notion_blocks(markdown: str) -> list[dict]:
                 or nxt.startswith("```")
                 or IMAGE_MD_PATTERN.match(nxt)
                 or _is_bullet_line(lines[i])
+                or _is_numbered_line(lines[i])
             ):
                 break
             para_parts.append((nxt, _ends_with_hard_break(nxt_raw)))
