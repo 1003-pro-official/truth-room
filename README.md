@@ -36,12 +36,16 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | corporate_card |       1 |          801 |     33K | 거래 CSV · Smoking Gun 희소               |
 | network        |       1 |        2,006 |    229K | Wi-Fi 전송 · 결정타(`ev_net_01`)          |
 
+![청크 소스별 분포 (EDA)](report/assets/eda/chunk_source_distribution.png)
+
 **관찰**
 
 - **불균형:** logs·messenger가 청크의 ~90%를 차지 → dense-only 시 의미 유사 노이즈가 카드/네트워크 신호를 덮기 쉬움.
 - **핵심 증거 희소성:** `evidence_id`가 붙은 청크는 전체 **6665** 중 **5개**(약 0.1%). 검색 실패 비용이 큼.
 - **중복:** 청크 텍스트 exact duplicate = **0** (완전 동일 복제 없음).
 - **의도적 결측/이상:** 로비 CCTV `unavailable`(폭우·정전), 출입 로그 위조 지문(`ev_log_07`) — 전처리로 삭제하지 않고 **툴·시나리오 신호**로 보존.
+
+재생성: `python3 scripts/plot_metrics.py` → `report/assets/eda/chunk_source_distribution.png`
 
 ### 1.2 전처리 · 청킹 근거
 
