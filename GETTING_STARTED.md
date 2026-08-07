@@ -88,7 +88,7 @@ python3 -m uvicorn backend.main:app --port 8000
 **실서버·자동 심문 로그 → 재학습:** ask 턴 JSONL → 말투 LoRA 후보.  
 - 자동: `python3 scripts/auto_ask_collect.py --today` (질문셋 `data/sft/auto_ask_questions.yaml`)  
 - 켜기: `CONVERSATION_LOG=1`  
-- **확정:** 8/4~7 45+45+45+30 ≈165턴 → 8/7 오후 3B LoRA → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
+- **완료:** 8/4~7 **165턴** · 8/7 3B LoRA 완주 · **본선 ask 미적용** → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
 상세: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)
 
 **Langfuse 관측 게시판:** 사이드바「관측 (Langfuse)」→ 게임 화면 전체 보드 (Tracing / Sessions).  
