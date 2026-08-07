@@ -12,7 +12,7 @@
 - [x] **당일 오전 리허설:** **2026-08-11 오전**
 - [x] [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) — **확정 주간** (8/4~7 수집 · 8/7 LoRA · **8/9 시연 녹화** · 8/10 발표자·슬라이드 · 8/11 리허설 · **14:00 발표 15분**)
 - [x] 수집: `scripts/auto_ask_collect.py` · `data/sft/auto_ask_questions.yaml` · **45+45+45+30 ≈165턴 · 변형 ON**
-- [ ] 8/4~7 일일 `auto_ask_collect` 실행 · 8/7 오후 export+LoRA
+- [x] 8/4~7 일일 `auto_ask_collect` 실행 · 8/7 export+3B LoRA 완주 (**본선 ask 미적용**)
 - [ ] **8/9** 시연 녹화 (발표 컷 B)
 - [ ] D-1(8/10) 발표자·슬라이드 · D-0 오전(8/11) 리허설 · **14:00 발표**
 

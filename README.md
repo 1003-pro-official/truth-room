@@ -196,6 +196,7 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | **EXP-RAGAS**     | ragas on **Python 3.12**                            | **ok** Faith≈**0.64** · C-Prec≈**0.75** · C-Recall≈**0.77** (**n=30**) | `scripts/eval_ragas.py` · `runs/eval/ragas_py312_report.json`                    |
 | **EXP-SFT-KO3B**  | Qwen2.5-**3B** LoRA (본선)                          | train_loss≈2.66 · 알리바이 유지 · 재학습 완주                          | `runs/sft/local_lora_qwen3b/` · `scripts/local_lora_persona.py`                  |
 | **EXP-CONV-LOG**  | 실서버 ask JSONL → 말투 FT 후보                     | opt-in · 안정장치 문서화                                               | `lib/conversation_log.py` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) |
+| **EXP-SFT-RETRAIN** | 165턴 export+merge → Qwen2.5-**3B** LoRA 재학습   | **완주** loss≈**2.72** · after probe 붕괴 → **본선 ask 미적용**      | `runs/sft/local_lora_qwen3b_retrain/` · merged 243예                             |
 | **EXP-LANGFUSE**  | ask 관측 · 게임 내 게시판 보드                      | Tracing/Sessions · Railway Variables 연동                              | `lib/langfuse_obs.py` · 사이드바「관측」 · §5                                    |
 | **EXP-SFT-KO7B**  | Qwen2.5-**7B** LoRA (16GB)                          | **memory_limit** — 로드·trainable% 확인, 1step 스왑 정체               | `runs/sft/local_lora_qwen7b/report.json`                                         |
 | **EXP-ROUTE**     | source soft routing                                 | Context Precision **0.22→0.40**, Hit@5 4/4 유지                        | `lib/rag_core.py` `source_routing`                                               |
@@ -227,9 +228,9 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 로컬 LoRA 대체     | `SmolLM2-135M-Instruct` · trainable **0.34%** · 30 steps · `train_loss≈1.87` · adapter `runs/sft/local_lora/`                                                        |
 | 채택               | FT 파이프라인(데이터→학습→전후 샘플)은 완주. **게임 본선은 계속 prompt+AutoGen** (소형 로컬 모델은 한국어 페르소나 품질이 gpt-4o-mini를 대체하지 못함)               |
 
-### 실서버 심문 로그 → 재학습 (계획·파이프라인)
+### 실서버 심문 로그 → 재학습 (파이프라인 · 8/7 완주)
 
-실서버(Railway) 플레이 테스트 · **자동 심문**에서 나온 **심문 채팅(ask 턴)**을 데이터셋으로 모아, 페르소나 **말투** 소량 SFT/LoRA에 다시 넣는 흐름을 합의·구현해 두었다.
+실서버(Railway) 플레이 테스트 · **자동 심문**에서 나온 **심문 채팅(ask 턴)**을 데이터셋으로 모아, 페르소나 **말투** 소량 SFT/LoRA에 다시 넣는 흐름을 합의·구현·**실행**했다.
 
 | 항목        | 내용                                                                                  |
 | :---------- | :------------------------------------------------------------------------------------ |
@@ -238,8 +239,9 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 경로        | `runs/conversation_log/ask_turns.jsonl` → `scripts/export_conversation_log.py`        |
 | 재학습 용도 | **말투(persona_speech) 후보만**. 알리바이·승패·GM 판정은 코드/YAML 권위 유지          |
 | 켜는 법     | 실서버 `CONVERSATION_LOG=1` 또는 `conversation_log.enabled: true` (로컬 기본 **OFF**) |
+| **8/7 결과** | **165턴** export(skip 0) · merge **243** · 3B LoRA **train_loss≈2.72** · probe after 붕괴 → **본선 ask 미교체** (`runs/sft/local_lora_qwen3b_retrain/`) |
 
-**확정 스케줄:** 8/4~7 **45+45+45+30 ≈165턴** (변형 ON) → **8/7 오후** export+**3B LoRA** → **8/10** 준비 → **8/11 오전 리허설 · 14:00 발표**.  
+**스케줄:** 8/4~7 **45+45+45+30 ≈165턴** ✅ → **8/7** export+**3B LoRA** ✅ (본선 미적용) → **8/10** 준비 → **8/11 오전 리허설 · 14:00 발표**.  
 정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
 
 **안정장치:** 기본 OFF · 로깅 실패가 ask를 깨지 않음 · `culprit_id`/secrets 미기록 · 누수 문구 `[편집됨]` · 길이 상한 · export 필터 · `runs/` gitignore · UI 비노출.  
@@ -408,8 +410,8 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 
 ### 남은 작업
 
-- **8/4~7** `auto_ask_collect` 일일 적재 → **8/7 오후** export+3B LoRA ([docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md))
-- **8/10** 발표 준비 · **8/11 오전** 리허설 · **14:00** 발표 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
+- ~~**8/4~7** 수집 → **8/7** export+3B LoRA~~ → **완료** (165턴 · retrain 완주 · **본선 ask 미적용**)
+- **8/9** 시연 녹화 · **8/10** 발표 준비 · **8/11 오전** 리허설 · **14:00** 발표 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
 - 슬라이드 확정 ([PRESENTATION.md](PRESENTATION.md))
 
 ### 중장기 (발표 Next)

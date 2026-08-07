@@ -6,13 +6,13 @@
 > **발표 초안:** [PRESENTATION.md](PRESENTATION.md)  
 > **역할:** [docs/ROLES.md](docs/ROLES.md)  
 > **마일스톤 매핑:** Data(ingest) → RAG → Agent → Eval → API → Demo  
-> **현황 (2026-08-04):** Phase 0~3 🟢 · **완료 7/30~8/4** (오늘 일정 포함) · **앞:** 8/5~7 수집 → 8/7 LoRA → **8/9 시연 녹화** → **8/10 발표자·슬라이드** → **8/11 14:00 발표 (15분)**
+> **현황 (2026-08-07):** Phase 0~3 🟢 · **수집 165턴·3B retrain ✅** (본선 ask 미적용) · **앞:** **8/9 시연 녹화** → **8/10 발표자·슬라이드** → **8/11 14:00 발표 (15분)**
 
 ---
 
-## 완료 일정 (2026-07-30 ~ 08-04)
+## 완료 일정 (2026-07-30 ~ 08-07)
 
-> DLthon Day 1~4 + 8/3 배포·관측 + 8/4 수집 Day1까지 **전부 완료**. 남은 일정은 아래 절.
+> DLthon Day 1~4 + 8/3 배포·관측 + 8/4~7 수집·재학습까지 **전부 완료**. 남은 일정은 아래 절.
 
 | 날짜 | 요일 | DLthon | 한 일 | 상태 |
 | :--- | :---: | :---: | :--- | :---: |
@@ -21,6 +21,9 @@
 | **8/1~8/2** | 토~일 | **Day 3·4** | Frontend ↔ Backend(API/RAG/Agent) 연동 · 핑퐁 대화·프롬프트 미세조정(자백 밸런스) · 예외·로딩 최적화 · Streamlit→**React** 본선 · **플레이어 QA** · **Golden Route UI** 연출(증거 책상·지목·검거) · 데모 루트 안정화 | ✅ |
 | **8/3** | 월 | **후속** | Railway **실서버 배포** · 모바일 화면 개선 · 오류 테스트·수정 · **Langfuse** API 연동·관측 게시판 | ✅ |
 | **8/4** | 화 | **수집** | `auto_ask_collect` Day1 **45턴 완료** (ok 45) | ✅ |
+| **8/5** | 수 | **수집** | Day2 증거 압박 **45턴** (ok 45) | ✅ |
+| **8/6** | 목 | **수집** | Day3 압박·모순 **45턴** (ok 45) | ✅ |
+| **8/7** | 금 | **수집·재학습** | Day4 보충 **30턴** → 누적 **165** · export+merge **243** · **3B LoRA** loss≈2.72 · after 붕괴 → **본선 ask 미적용** | ✅ |
 
 **Day ↔ 실제 날짜**
 
@@ -31,35 +34,34 @@
 | Day 3·4 통합 + QA/데모 | **8/1~8/2** | 2 · 3 · Golden Route ✅ |
 | 배포·관측 | **8/3** | Railway · Langfuse |
 | 수집 Day1 | **8/4** | ask JSONL **45** |
+| 수집 Day2~4 · retrain | **8/5~8/7** | **165턴** · `local_lora_qwen3b_retrain` ✅ |
 
 ---
 
-## 남은 확정 스케줄 (2026-08-05 ~ 08-11)
+## 남은 확정 스케줄 (2026-08-08 ~ 08-11)
 
-> **정본.** 말투 FT 수집 잔여 → 금요일 재학습 → **일요일 시연 녹화** → 월요일 발표자·슬라이드 → **화요일 오전 리허설 · 오후 2시 발표 (15분)**.  
-> 세부: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · `scripts/auto_ask_collect.py` · 시연 [PRESENTATION.md](PRESENTATION.md)  
-> **8/4는 완료 절에만** 기록 (중복 없음).
+> **정본.** 수집·재학습 **완료** → **일요일 시연 녹화** → 월요일 발표자·슬라이드 → **화요일 오전 리허설 · 오후 2시 발표 (15분)**.  
+> 세부: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · 시연 [PRESENTATION.md](PRESENTATION.md)  
+> **8/4~8/7은 완료 절에만** 기록 (중복 없음).
 
 | 날짜 | 요일 | 목표 | 턴 / 산출 | 비고 |
 | :--- | :---: | :--- | :--- | :--- |
-| **8/5** | 수 | 자동 심문 수집 | **45** · 증거 압박 | `auto_ask_collect.py --date 2026-08-05` · **변형 ON** |
-| **8/6** | 목 | 자동 심문 수집 | **45** · 압박·모순 | 동일 · 변형 ON |
-| **8/7 오전** | 금 | 자동 심문 보충 | **30** | 누적 목표 **≈165턴** (이미 45) |
-| **8/7 오후** | 금 | **재학습** | `export_conversation_log.py` → **Qwen2.5-3B LoRA** | 본선 ask 교체 없음 · 전후 샘플만 |
 | **8/8** | 토 | (버퍼) | 슬라이드 초안 · 멘트 메모 | 새 기능·대규모 리팩터 금지 |
 | **8/9** | 일 | **시연 영상 녹화** | 발표 컷(B) + 가능하면 풀(A) | **미리 확보** · 10일에 맡기지 말 것 |
 | **8/10** | 월 | **발표 준비** | 발표자 확정 · **발표/문서 정리** · 슬라이드·Q&A · 영상 삽입 · 예비 리허설 | 녹화는 재촬영만(여유 시) |
 | **8/11 오전** | 화 | **최종 리허설** | 라이브 데모 2~3회 · PC/네트워크 · 영상 재생 점검 | 코드 손대기 금지 |
 | **8/11 14:00** | 화 | **발표 (D-0 · 15분)** | 슬라이드 + 녹화 데모 · Q&A | 막히면 라이브/풀 영상 점프 |
 
-**한 줄:** **수~금오전** 로그 잔여 · **금 오후 LoRA** · **일(8/9) 시연 녹화** · **월 발표자·슬라이드** · **화 오전 리허설 · 14:00 발표**.
+**한 줄:** 수집·LoRA ✅ · **일(8/9) 시연 녹화** · **월 발표자·슬라이드** · **화 오전 리허설 · 14:00 발표**.
 
 ```bash
-python3 scripts/auto_ask_collect.py --today          # 당일 스케줄
-python3 scripts/auto_ask_collect.py --smoke          # 3턴 스모크
-# 금 오후
+# 재학습 재현 (본선 ask 교체 없음)
 python3 scripts/export_conversation_log.py
-python3 scripts/local_lora_persona.py --model Qwen/Qwen2.5-3B-Instruct --max-steps 12 --max-len 320 --out-dir runs/sft/local_lora_qwen3b_conv
+python3 scripts/local_lora_persona.py \
+  --model Qwen/Qwen2.5-3B-Instruct \
+  --data runs/sft/persona_sft_merged_0807.jsonl \
+  --max-steps 12 --max-len 320 \
+  --out-dir runs/sft/local_lora_qwen3b_retrain
 ```
 
 ---

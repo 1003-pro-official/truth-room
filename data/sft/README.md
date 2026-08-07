@@ -46,7 +46,8 @@ python3 scripts/auto_ask_collect.py --smoke             # 3턴 스모크
 ```
 
 질문셋: `data/sft/auto_ask_questions.yaml`  
-**확정:** 8/4~8/7 · 변형 ON · 합계 ≈165턴 → 8/7 오후 3B LoRA → **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
+**완료 (2026-08-07):** 8/4~8/7 · 변형 ON · **165턴** → export+merge **243** → 3B LoRA **완주** (loss≈2.72) · probe after 붕괴 → **본선 ask 미적용** · 산출 `runs/sft/local_lora_qwen3b_retrain/`  
+앞: **8/10 준비 · 8/11 오전 리허설 · 14:00 발표**  
 정본: [PROJECT_SCHEDULE.md](../../PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](../docs/CONVERSATION_LOG.md)
 
 ```bash
