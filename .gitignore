@@ -17,3 +17,6 @@ deploy/cloudflare/.wrangler/
 # data/raw_private/
 web/game/dist/
 web/game/node_modules/
+
+# 발표용 시연 영상 (로컬만)
+.presentation_media/
