@@ -29,12 +29,16 @@ python3 scripts/demo_record_cut_b.py --skip-intro
 
 ```
 runs/demo_record/cut_b_<timestamp>/
-  video/*.webm
+  cut_b_sharp.mp4       # **발표 삽입용** (CDP JPEG HQ → H.264)
+  frames_hq/            # 캡처 프레임 (용량 큼 · 확인 후 삭제 가능)
   report.json
-  failure.png   # 실패 시
+  failure.png           # 실패 시
+  video/*.webm          # `--legacy-webm` 일 때만 (저비트레이트 · 비권장)
 ```
 
-`runs/`는 gitignore — 영상은 로컬/Drive에 보관 후 슬라이드에 삽입.
+**구버전 webm** (`cut_b_20260807…`, ~720p · ~0.5Mbps VP8)은 UI가 뭉개집니다. 발표·편집에는 **`cut_b_sharp.mp4`만** 쓰세요.
+
+`runs/demo_record/` 산출은 **git 미추적**(용량). 로컬·Drive에 보관 후 슬라이드에 삽입.
 
 ## 연출 (기본 = 풀 페이스)
 

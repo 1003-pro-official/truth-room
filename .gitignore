@@ -5,7 +5,9 @@ __pycache__/
 .cache/
 .DS_Store
 .pytest_cache/
-# runs/ — 팀 공유를 위해 추적 (실험·데모·LoRA·대화로그)
+# runs/ — 팀 공유를 위해 추적 (실험·LoRA·대화로그)
+# 시연 영상은 용량 큼 · 로컬/Drive만 (재녹화: scripts/demo_record_*.py)
+runs/demo_record/
 data/processed/
 *.pt
 node_modules/
