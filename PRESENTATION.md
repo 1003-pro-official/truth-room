@@ -70,6 +70,8 @@
 
 한 호흡 = 제품 한 문장. 프로필 3회·메뉴 둘 다·권한 박탈은 빼고, 필요하면 말로 보충.
 
+**자동 녹화:** `python3 scripts/demo_record_cut_b.py` · [scripts/demo_record/README.md](scripts/demo_record/README.md)
+
 1. 인트로 → 입장 → START **(20초)**  
 2. 사이드바: 게임 방법 **또는** 사건개요 **중 하나만** **(10초)**  
 3. 김팀장 프로필+심문 → 카드 `ev_card_03` **(40초)**  

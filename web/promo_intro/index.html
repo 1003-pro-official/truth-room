@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>진실의 방 — Promo Intro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Noto+Sans+KR:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0b0c0e;
+      --ink: #e8e2d6;
+      --muted: #9a9286;
+      --line: rgba(232, 226, 214, 0.18);
+      --accent: #c4a574;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Noto Sans KR", sans-serif;
+      overflow: hidden;
+    }
+    .stage {
+      position: relative;
+      width: 1280px;
+      height: 720px;
+      margin: 0 auto;
+      background: radial-gradient(1200px 600px at 50% 20%, #17191e 0%, #0b0c0e 55%, #070809 100%);
+      overflow: hidden;
+    }
+    .grain {
+      pointer-events: none;
+      position: absolute; inset: 0;
+      opacity: 0.08;
+      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      z-index: 20;
+    }
+    .vignette {
+      pointer-events: none;
+      position: absolute; inset: 0;
+      box-shadow: inset 0 0 120px 40px rgba(0,0,0,0.65);
+      z-index: 19;
+    }
+    .scene {
+      position: absolute; inset: 0;
+      opacity: 0;
+      transform: scale(1.04);
+      transition: opacity 1.1s ease, transform 4.5s ease;
+      z-index: 1;
+    }
+    .scene.is-on {
+      opacity: 1;
+      transform: scale(1);
+      z-index: 2;
+    }
+    .scene img.bg {
+      position: absolute; inset: 0;
+      width: 100%; height: 100%;
+      object-fit: cover;
+      filter: brightness(0.72) contrast(1.05) saturate(0.85);
+    }
+    .scrim {
+      position: absolute; inset: 0;
+      background: linear-gradient(180deg, rgba(8,9,11,0.35) 0%, rgba(8,9,11,0.55) 45%, rgba(8,9,11,0.88) 100%);
+    }
+    .copy {
+      position: absolute;
+      left: 72px; right: 72px; bottom: 78px;
+      z-index: 5;
+    }
+    .kicker {
+      font-size: 12px;
+      letter-spacing: 0.28em;
+      text-transform: uppercase;
+      color: var(--accent);
+      font-weight: 500;
+      margin-bottom: 14px;
+    }
+    .title {
+      font-family: "Cormorant Garamond", "Noto Sans KR", serif;
+      font-size: 54px;
+      font-weight: 600;
+      line-height: 1.12;
+      letter-spacing: 0.02em;
+      margin-bottom: 14px;
+    }
+    .title em {
+      font-style: italic;
+      color: #f3ebe0;
+    }
+    .sub {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--muted);
+      max-width: 640px;
+      line-height: 1.65;
+    }
+    .devices {
+      position: absolute;
+      left: 50%; top: 46%;
+      transform: translate(-50%, -52%);
+      display: flex;
+      align-items: flex-end;
+      gap: 28px;
+      z-index: 4;
+    }
+    .device {
+      text-align: center;
+      opacity: 0;
+      transform: translateY(18px);
+      transition: opacity 0.9s ease, transform 0.9s ease;
+    }
+    .scene.is-on .device { opacity: 1; transform: translateY(0); }
+    .scene.is-on .device:nth-child(1) { transition-delay: 0.15s; }
+    .scene.is-on .device:nth-child(2) { transition-delay: 0.35s; }
+    .scene.is-on .device:nth-child(3) { transition-delay: 0.55s; }
+    .frame {
+      border: 1px solid var(--line);
+      background: #12141a;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.45);
+      overflow: hidden;
+    }
+    .frame.laptop {
+      width: 420px; height: 262px;
+      border-radius: 10px 10px 4px 4px;
+      position: relative;
+    }
+    .frame.laptop::after {
+      content: "";
+      position: absolute;
+      left: 50%; bottom: -10px;
+      width: 460px; height: 10px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, #2a2d35, #15171c);
+      border-radius: 0 0 8px 8px;
+    }
+    .frame.tablet {
+      width: 210px; height: 280px;
+      border-radius: 16px;
+    }
+    .frame.phone {
+      width: 126px; height: 252px;
+      border-radius: 22px;
+    }
+    .frame img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+    .label {
+      margin-top: 14px;
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .url-bar {
+      position: absolute;
+      left: 72px; bottom: 36px;
+      font-size: 12px;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      z-index: 6;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+    .url-bar.is-on { opacity: 1; }
+    .progress {
+      position: absolute;
+      left: 72px; right: 72px; bottom: 18px;
+      height: 1px;
+      background: rgba(232,226,214,0.12);
+      z-index: 21;
+    }
+    .progress > i {
+      display: block;
+      height: 100%;
+      width: 0%;
+      background: var(--accent);
+      transition: width 0.2s linear;
+    }
+  </style>
+</head>
+<body>
+  <div class="stage" id="stage">
+    <div class="grain"></div>
+    <div class="vignette"></div>
+    <div class="progress"><i id="bar"></i></div>
+
+    <!-- 1. Title -->
+    <section class="scene" data-ms="3200">
+      <img class="bg" src="media/case_mood.webp" alt="" onerror="this.src='media/devices_hero.png'" />
+      <div class="scrim"></div>
+      <div class="copy">
+        <p class="kicker">Interactive Mystery · Demo</p>
+        <h1 class="title">방구석 프로파일러<br /><em>진실의 방으로</em></h1>
+        <p class="sub">심문 · 증거 · 지목 — 어디서든 같은 사건으로.</p>
+      </div>
+    </section>
+
+    <!-- 2. Multi-device cinematic still -->
+    <section class="scene" data-ms="3800">
+      <img class="bg" src="media/devices_hero.png" alt="" />
+      <div class="scrim"></div>
+      <div class="copy">
+        <p class="kicker">Cross Device</p>
+        <h1 class="title" style="font-size:42px">하나의 수사,<br />여러 화면</h1>
+        <p class="sub">Desktop · Tablet · Mobile — 반응형으로 같은 골든 루트.</p>
+      </div>
+    </section>
+
+    <!-- 3. Device lineup labels -->
+    <section class="scene" data-ms="4200">
+      <img class="bg" src="media/devices_trio.png" alt="" style="filter: brightness(0.55) contrast(1.05);" />
+      <div class="scrim"></div>
+      <div class="devices">
+        <div class="device">
+          <div class="frame laptop"><img src="media/devices_hero.png" alt="Desktop" /></div>
+          <div class="label">Desktop</div>
+        </div>
+        <div class="device">
+          <div class="frame tablet"><img src="media/devices_trio.png" alt="Tablet" /></div>
+          <div class="label">Tablet</div>
+        </div>
+        <div class="device">
+          <div class="frame phone"><img src="media/devices_hero.png" alt="Mobile" /></div>
+          <div class="label">Mobile</div>
+        </div>
+      </div>
+      <div class="copy" style="bottom: 64px;">
+        <p class="sub">발표·플레이·리허설 — 기기 장벽 없이.</p>
+      </div>
+    </section>
+
+    <!-- 4. URL close -->
+    <section class="scene" data-ms="2800">
+      <img class="bg" src="media/devices_hero.png" alt="" style="filter: brightness(0.4);" />
+      <div class="scrim"></div>
+      <div class="copy" style="bottom: 120px; text-align: center; left: 0; right: 0;">
+        <p class="kicker">Live</p>
+        <h1 class="title" style="font-size:36px">지금 바로 입장</h1>
+        <p class="sub" style="margin: 0 auto;">web-production-072b8.up.railway.app</p>
+      </div>
+    </section>
+
+    <div class="url-bar" id="url">https://web-production-072b8.up.railway.app</div>
+  </div>
+
+  <script>
+    const scenes = [...document.querySelectorAll(".scene")];
+    const bar = document.getElementById("bar");
+    const url = document.getElementById("url");
+    let i = 0;
+    const total = scenes.reduce((s, el) => s + Number(el.dataset.ms || 3000), 0);
+    let elapsed = 0;
+
+    function show(idx) {
+      scenes.forEach((el, n) => el.classList.toggle("is-on", n === idx));
+      url.classList.toggle("is-on", idx >= 1);
+    }
+
+    async function run() {
+      show(0);
+      for (let n = 0; n < scenes.length; n++) {
+        show(n);
+        const ms = Number(scenes[n].dataset.ms || 3000);
+        const step = 50;
+        for (let t = 0; t < ms; t += step) {
+          elapsed += step;
+          bar.style.width = Math.min(100, (elapsed / total) * 100) + "%";
+          await new Promise((r) => setTimeout(r, step));
+        }
+      }
+      document.documentElement.setAttribute("data-done", "1");
+    }
+    run();
+  </script>
+</body>
+</html>
