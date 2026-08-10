@@ -7,6 +7,7 @@
 > **초기 RAW (Colab 보관):** [`scripts/colab/dateset.py`](scripts/colab/dateset.py) · [scripts/colab/README.md](scripts/colab/README.md) — 본선 재생성은 `scripts/generate_rag_dataset.py`  
 > **말투 로그 자동 수집:** `python3 scripts/auto_ask_collect.py --today` · 질문셋 `data/sft/auto_ask_questions.yaml` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)  
 > **프로젝트 일정:** [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)  
+> **발표 (8/11 14:00 · 15분 + Q&A 10분):** [PRESENTATION.md](PRESENTATION.md) · 대본 [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) · Gamma [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md) · 실험 브리핑 [docs/TEAM_EXP_BRIEFING.md](docs/TEAM_EXP_BRIEFING.md)  
 > **계획·스펙:** [MASTER_PLAN.md](MASTER_PLAN.md) · [TECH_SPEC.md](TECH_SPEC.md)
 
 **케이스 `case_01`:** 「100억의 야근자들」— 2026-07-29 야근 중 Omega 가중치 불법 반출.  
@@ -241,8 +242,8 @@ Task는 **다종 증거 코퍼스에서 Smoking Gun을 회수**하는 것이므�
 | 켜는 법     | 실서버 `CONVERSATION_LOG=1` 또는 `conversation_log.enabled: true` (로컬 기본 **OFF**) |
 | **8/7 결과** | **165턴** export(skip 0) · merge **243** · 3B LoRA **train_loss≈2.72** · probe after 붕괴 → **본선 ask 미교체** (`runs/sft/local_lora_qwen3b_retrain/`) |
 
-**스케줄:** 8/4~7 **45+45+45+30 ≈165턴** ✅ → **8/7** export+**3B LoRA** ✅ (본선 미적용) → **8/10** 준비 → **8/11 오전 리허설 · 14:00 발표**.  
-정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)
+**스케줄:** 8/4~7 **45+45+45+30 ≈165턴** ✅ → **8/7** export+**3B LoRA** ✅ (본선 미적용) → **8/10** 시연·슬라이드·대본 ✅ → **8/11 오전 리허설 · 14:00 발표 (15분) + Q&A (10분)**.
+정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md)
 
 **안정장치:** 기본 OFF · 로깅 실패가 ask를 깨지 않음 · `culprit_id`/secrets 미기록 · 누수 문구 `[편집됨]` · 길이 상한 · export 필터 · `runs/` gitignore · UI 비노출.  
 상세: [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md) · [data/sft/README.md](data/sft/README.md)
@@ -365,6 +366,23 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | Golden Route (카드→슬랙→네트워크→이대리 지목)                        | ✅ UI 연출 (트래커·수색 칩·단서 STEP·엔딩)     |
 | Railway 라이브                                                       | ✅ https://web-production-072b8.up.railway.app |
 | **Langfuse 관측 게시판** (사이드바「관측」)                          | ✅ Tracing / Sessions · ask I/O 보드           |
+| **발표 시연 컷(B)** · ≈1분 39초                                        | ✅ 로컬 `.presentation_media/cut_b_sharp.mp4` (git 미추적 · HQ CDP 녹화) |
+| **발표 문서** (슬라이드·대본·Q&A)                                      | ✅ [PRESENTATION.md](PRESENTATION.md) · [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) · [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md) |
+
+### 발표 · 시연 (최종)
+
+| 항목 | 내용 |
+| :--- | :--- |
+| 일시 | **2026-08-11 14:00** · 발표 **15분** + 질의응답 **10분** |
+| 슬라이드 | Gamma 최종본 · 골격 [PRESENTATION.md](PRESENTATION.md) · 붙여넣기 [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md) |
+| 대본 · Q&A | [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) (예상 질문 30+) |
+| 실험 브리핑 | [docs/TEAM_EXP_BRIEFING.md](docs/TEAM_EXP_BRIEFING.md) |
+| 시연 영상 | **본편** `.presentation_media/cut_b_sharp.mp4` · (선택) 프로모 `.presentation_media/promo_intro_sharp.mp4` |
+| 재녹화 | `python3 scripts/demo_record_cut_b.py` · [scripts/demo_record/README.md](scripts/demo_record/README.md) |
+| 슬라이드 에셋 | `assets/promo/slide_*` · 메트릭 `assets/promo/slide_metrics/` · `report/assets/metrics/` |
+| 라이브 폴백 | https://web-production-072b8.up.railway.app · 표지/엔딩 QR |
+
+> `runs/demo_record/` 대용량 webm은 **git에서 제외**. 발표용 mp4만 `.presentation_media/`(gitignore)에 보관.
 
 ### Langfuse 관측 게시판
 
@@ -407,12 +425,13 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 8. ~~더 큰 Ko LLM LoRA~~ → **완료** (1.5B → **3B 본선 완주** · 7B는 16GB `memory_limit`로 상한 확정)
 9. ~~Judge LLM 조합 지목(G10)~~ → **완료** (`accuse_template` · 룰 권위 + LLM `public_summary`)
 10. ~~페르소나 대사 폴리싱~~ → **완료** (김팀장·이대리·박신입 말투/mental_break)
+11. ~~발표 시연·문서~~ → **완료** (컷 B ≈1:39 · Gamma 슬라이드 · 대본·Q&A · 슬라이드 에셋)
 
 ### 남은 작업
 
 - ~~**8/4~7** 수집 → **8/7** export+3B LoRA~~ → **완료** (165턴 · retrain 완주 · **본선 ask 미적용**)
-- **8/9** 시연 녹화 · **8/10** 발표 준비 · **8/11 오전** 리허설 · **14:00** 발표 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
-- 슬라이드 확정 ([PRESENTATION.md](PRESENTATION.md))
+- ~~**8/9~10** 시연 녹화 · 슬라이드·대본·Q&A~~ → **완료** ([PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) · `.presentation_media/`)
+- **8/11 오전** 최종 리허설 · **14:00** 발표 15분 + Q&A 10분 ([PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md))
 
 ### 중장기 (발표 Next)
 
@@ -430,11 +449,14 @@ RAGAS 미설치 환경에서도 재현 가능하도록 `evaluate.py` **로컬 �
 | [GETTING_STARTED.md](GETTING_STARTED.md)               | 설치·실행                                                                 |
 | [docs/ROLES.md](docs/ROLES.md)                         | 역할 (최승현·최병철·박성우·이근목·천세문)                                 |
 | [docs/TEAM_HANDOFF.md](docs/TEAM_HANDOFF.md)           | 팀원용 구현 현황 · 코드 맵 · 데모                                         |
+| [docs/TEAM_EXP_BRIEFING.md](docs/TEAM_EXP_BRIEFING.md) | 팀원용 실험 타임라인 · 발표 멘트 · Q&A                                    |
 | [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)   | 실서버 심문 로그 → 재학습 · **안정장치**                                  |
 | [docs/LANGFUSE.md](docs/LANGFUSE.md)                   | ask 관측 게시판 · Tracing/Sessions · env                                  |
 | [docs/ROADMAP_EXPANSION.md](docs/ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 확장 · 발표 Q&A                                |
 | [docs/DEPLOY_RAILWAY.md](docs/DEPLOY_RAILWAY.md)       | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
 | [docs/GAME_RULES.md](docs/GAME_RULES.md)               | 3-Out · 멘탈 붕괴 · 타임어택                                              |
 | [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)             | **확정** 8/4~11 수집·재학습·발표 · DLthon2                                |
-| [PRESENTATION.md](PRESENTATION.md)                     | 발표 초안                                                                 |
+| [PRESENTATION.md](PRESENTATION.md)                     | 발표 골격 · 데모 컷 B 스크립트                                            |
+| [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md)         | Gamma 붙여넣기용 슬라이드 원문                                            |
+| [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md)       | **발표 대본 15분** · **Q&A 10분** 예상 질문                               |
 | [ARCHITECTURE.md](ARCHITECTURE.md)                     | 팀 OS                                                                     |
