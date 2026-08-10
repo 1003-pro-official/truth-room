@@ -45,33 +45,75 @@ def main() -> int:
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         context = browser.new_context(
-            viewport={"width": 1280, "height": 720},
+            viewport={"width": 1920, "height": 1080},
+            device_scale_factor=1,
             record_video_dir=str(video_dir),
-            record_video_size={"width": 1280, "height": 720},
+            record_video_size={"width": 1920, "height": 1080},
             locale="ko-KR",
         )
         page = context.new_page()
         page.goto(url, wait_until="domcontentloaded")
-        # HTML 시퀀스 전체 (~14s) + 여유
-        page.wait_for_selector("html[data-done='1']", timeout=30_000)
-        page.wait_for_timeout(800)
+        # HTML 시퀀스 전체 (~15s) + 여유
+        page.wait_for_selector("html[data-done='1']", timeout=40_000)
+        page.wait_for_timeout(600)
         context.close()
         browser.close()
 
     videos = sorted(video_dir.glob("*.webm"))
+    mp4_path = None
+    if videos:
+        # Playwright webm은 어두운 구간이 뭉개지기 쉬움 → 고비트레이트 MP4 재인코딩
+        raw = videos[0]
+        mp4_path = out_dir / "promo_intro_sharp.mp4"
+        import subprocess
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(raw),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "slow",
+            "-crf",
+            "14",
+            "-b:v",
+            "12M",
+            "-maxrate",
+            "16M",
+            "-bufsize",
+            "24M",
+            "-pix_fmt",
+            "yuv420p",
+            "-movflags",
+            "+faststart",
+            "-an",
+            str(mp4_path),
+        ]
+        try:
+            subprocess.run(cmd, check=True, capture_output=True)
+        except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+            print(f"ffmpeg reencode skipped: {exc}")
+            mp4_path = None
+
     meta = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "kind": "promo_intro_multidevice",
         "elapsed_sec": round(time.time() - t0, 1),
         "ok": bool(videos),
+        "viewport": "1920x1080",
         "videos": [str(v.relative_to(ROOT)) for v in videos],
-        "note": "시연 오프닝 · Desktop/Tablet/Mobile · 본편 골든루트 앞에 붙이기",
+        "mp4": str(mp4_path.relative_to(ROOT)) if mp4_path and mp4_path.exists() else None,
+        "note": "시연 오프닝 · 1920×1080 · CTA 분리 · 본편 앞에 붙이기",
     }
     (out_dir / "report.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
     )
     print(json.dumps(meta, ensure_ascii=False, indent=2))
-    if videos:
+    if mp4_path and mp4_path.exists():
+        print(f"mp4: {mp4_path}")
+    elif videos:
         print(f"video: {videos[0]}")
     return 0 if videos else 1
 

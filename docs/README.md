@@ -11,6 +11,7 @@
 | [../CLAUDE.md](../CLAUDE.md) | Phase 게이트 · references→경로 매핑 |
 | [ROLES.md](ROLES.md) | 팀 역할 (5인) |
 | [TEAM_HANDOFF.md](TEAM_HANDOFF.md) | **팀원용** — 구현 현황 · 코드 맵 · 데모 · PR |
+| [TEAM_EXP_BRIEFING.md](TEAM_EXP_BRIEFING.md) | **팀원용** — 실험 5막 · KPI · 발표 멘트 · Q&A (1페이지) |
 | [DEPLOY_CLOUDFLARE.md](DEPLOY_CLOUDFLARE.md) | Docker + Cloudflare Containers 배포 |
 | [DEPLOY_RAILWAY.md](DEPLOY_RAILWAY.md) | Docker + Railway · **라이브** https://web-production-072b8.up.railway.app |
 | [GAME_RULES.md](GAME_RULES.md) | 3-Out · 멘탈 붕괴 · 타임어택 · 증거 책상·지목 |

@@ -29,6 +29,9 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_BASE = "https://web-production-072b8.up.railway.app"
 ASK_TIMEOUT_MS = 90_000
 NAV_TIMEOUT_MS = 60_000
+# 발표용: 720p VP8(~0.5Mbps)는 UI가 뭉개짐 → 1080p 녹화 후 H.264 재인코딩
+RECORD_W = 1920
+RECORD_H = 1080
 
 # 기본 연출 (풀 스토리 느낌)
 DEFAULT_SCENE_DWELL_MS = 4_500  # 인트로 씬당 최소 읽기 시간
@@ -47,6 +50,132 @@ def _require_playwright():
             "  python3 -m playwright install chromium\n"
             f"상세: {exc}"
         ) from exc
+
+
+def _encode_sharp_mp4(webm: Path, out_mp4: Path) -> Path | None:
+    """Playwright webm(저비트레이트 VP8) → 발표용 고화질 MP4."""
+    import subprocess
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        str(webm),
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "14",
+        "-b:v",
+        "12M",
+        "-maxrate",
+        "16M",
+        "-bufsize",
+        "24M",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-an",
+        str(out_mp4),
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        print(f"ffmpeg reencode skipped: {exc}", file=sys.stderr)
+        return None
+    return out_mp4 if out_mp4.exists() else None
+
+
+def _encode_frames_mp4(frames_dir: Path, out_mp4: Path, *, fps: float) -> Path | None:
+    """CDP 스크린캐스트 JPEG 시퀀스 → 고화질 MP4 (UI 선명)."""
+    import subprocess
+
+    pattern = str(frames_dir / "f%06d.jpg")
+    fps = max(8.0, min(30.0, float(fps)))
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-framerate",
+        f"{fps:.3f}",
+        "-i",
+        pattern,
+        "-c:v",
+        "libx264",
+        "-preset",
+        "slow",
+        "-crf",
+        "12",
+        "-b:v",
+        "10M",
+        "-maxrate",
+        "14M",
+        "-bufsize",
+        "20M",
+        "-pix_fmt",
+        "yuv420p",
+        "-movflags",
+        "+faststart",
+        "-an",
+        str(out_mp4),
+    ]
+    try:
+        subprocess.run(cmd, check=True, capture_output=True)
+    except (FileNotFoundError, subprocess.CalledProcessError) as exc:
+        print(f"ffmpeg frames encode skipped: {exc}", file=sys.stderr)
+        return None
+    return out_mp4 if out_mp4.exists() else None
+
+
+class _HqScreencast:
+    """Playwright VP8 대신 CDP JPEG 스크린캐스트로 선명하게 캡처."""
+
+    def __init__(self, page, frames_dir: Path) -> None:
+        import base64
+
+        self._base64 = base64
+        self._page = page
+        self._frames_dir = frames_dir
+        self._frames_dir.mkdir(parents=True, exist_ok=True)
+        self._session = None
+        self.n = 0
+        self.t0 = 0.0
+
+    def start(self) -> None:
+        self.t0 = time.time()
+        self._session = self._page.context.new_cdp_session(self._page)
+        self._session.on("Page.screencastFrame", self._on_frame)
+        self._session.send(
+            "Page.startScreencast",
+            {
+                "format": "jpeg",
+                "quality": 95,
+                "maxWidth": RECORD_W,
+                "maxHeight": RECORD_H,
+                "everyNthFrame": 1,
+            },
+        )
+
+    def _on_frame(self, params: dict) -> None:
+        self.n += 1
+        raw = self._base64.b64decode(params["data"])
+        (self._frames_dir / f"f{self.n:06d}.jpg").write_bytes(raw)
+        try:
+            self._session.send(
+                "Page.screencastFrameAck", {"sessionId": params["sessionId"]}
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+    def stop(self) -> float:
+        try:
+            if self._session:
+                self._session.send("Page.stopScreencast")
+        except Exception:  # noqa: BLE001
+            pass
+        elapsed = max(0.1, time.time() - self.t0)
+        return (self.n / elapsed) if self.n else 12.0
 
 
 def _pause(page, ms: int) -> None:
@@ -336,6 +465,21 @@ def main() -> int:
         action="store_true",
         help="--intro-only 시 입장하기 클릭 생략 (CTA에서 종료)",
     )
+    ap.add_argument(
+        "--legacy-webm",
+        action="store_true",
+        help="Playwright 저화질 webm도 함께 저장 (기본은 CDP HQ만)",
+    )
+    ap.add_argument(
+        "--no-brighten",
+        action="store_true",
+        help="녹화용 화면 밝기 보정 끄기 (기본은 약간 밝게)",
+    )
+    ap.add_argument(
+        "--keep-frames",
+        action="store_true",
+        help="frames_hq JPEG 시퀀스 유지 (기본은 MP4 후 삭제)",
+    )
     args = ap.parse_args()
     include_case = bool(args.include_case_overview) and not args.no_case_overview
     intro_only = bool(args.intro_only)
@@ -351,30 +495,54 @@ def main() -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     video_dir = out_dir / "video"
     video_dir.mkdir(parents=True, exist_ok=True)
+    frames_dir = out_dir / "frames_hq"
 
     print(f"base_url={args.base_url}")
     print(f"out_dir={out_dir}")
     print(
         f"mode={'intro_only' if intro_only else 'cut_b'} "
         f"scene_dwell={scene_dwell} type_delay={args.type_delay_ms} "
-        f"after_reply={args.after_reply_ms} case_overview={include_case}"
+        f"after_reply={args.after_reply_ms} case_overview={include_case} "
+        f"capture=cdp_hq"
     )
 
     t0 = time.time()
+    hq = None
+    hq_fps = 12.0
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=not args.headed, slow_mo=args.slow_mo)
-        context = browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            record_video_dir=str(video_dir),
-            record_video_size={"width": 1280, "height": 720},
-            locale="ko-KR",
-        )
+        ctx_kwargs = {
+            "viewport": {"width": RECORD_W, "height": RECORD_H},
+            "device_scale_factor": 1,
+            "locale": "ko-KR",
+        }
+        if args.legacy_webm:
+            ctx_kwargs["record_video_dir"] = str(video_dir)
+            ctx_kwargs["record_video_size"] = {"width": RECORD_W, "height": RECORD_H}
+        context = browser.new_context(**ctx_kwargs)
         context.set_default_timeout(30_000)
+        if not args.no_brighten:
+            context.add_init_script(
+                """
+                (() => {
+                  const apply = () => {
+                    document.documentElement.style.filter =
+                      'brightness(1.18) contrast(1.06) saturate(1.04)';
+                  };
+                  apply();
+                  new MutationObserver(apply).observe(document.documentElement, {
+                    childList: true, subtree: true
+                  });
+                })();
+                """
+            )
         page = context.new_page()
         page.set_default_navigation_timeout(NAV_TIMEOUT_MS)
         ok = False
         err = ""
         try:
+            hq = _HqScreencast(page, frames_dir)
+            hq.start()
             if intro_only:
                 run_intro_only(
                     page,
@@ -401,10 +569,24 @@ def main() -> int:
             except Exception:  # noqa: BLE001
                 pass
         finally:
+            if hq is not None:
+                hq_fps = hq.stop()
+                print(f"hq_frames={hq.n} hq_fps≈{hq_fps:.1f}")
             context.close()
             browser.close()
 
-    videos = sorted(video_dir.glob("*.webm"))
+    videos = sorted(video_dir.glob("*.webm")) if args.legacy_webm else []
+    mp4_path = None
+    if hq is not None and hq.n > 0:
+        mp4_path = _encode_frames_mp4(
+            frames_dir, out_dir / "cut_b_sharp.mp4", fps=hq_fps
+        )
+        if mp4_path and not args.keep_frames:
+            import shutil
+
+            shutil.rmtree(frames_dir, ignore_errors=True)
+    elif videos:
+        mp4_path = _encode_sharp_mp4(videos[0], out_dir / "cut_b_sharp.mp4")
     meta = {
         "created_at": datetime.now(timezone.utc).isoformat(),
         "base_url": args.base_url,
@@ -412,6 +594,10 @@ def main() -> int:
         "ok": ok,
         "error": err or None,
         "elapsed_sec": round(time.time() - t0, 1),
+        "viewport": f"{RECORD_W}x{RECORD_H}",
+        "capture": "cdp_jpeg_hq",
+        "hq_frames": getattr(hq, "n", 0),
+        "hq_fps": round(hq_fps, 2),
         "scene_dwell_ms": scene_dwell,
         "type_delay_ms": args.type_delay_ms,
         "after_reply_ms": args.after_reply_ms,
@@ -421,14 +607,17 @@ def main() -> int:
         "videos": [
             str(v.relative_to(ROOT)) if str(v).startswith(str(ROOT)) else str(v) for v in videos
         ],
-        "note": "인트로 전용 또는 풀 페이스 컷B · runs/ gitignore",
+        "mp4": str(mp4_path.relative_to(ROOT)) if mp4_path else None,
+        "note": "CDP JPEG HQ → cut_b_sharp.mp4(권장) · 구 webm은 뭉개짐",
     }
     (out_dir / "report.json").write_text(
         json.dumps(meta, ensure_ascii=False, indent=2) + "\n",
         encoding="utf-8",
     )
     print(json.dumps(meta, ensure_ascii=False, indent=2))
-    if videos:
+    if mp4_path:
+        print(f"mp4: {mp4_path}")
+    elif videos:
         print(f"video: {videos[0]}")
     return 0 if ok else 1
 

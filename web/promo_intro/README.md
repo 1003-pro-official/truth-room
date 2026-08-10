@@ -7,15 +7,24 @@
 
 | 파일 | 역할 |
 | :--- | :--- |
-| `index.html` | 1280×720 모션 시퀀스 (~14초) |
+| `index.html` | 1920×1080 모션 시퀀스 (~15초) · 하단 밴드 카피 · 마지막 CTA 카드 분리 |
 | `media/devices_*.png` | 노트북·폰·태블릿 시네마틱 키프레임 |
 | `media/case_mood.webp` | 사건 무드 오프닝 |
+
+## 밝기 · 선명도
+
+- 원본 키프레임이 노이르라 CSS brightness는 소량만 올림.
+- **글자·기기 UI가 같은 픽셀에 겹치면** webm 압축에서 뭉개짐 → 카피는 하단 밴드, 엔딩은 **플랫 CTA**.
+- 녹화: **1920×1080** + `promo_intro_sharp.mp4` (CRF 16).
+
+더 밝게: `.scene img.bg` · `.frame img`의 `brightness()`만 올리기.
 
 ## 녹화
 
 ```bash
 python3 scripts/record_promo_intro.py
 # → runs/demo_record/promo_intro_<ts>/video/*.webm
+# → runs/demo_record/promo_intro_<ts>/promo_intro_sharp.mp4  (권장)
 ```
 
 브라우저에서 미리보기:

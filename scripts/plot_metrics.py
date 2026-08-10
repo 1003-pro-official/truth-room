@@ -108,7 +108,7 @@ def plot_hit5() -> None:
     # Canonical Hit@5 summary + per-query Advanced ranks
     modes = ["Baseline", "Advanced", "Embedding"]
     hits = [0, 4, 0]
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4.2))
+    fig, axes = plt.subplots(2, 1, figsize=(7.2, 8.0))
 
     bars = axes[0].bar(modes, hits, color=["#E45756", "#54A24B", "#F58518"])
     axes[0].set_ylim(0, 4.5)
@@ -135,6 +135,7 @@ def plot_hit5() -> None:
         axes[1].legend(fontsize=8)
     else:
         axes[1].axis("off")
+    fig.tight_layout()
     _savefig(fig, METRICS / "hit5_by_mode.png")
 
 

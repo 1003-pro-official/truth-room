@@ -2,7 +2,10 @@
 
 > 슬라이드 초안. **발표 2026-08-11 14:00 · 총 15분** · **당일 오전 리허설** · **준비일 2026-08-10**.  
 > **시연 녹화: 2026-08-09 (일)** — 발표 컷(B) 필수 · 풀(A) 권장. 8/10은 발표자 확정·슬라이드에 넣기(재촬영은 여유 시만).  
-> 일정 정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · 역할: [docs/ROLES.md](docs/ROLES.md)
+> 일정 정본: [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md) · 역할: [docs/ROLES.md](docs/ROLES.md)  
+> 실험 브리핑(팀원 배포): [docs/TEAM_EXP_BRIEFING.md](docs/TEAM_EXP_BRIEFING.md)  
+> **Gamma 붙여넣기용:** [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md)  
+> **발표 대본 (15분):** [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md)
 
 ---
 
