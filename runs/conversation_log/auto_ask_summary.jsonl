@@ -1,0 +1,4 @@
+{"ts": "2026-08-04T00:05:12.530203+00:00", "date": "2026-08-04", "label": "day1_alibi", "session_id": "7d2195fc", "ok": 45, "fail": 0, "logged_est": 45, "turns": 45}
+{"ts": "2026-08-05T01:22:13.057229+00:00", "date": "2026-08-05", "label": "day2_evidence", "session_id": "f55c1524", "ok": 45, "fail": 0, "logged_est": 45, "turns": 45}
+{"ts": "2026-08-06T02:03:10.842780+00:00", "date": "2026-08-06", "label": "day3_pressure", "session_id": "2dd3f704", "ok": 45, "fail": 0, "logged_est": 45, "turns": 45}
+{"ts": "2026-08-07T14:03:09.281582+00:00", "date": "2026-08-07", "label": "day4_fill", "session_id": "3fd37930", "ok": 30, "fail": 0, "logged_est": 30, "turns": 30}

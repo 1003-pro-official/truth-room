@@ -1,0 +1,250 @@
+{
+  "created_at": "2026-07-31T11:05:04.730880+00:00",
+  "metrics": {
+    "faithfulness": 0.2659,
+    "context_precision": 0.4,
+    "context_recall": 1.0,
+    "answer_relevancy": 0.2163
+  },
+  "sample_size": 18,
+  "dataset": "data/eval/eval_questions.jsonl",
+  "status": "ok",
+  "backend": "local_token_overlap_faithfulness",
+  "items": [
+    {
+      "id": "eq01",
+      "faithfulness": 0.2727,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_card_03",
+        "ev_net_01",
+        "ev_log_07"
+      ]
+    },
+    {
+      "id": "eq02",
+      "faithfulness": 0.25,
+      "context_precision": 0.5,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_msg_12",
+        null,
+        null,
+        null,
+        "ev_net_01"
+      ]
+    },
+    {
+      "id": "eq03",
+      "faithfulness": 0.2222,
+      "context_precision": 1.0,
+      "answer_relevancy": 0.4,
+      "retrieved_evidence_ids": [
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq04",
+      "faithfulness": 0.3636,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_log_07",
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_card_03"
+      ]
+    },
+    {
+      "id": "eq05",
+      "faithfulness": 0.5,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_log_07",
+        "ev_log_07",
+        "ev_msg_12",
+        "ev_card_03"
+      ]
+    },
+    {
+      "id": "eq06",
+      "faithfulness": 0.1538,
+      "context_precision": 0.0,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_card_03",
+        "ev_log_07"
+      ]
+    },
+    {
+      "id": "eq07",
+      "faithfulness": 0.25,
+      "context_precision": 1.0,
+      "answer_relevancy": 0.5,
+      "retrieved_evidence_ids": [
+        "ev_card_03",
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq08",
+      "faithfulness": 0.3333,
+      "context_precision": 0.3333,
+      "answer_relevancy": 0.25,
+      "retrieved_evidence_ids": [
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq09",
+      "faithfulness": 0.6,
+      "context_precision": 1.0,
+      "answer_relevancy": 0.5,
+      "retrieved_evidence_ids": [
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq10",
+      "faithfulness": 0.4,
+      "context_precision": 0.25,
+      "answer_relevancy": 0.3333,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        null,
+        "ev_log_07",
+        "ev_log_07",
+        "ev_msg_12"
+      ]
+    },
+    {
+      "id": "eq11",
+      "faithfulness": 0.1667,
+      "context_precision": 0.3333,
+      "answer_relevancy": 0.1429,
+      "retrieved_evidence_ids": [
+        "ev_card_03",
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq12",
+      "faithfulness": 0.0,
+      "context_precision": 0.3333,
+      "answer_relevancy": 0.1667,
+      "retrieved_evidence_ids": [
+        "ev_log_07",
+        "ev_msg_12",
+        "ev_log_07",
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq13",
+      "faithfulness": 0.3,
+      "context_precision": 0.6667,
+      "answer_relevancy": 0.3333,
+      "retrieved_evidence_ids": [
+        "ev_log_07",
+        "ev_log_07",
+        "ev_msg_12",
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq14",
+      "faithfulness": 0.3077,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_log_07",
+        "ev_card_03"
+      ]
+    },
+    {
+      "id": "eq15",
+      "faithfulness": 0.3333,
+      "context_precision": 0.3333,
+      "answer_relevancy": 0.6667,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_card_03",
+        "ev_log_07",
+        null,
+        null
+      ]
+    },
+    {
+      "id": "eq16",
+      "faithfulness": 0.2222,
+      "context_precision": 0.25,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        null,
+        "ev_net_01",
+        "ev_msg_12",
+        "ev_card_03",
+        "ev_log_07"
+      ]
+    },
+    {
+      "id": "eq17",
+      "faithfulness": 0.1111,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.0,
+      "retrieved_evidence_ids": [
+        "ev_msg_12",
+        "ev_net_01",
+        "ev_card_03",
+        "ev_log_07",
+        "ev_log_07"
+      ]
+    },
+    {
+      "id": "eq18",
+      "faithfulness": 0.0,
+      "context_precision": 0.2,
+      "answer_relevancy": 0.6,
+      "retrieved_evidence_ids": [
+        "ev_net_01",
+        "ev_log_07",
+        "ev_log_07",
+        "ev_msg_12",
+        "ev_card_03"
+      ]
+    }
+  ],
+  "note": "RAGAS 대체 로컬 메트릭 — 발표 표에 Faithfulness 수치 사용 가능"
+}

@@ -1,0 +1,23 @@
+source: repro_manifest.py
+project: truth-room
+case_id: case_01
+updated_at: '2026-07-30 22:52:02'
+git_commit: null
+python_version: 3.9.6
+platform: macOS-26.5.2-arm64-arm-64bit
+packages:
+  fastapi: 0.115.0
+  pyyaml: 6.0.3
+  openai: 2.48.0
+pipeline:
+  ingest_chunks: 10
+  rag_index: runs/rag/index
+  rag_status: ready
+  eval_report: runs/eval/report.json
+config_files:
+- configs/ingest.yaml
+- configs/rag.yaml
+- configs/agent.yaml
+- configs/eval.yaml
+- configs/api.yaml
+notes: 정본은 configs/*.yaml + data/ + lib/. OpenAI 키는 .env only.

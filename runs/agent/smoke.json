@@ -1,0 +1,129 @@
+{
+  "status": "ok",
+  "case_id": "case_01",
+  "gm_tone": true,
+  "backend": "langgraph",
+  "state": {
+    "session_id": "smoke",
+    "turn": 1,
+    "suspect_id": "suspect_a",
+    "evidence_ids": [
+      "ev_card_03"
+    ],
+    "pressure": {
+      "suspect_a": 0.3,
+      "suspect_b": 0.0,
+      "suspect_c": 0.0
+    },
+    "break_count": {
+      "suspect_a": 0,
+      "suspect_b": 0,
+      "suspect_c": 0
+    },
+    "mental_break_suspects": [],
+    "clue_count": 1,
+    "phase": "ending",
+    "ended": false,
+    "last_retrieval": [
+      {
+        "evidence_id": "ev_card_03",
+        "source_type": "corporate_card",
+        "score": 0.896712,
+        "snippet": "07-29 09:26:00,신인턴,E-H,문구점,48569,일반\n2026-07-29 09:51:00,신인턴,E-H,편의점,41157,일반\n2026-07-29 10:31:00,이대리,E-B,전자상가,52788,일반\n2026-07-29 11:23:00,박신입,E-C,강남역 룸살롱,56349"
+      },
+      {
+        "evidence_id": null,
+        "source_type": "corporate_card",
+        "score": 0.346437,
+        "snippet": "구원,E-J,배달앱,33926,일반\n2026-05-05 17:14:00,신인턴,E-H,문구점,4311,일반\n2026-05-05 22:45:00,이대리,E-B,전자상가,80961,일반\n2026-05-06 02:21:00,이대리,E-B,카페,18755,일반\n2026-05-06 07:14:0"
+      },
+      {
+        "evidence_id": null,
+        "source_type": "corporate_card",
+        "score": 0.346174,
+        "snippet": "4 06:57:00,김팀장,E-A,마라탕집,14710,일반\n2026-07-14 10:06:00,김팀장,E-A,전자상가,35296,일반\n2026-07-14 10:17:00,배수석,E-I,구내식당,45269,일반\n2026-07-14 10:52:00,한과장,E-F,카페,11110,일반\n202"
+      },
+      {
+        "evidence_id": null,
+        "source_type": "corporate_card",
+        "score": 0.345914,
+        "snippet": "2026-05-14 01:46:00,신인턴,E-H,구내식당,60698,일반\n2026-05-14 06:52:00,한과장,E-F,택시,54135,일반\n2026-05-14 12:37:00,김팀장,E-A,구내식당,30473,일반\n2026-05-14 13:47:00,박신입,E-C,문구점,2470"
+      },
+      {
+        "evidence_id": null,
+        "source_type": "corporate_card",
+        "score": 0.345822,
+        "snippet": ",일반\n2026-06-01 23:03:00,한과장,E-F,마라탕집,16991,일반\n2026-06-02 02:21:00,윤사원,E-D,편의점,38548,일반\n2026-06-02 05:14:00,김팀장,E-A,강남역 룸살롱,84932,일반\n2026-06-02 08:08:00,정대리,E-E,"
+      }
+    ],
+    "tool_results": [
+      {
+        "tool": "request_cctv_log",
+        "location": "lobby",
+        "status": "unavailable",
+        "reason": "폭우·정전으로 로비 CCTV 녹화 구간 결측 (23:00~24:00)",
+        "entries": [],
+        "note": "2026-07-29 야간 · 폭우로 다수 카메라 결측",
+        "summary": "해당 구간 CCTV 결측 확인됨."
+      }
+    ]
+  },
+  "trace": [
+    {
+      "node": "route",
+      "phase": "retrieve",
+      "hint": "retrieve_then_tool"
+    },
+    {
+      "node": "interrogate",
+      "suspect_id": "suspect_a",
+      "question": "김팀장 알리바이가 맞는지 검증해줘. CCTV도 확인해.",
+      "answer": "[김팀장] 이 양반아, 나는 야근하며 서류 검토 중이었다고. 에헴, 나 때는 이런 잔업이 기본이었네. — 11시부터 12시까지 자기 자리에서 정산·발표용 서류를 검토하며 야근하고 있었습니다.",
+      "prompt_chars": 1369,
+      "stress_level": 0
+    },
+    {
+      "node": "retrieve_evidence",
+      "query": "김팀장 법인카드 룸살롱",
+      "n_hits": 5,
+      "evidence_ids": [
+        "ev_card_03"
+      ]
+    },
+    {
+      "node": "call_tool",
+      "n_tools": 1,
+      "tools": [
+        "request_cctv_log"
+      ],
+      "assistant_prompt": true
+    },
+    {
+      "node": "update_pressure",
+      "suspect_id": "suspect_a",
+      "pressure": 0.3,
+      "break_count": 0,
+      "is_alibi_broken": false,
+      "gm_status": "no_effect",
+      "stress_delta": 0,
+      "mental_break": false,
+      "leak_threshold": 0.9,
+      "stress_exceeded": false
+    },
+    {
+      "node": "confront",
+      "ok": true,
+      "line": "김팀장에게 증거 ['ev_card_03'] 제시. [증거 압박] 질문과 맞는 보유 증거만 짧게 확인하세요. 없는 증거는 수색 안내.",
+      "story_branch": "evidence_pressure"
+    },
+    {
+      "node": "judge_ending",
+      "ended": false,
+      "culprit_id_hidden": true,
+      "evidence_progress": "1/3",
+      "ready_to_accuse": false
+    }
+  ],
+  "created_at": "2026-08-02T05:50:24.120036+00:00",
+  "note": "LangGraph StateGraph · ReAct retrieve+tool"
+}

@@ -21,7 +21,7 @@
 | 단계 | 내용 |
 | :--- | :--- |
 | 수집 | `POST .../ask` 성공 후 `append_ask_turn` (질문·용의자 답·선택적 조수 멘트) |
-| 보관 | `runs/conversation_log/ask_turns.jsonl` (`runs/` gitignore) |
+| 보관 | `runs/conversation_log/ask_turns.jsonl` (팀 공유 시 레포 포함 가능) |
 | 보내기 | `export_conversation_log.py` → OpenAI `messages` 형식 후보 |
 | 재학습 | 기존 소량 SFT/LoRA ladder에 병합·재실행 ([data/sft/README.md](../data/sft/README.md)) |
 
@@ -56,7 +56,7 @@ conversation_log:
 | **길이 상한** | question≤500 · answer≤800 · assistant_note≤400 자 클립 |
 | **말투 전용** | `ft_candidate: persona_speech`. 승패·알리바이 3-Out·지목 판정은 **코드 권위** |
 | **Export 필터** | 너무 짧은/의미없는 질문·`[편집됨]` 답변 스킵 |
-| **Git 미포함** | `runs/` 무시. 원본 대화 로그를 레포에 커밋하지 않음 |
+| **Git** | 기본은 로컬 `runs/`. **팀 공유·재현**이 필요하면 레포에 포함 (비밀·`culprit` 원문은 로그 안정장치로 편집) |
 | **클라이언트 비노출** | 로그 파일·경로를 UI/공개 API 응답에 넣지 않음 |
 
 ---

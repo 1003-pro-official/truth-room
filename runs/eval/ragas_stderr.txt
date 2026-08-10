@@ -1,0 +1,10 @@
+/Users/choiseunghyeon/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing answer_relevancy from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import answer_relevancy
+  from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing context_precision from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import context_precision
+  from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing context_recall from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import context_recall
+  from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing faithfulness from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import faithfulness
+  from ragas.metrics import answer_relevancy, context_precision, context_recall, faithfulness

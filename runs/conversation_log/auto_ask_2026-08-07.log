@@ -1,0 +1,46 @@
+/Users/choiseunghyeon/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+/Users/choiseunghyeon/Library/Python/3.9/lib/python/site-packages/flaml/__init__.py:20: UserWarning: flaml.automl is not available. Please install flaml[automl] to enable AutoML functionalities.
+  warnings.warn("flaml.automl is not available. Please install flaml[automl] to enable AutoML functionalities.")
+다음(금): python3 scripts/export_conversation_log.py
+{"date": "2026-08-07", "label": "day4_fill", "turns_planned": 30, "variants": true, "conversation_log": "1", "session_id": "3fd37930"}
+[1/30] suspect_c q=이대리가 라운지에 있던 거 아셨습니까?… ok=True
+[2/30] suspect_b q=김팀장 지문 로그를 어떻게 보십니까?… ok=True
+[3/30] suspect_b q=기록상으로 헤드폰 끼고 오래 앉아 있던 CCTV 분위기가 있던데요요?… ok=True
+[4/30] suspect_b q=그날 외부로 보낸 파일 있습니까?… ok=True
+[5/30] suspect_b q=개인 노트북 MAC이 찍힌 이유를 설명해 주세요.… ok=True
+[6/30] suspect_b q=Wi-Fi로 대용량 전송한 기록, 본인 기기 맞습니까?… ok=True
+[7/30] suspect_a q=자리에서 기획안만 보고 있었다고요?… ok=True
+[8/30] suspect_a q=잠깐, 같이 야근한 사람 중에 수상한 사람 있었나요?… ok=True
+[9/30] suspect_c q=몰래 서버실에 들어갔다는 뉘앙스의 대화, 기억나세요?… ok=True
+[10/30] suspect_c q=김팀장이 자리를 비운 걸 보셨나요?… ok=True
+[11/30] suspect_a q=팀장으로서 부하 직원 동선은 파악하고 계셨습니까?… ok=True
+[12/30] suspect_a q=이대리나 박신입 중에 의한 사람 있습니까?… ok=True
+[13/30] suspect_a q=야근 지시를 누가 내렸는지 말해 주세요 맞습니까?… ok=True
+[14/30] suspect_a q=서버실 지문 로그에 대해 어떻게 생각하세요?… ok=True
+[15/30] suspect_b q=서버실 쪽에 가본 적 있습니까?… ok=True
+[16/30] suspect_c q=그날 DM으로 누구에게 뭐라고 했습니까?… ok=True
+[17/30] suspect_a q=한 가지만 더 — 법인카드로 강남 쪽 결제한 기록이 있던데요?… ok=True
+[18/30] suspect_a q=룸살롱 결제 건, 본인 카드 맞습니까?… ok=True
+[19/30] suspect_b q=한 가지만 더 — 박신입이 서버실에 갔다는 이야기, 들으셨나요?… ok=True
+[20/30] suspect_b q=라운지에서 노트북만 보고 있었다고요?… ok=True
+[21/30] suspect_a q=기록상으로 그때 집에 있었다고 하셨는데 맞나요?… ok=True
+[22/30] suspect_b q=잠깐, 긴장하신 것 같은데, 숨기는 거 있습니까?… ok=True
+[23/30] suspect_b q=기록상으로 23시에서 24시 사이에 뭘 하고 있었죠?… ok=True
+[24/30] suspect_a q=증거가 나오면 어떻게 설명하실 겁니까?… ok=True
+[25/30] suspect_c q=슬랙에 서버실 관련 메시지를 보낸 적 있습니까?… ok=True
+[26/30] suspect_c q=한 가지만 더 — 알리바이를 다시 말해 주세요.… ok=True
+[27/30] suspect_c q=신입이라 눈치를 본 건 아닌가요?… ok=True
+[28/30] suspect_a q=그날 밤 어디에 있었습니까?… ok=True
+[29/30] suspect_c q=화장실에만 있었다고 하셨죠?… ok=True
+[30/30] suspect_c q=그 시간대에 자리를 비운 적 있나요?… ok=True
+{
+  "ts": "2026-08-07T14:03:09.281582+00:00",
+  "date": "2026-08-07",
+  "label": "day4_fill",
+  "session_id": "3fd37930",
+  "ok": 30,
+  "fail": 0,
+  "logged_est": 30,
+  "turns": 30
+}

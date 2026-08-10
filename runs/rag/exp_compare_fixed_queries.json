@@ -1,0 +1,76 @@
+{
+  "created_at": "2026-07-31T10:59:35.784354+00:00",
+  "protocol": "fixed_4_queries_top_k=5",
+  "baseline_hit5": "0/4",
+  "advanced_hit5": "4/4",
+  "rows": [
+    {
+      "query": "법인카드 룸살롱",
+      "target": "ev_card_03",
+      "baseline_top1": null,
+      "advanced_top1": "ev_card_03",
+      "baseline_hit5": false,
+      "advanced_hit5": true,
+      "baseline_rank": null,
+      "advanced_rank": 1,
+      "advanced_ids": [
+        "ev_card_03",
+        null,
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "query": "슬랙 DM 박신입 서버실",
+      "target": "ev_msg_12",
+      "baseline_top1": null,
+      "advanced_top1": "ev_msg_12",
+      "baseline_hit5": false,
+      "advanced_hit5": true,
+      "baseline_rank": null,
+      "advanced_rank": 1,
+      "advanced_ids": [
+        "ev_msg_12",
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null
+      ]
+    },
+    {
+      "query": "김팀장 지문 서버실",
+      "target": "ev_log_07",
+      "baseline_top1": null,
+      "advanced_top1": "ev_log_07",
+      "baseline_hit5": false,
+      "advanced_hit5": true,
+      "baseline_rank": null,
+      "advanced_rank": 1,
+      "advanced_ids": [
+        "ev_log_07",
+        "ev_log_07",
+        null,
+        null,
+        null
+      ]
+    },
+    {
+      "query": "라운지 Wi-Fi 100GB",
+      "target": "ev_net_01",
+      "baseline_top1": null,
+      "advanced_top1": "ev_net_01",
+      "baseline_hit5": false,
+      "advanced_hit5": true,
+      "baseline_rank": null,
+      "advanced_rank": 1,
+      "advanced_ids": [
+        "ev_net_01",
+        null,
+        "ev_log_07",
+        "ev_log_07",
+        "ev_msg_12"
+      ]
+    }
+  ]
+}

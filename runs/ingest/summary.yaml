@@ -1,0 +1,15 @@
+n_chunks: 6665
+by_source:
+  statements: 9
+  forensics: 4
+  messenger: 3321
+  logs: 2747
+  corporate_card: 74
+  network: 510
+with_evidence_id: 5
+evidence_ids:
+- ev_card_03
+- ev_log_07
+- ev_msg_12
+- ev_net_01
+chunks_path: data/processed/chunks.jsonl

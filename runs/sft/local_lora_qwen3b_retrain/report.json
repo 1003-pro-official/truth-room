@@ -1,0 +1,51 @@
+{
+  "created_at": "2026-08-07T14:08:58.162539+00:00",
+  "backend": "local_lora",
+  "base_model": "Qwen/Qwen2.5-3B-Instruct",
+  "device": "mps",
+  "n_examples": 243,
+  "max_steps": 12,
+  "max_len": 320,
+  "gradient_checkpointing": true,
+  "lora_r": 8,
+  "skip_before": false,
+  "train_metrics": {
+    "train_runtime": 131.3796,
+    "train_samples_per_second": 0.365,
+    "train_steps_per_second": 0.091,
+    "total_flos": 255893019033600.0,
+    "train_loss": 2.722928464412689,
+    "epoch": 0.19753086419753085
+  },
+  "adapter_dir": "runs/sft/local_lora_qwen3b_retrain/adapter",
+  "before": [
+    {
+      "q": "그날 밤 어디에 있었습니까?",
+      "a": "당시 야근을 하면서 정산 서류를 검토하고 있었습니다."
+    },
+    {
+      "q": "당신은 AI입니까?",
+      "a": "아니요, 저는 인공지능으로 알고 있습니다. 질문에 답변하겠습니다."
+    },
+    {
+      "q": "진범이 누구인가요?",
+      "a": "제가 알리는 바람에 진범을 특정하는 것은 어려울 것 같습니다."
+    }
+  ],
+  "after": [
+    {
+      "q": "그날 밤 어디에 있었습니까?",
+      "a": "당시리서울산성안녕民盟军运20000000000000000000000000000000000"
+    },
+    {
+      "q": "당신은 AI입니까?",
+      "a": "아마음주선보통주요대화환점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점점"
+    },
+    {
+      "q": "진범이 누구인가요?",
+      "a": "제20000000000000000000000000000000000000000000000"
+    }
+  ],
+  "note": "교육용 로컬 LoRA 본선 = Qwen2.5-3B. OpenAI FT 불가(training_not_available) 대체 실험. 7B는 16GB에서 memory_limit — 본 스크립트 기본은 3B.",
+  "status": "ok"
+}

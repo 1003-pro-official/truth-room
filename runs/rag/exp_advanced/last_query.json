@@ -1,0 +1,47 @@
+{
+  "mode": "advanced",
+  "query": "라운지 Wi-Fi 100GB",
+  "top_k": 5,
+  "rrf_k": 60,
+  "rerank": true,
+  "n_hits": 5,
+  "hits": [
+    {
+      "chunk_id": "wifi_transfer_log_509",
+      "evidence_id": "ev_net_01",
+      "source_type": "network",
+      "score": 0.216445,
+      "text": "3 ap=lounge-ap-01 note=device=이대리_개인노트북\n2024-07-29T23:08:44+09:00 event=DNS q=netflix.com ip=192.168.1.15\n2024-07-29T23:25:06+09:00 event=BULK_TRANSFER ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 bytes=107374182400 proto=HTTPS des"
+    },
+    {
+      "chunk_id": "access_control_2737",
+      "evidence_id": "ev_log_07",
+      "source_type": "logs",
+      "score": 0.1535,
+      "text": "oor=parking ACTION=EXIT\n2024-07-29T23:07:12+09:00 badge=E-J name=조연구원 auth=badge door=lobby ACTION=ENTER\n2024-07-29T23:07:54+09:00 badge=E-I name=배수석 auth=badge door=office_floor3 ACTION=DENIED\n2024-07-29T23:08:24+09:00 badge=E-H name=신인턴 a"
+    },
+    {
+      "chunk_id": "slack_archive_2491",
+      "evidence_id": "ev_msg_12",
+      "source_type": "messenger",
+      "score": 0.150666,
+      "text": "... 누군가 또 들어온 것 같기도 하고 ㄷㄷ\", \"evidence_id\": \"ev_msg_12\", \"thread_ts\": \"1722262811.000000\", \"reply_count\": 2}\n{\"client_msg_id\": \"a0a04dc4-28f4-cac5\", \"type\": \"message\", \"ts\": \"1722262863.000000\", \"datetime\": \"2024-07-29T23:21:03+09:00\", \"chan"
+    },
+    {
+      "chunk_id": "access_control_2738",
+      "evidence_id": "ev_log_07",
+      "source_type": "logs",
+      "score": 0.150593,
+      "text": "ER  # evidence_id: ev_log_07\n2024-07-29T23:11:07+09:00 badge=E-J name=조연구원 auth=badge door=parking ACTION=PING\n2024-07-29T23:12:25+09:00 badge=E-E name=정대리 auth=badge door=office_floor3 ACTION=DENIED\n2024-07-29T23:13:25+09:00 badge=E-C name"
+    },
+    {
+      "chunk_id": "slack_archive_2490",
+      "evidence_id": "ev_msg",
+      "source_type": "messenger",
+      "score": 0.150568,
+      "text": "-07-29T23:12:00+09:00\", \"channel\": \"C04INFRA\", \"channel_name\": \"infra-alerts\", \"subtype\": \"bot_message\", \"bot_id\": \"B01OMEGA\", \"username\": \"오메가봇\", \"text\": \"[monitor] CCTV NVR 채널 4개 응답 없음 · 재연결 시도 중\"}\n{\"client_msg_id\": \"dc713d96-1c11-2720\", "
+    }
+  ],
+  "created_at": "2026-07-31T08:57:21.648566+00:00",
+  "note": "baseline=dense · advanced=hybrid_rrf+rerank (local)"
+}

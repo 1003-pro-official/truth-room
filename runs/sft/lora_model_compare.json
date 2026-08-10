@@ -1,0 +1,43 @@
+{
+  "created_at": "2026-07-31T11:20:40.165340+00:00",
+  "compare": [
+    {
+      "model": "SmolLM2-135M",
+      "train_loss": 1.875
+    },
+    {
+      "model": "Qwen2.5-0.5B",
+      "train_loss": 2.964
+    },
+    {
+      "model": "Qwen2.5-1.5B",
+      "train_loss": 2.752
+    },
+    {
+      "model": "Qwen2.5-3B-Instruct",
+      "train_loss": 2.794541279474894,
+      "trainable_pct": 0.0597,
+      "steps": 12,
+      "before0": "당시 야근을 하면서 정산 서류를 검토하고 있었습니다.",
+      "after0": "야근하며 정산 서류를 검토 중이었습니다.",
+      "report": "runs/sft/local_lora_qwen3b/report.json"
+    }
+  ],
+  "ragas_py312": {
+    "status": "ok",
+    "backend": "ragas",
+    "python": "3.12.13",
+    "metrics": [
+      "faithfulness",
+      "context_precision",
+      "context_recall"
+    ],
+    "scores": {
+      "faithfulness": 0.3333333333333333,
+      "context_precision": 0.6756944444032466,
+      "context_recall": 0.8333333333333334
+    },
+    "n": 6
+  },
+  "verdict": "ragas.evaluate OK on Python 3.12; 3B LoRA keeps alibi phrasing. Production still gpt-4o-mini+AutoGen."
+}

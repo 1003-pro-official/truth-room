@@ -1,0 +1,59 @@
+{
+  "created_at": "2026-07-31T11:33:53.574449+00:00",
+  "n": 30,
+  "source_routing": "soft",
+  "local_context_precision_routed": 0.1533,
+  "ragas": {
+    "status": "ok",
+    "backend": "ragas",
+    "python": "3.12.13",
+    "metrics": [
+      "faithfulness",
+      "context_precision",
+      "context_recall"
+    ],
+    "scores": {
+      "faithfulness": 0.6444444444444444,
+      "context_precision": 0.7472222221714097,
+      "context_recall": 0.7666666666666667
+    },
+    "n": 30
+  },
+  "embedding_faithfulness": {
+    "backend": "openai_embedding_cosine",
+    "mean": 0.3681,
+    "scores": [
+      0.4038,
+      0.4168,
+      0.4324,
+      0.3904,
+      0.3586,
+      0.2553,
+      0.2891,
+      0.4022,
+      0.417,
+      0.3769,
+      0.3864,
+      0.3375,
+      0.3916,
+      0.2704,
+      0.3545,
+      0.4646,
+      0.3387,
+      0.3105,
+      0.4427,
+      0.498,
+      0.3417,
+      0.3492,
+      0.3864,
+      0.3999,
+      0.3036,
+      0.3407,
+      0.3753,
+      0.3851,
+      0.2748,
+      0.3491
+    ]
+  },
+  "status": "ok"
+}

@@ -1,0 +1,47 @@
+{
+  "mode": "baseline",
+  "query": "라운지 Wi-Fi 100GB",
+  "top_k": 5,
+  "rrf_k": null,
+  "rerank": false,
+  "n_hits": 5,
+  "hits": [
+    {
+      "chunk_id": "cctv_hallway_0",
+      "evidence_id": null,
+      "source_type": "forensics",
+      "score": 0.268044,
+      "text": "# 현장 CCTV / 복도 영상 기술서 (포렌식)\n\n작성: 외부 디지털 포렌식 감사관 보조 기록 · 대상일 2024-07-29 · 작성일 2024-07-30\n\n23:00~24:00 구간 로비·서버실 전용 카메라는 폭우와 순간 정전으로 다수 결측이다. NVR 타임라인상 결측은 대략 23:02~23:18, 23:27~23:40에 집중된다. UPS 이벤트와 카메라 채널 드롭 시각이 초 단위로 근접한다. 복구된 3층 복도 카메라 pa"
+    },
+    {
+      "chunk_id": "slack_archive_778",
+      "evidence_id": null,
+      "source_type": "messenger",
+      "score": 0.255945,
+      "text": " \"정대리\", \"text\": \"체크포인트 용량이 계속 커지는데 정리 기준 있나요\", \"thread_ts\": \"1719279733.000000\", \"reply_count\": 2}\n{\"client_msg_id\": \"87a45304-37bf-6bd9\", \"type\": \"message\", \"ts\": \"1719279784.000000\", \"datetime\": \"2024-06-25T10:43:04+09:00\", \"channel\": \"C0"
+    },
+    {
+      "chunk_id": "wifi_transfer_log_478",
+      "evidence_id": null,
+      "source_type": "network",
+      "score": 0.248234,
+      "text": "ge-ap-01 bytes=97470\n2024-07-29T10:00:18+09:00 event=DHCP ip=192.168.1.219 mac=AA:BB:CC:01:FB:D3 user=김팀장 ap=lounge-ap-01 bytes=395339\n2024-07-29T10:02:09+09:00 event=DHCP ip=192.168.1.6 mac=AA:BB:CC:ED:63:48 user=김팀장 ap=lounge-ap-01 bytes="
+    },
+    {
+      "chunk_id": "transactions_73",
+      "evidence_id": "ev_card_03",
+      "source_type": "corporate_card",
+      "score": 0.242766,
+      "text": "07-29 09:26:00,신인턴,E-H,문구점,48569,일반\n2024-07-29 09:51:00,신인턴,E-H,편의점,41157,일반\n2024-07-29 10:31:00,이대리,E-B,전자상가,52788,일반\n2024-07-29 11:23:00,박신입,E-C,강남역 룸살롱,56349,일반\n2024-07-29 14:53:00,조연구원,E-J,마라탕집,55848,일반\n2024-07-29 18:20:00,정대리,E-E,강남역 룸"
+    },
+    {
+      "chunk_id": "slack_archive_2319",
+      "evidence_id": null,
+      "source_type": "messenger",
+      "score": 0.241499,
+      "text": "4837.000000\", \"parent_user_id\": \"U08SHIN1\"}\n{\"client_msg_id\": \"117a4942-cd42-824b\", \"type\": \"message\", \"ts\": \"1722215048.000000\", \"datetime\": \"2024-07-29T10:04:08+09:00\", \"channel\": \"C02OMEGA\", \"channel_name\": \"dev-omega\", \"user\": \"U08SHIN1"
+    }
+  ],
+  "created_at": "2026-07-31T08:57:20.801576+00:00",
+  "note": "baseline=dense · advanced=hybrid_rrf+rerank (local)"
+}

@@ -1,0 +1,25 @@
+{
+  "created_at": "2026-07-31T12:45:00+00:00",
+  "backend": "local_lora",
+  "base_model": "Qwen/Qwen2.5-7B-Instruct",
+  "device_attempts": ["mps", "cpu"],
+  "host_ram_gb": 16,
+  "n_examples": 78,
+  "max_steps_requested": 2,
+  "max_len": 64,
+  "gradient_checkpointing": true,
+  "lora_r": 4,
+  "skip_before": true,
+  "trainable": {
+    "params": 1261568,
+    "all_params": 7616878080,
+    "pct": 0.0166
+  },
+  "train_metrics": null,
+  "adapter_dir": null,
+  "before": [],
+  "after": [],
+  "status": "memory_limit",
+  "note": "16GB 통일 메모리에서 Qwen2.5-7B fp16(~14GB) 로드는 가능하나, LoRA backward 시 peak≈14.7–16.6GB + 스왑 10GB+로 1 step이 장시간 정체. MPS/CPU 모두 동일. 교육용 상한은 3B LoRA(완주)까지가 현실적. 7B는 모델 로드·trainable% 확인까지 수행.",
+  "recommendation": "32GB+ 또는 QLoRA/MLX 양자화 환경에서 재시도. 본선 ask는 prompt+AutoGen 유지."
+}

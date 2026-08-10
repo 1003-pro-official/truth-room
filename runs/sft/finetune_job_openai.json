@@ -1,0 +1,12 @@
+{
+  "created_at": "2026-07-31T10:20:18.173322+00:00",
+  "provider": "openai",
+  "status": "failed",
+  "error_code": "training_not_available",
+  "http": 403,
+  "message": "OpenAI is winding down the fine-tuning platform and your organization is no longer able to create new fine-tuning training jobs.",
+  "docs": "https://developers.openai.com/api/docs/deprecations#update-to-openais-self-serve-fine-tuning",
+  "n_examples": 78,
+  "base_model_requested": "gpt-4o-mini-2024-07-18",
+  "fallback": "scripts/local_lora_persona.py"
+}

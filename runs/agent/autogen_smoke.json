@@ -1,0 +1,29 @@
+{
+  "status": "ok",
+  "backend": "pyautogen_groupchat",
+  "model": "gpt-4o-mini",
+  "suspect_id": "suspect_a",
+  "max_round": 4,
+  "n_messages": 4,
+  "messages": [
+    {
+      "role": "Detective",
+      "content": "김팀장에게 묻는다: 그날 밤 어디에 있었습니까? 조수는 관련 단서 힌트만 짧게, 심판은 마지막에 JSON만."
+    },
+    {
+      "role": "Suspect",
+      "content": "에헴! 그날 밤 나는 야근하며 정산 서류를 검토 중이었다, 이 양반아. 그런 중요한 일을 하면서 내가 뭘 했겠냐고! 나를 의심하는 건 말이 안 돼!"
+    },
+    {
+      "role": "ForensicAssistant",
+      "content": "해당 조사 권한이 없습니다."
+    },
+    {
+      "role": "Judge",
+      "content": "{\"status\":\"no_effect\",\"reason_internal\":\"Insufficient evidence to determine the truth.\"}"
+    }
+  ],
+  "culprit_leak_detected": false,
+  "note": "선택 실험 · 본선은 agent_graph.py",
+  "created_at": "2026-07-31T09:12:49.407664+00:00"
+}

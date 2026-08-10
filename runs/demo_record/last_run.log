@@ -1,0 +1,26 @@
+base_url=https://web-production-072b8.up.railway.app
+out_dir=/Users/choiseunghyeon/aiffel-project/truth-room/runs/demo_record/cut_b_20260807T150307Z
+pace scene_dwell=4500 type_delay=85 after_reply=2800 case_overview=True
+intro_scenes=5
+  scene[0] dwell_ms=6930
+  scene[1] dwell_ms=7110
+  scene[2] dwell_ms=6480
+  scene[3] dwell_ms=7020
+  scene[4] dwell_ms=6795
+{
+  "created_at": "2026-08-07T15:05:28.572597+00:00",
+  "base_url": "https://web-production-072b8.up.railway.app",
+  "cut": "B_full_pace",
+  "ok": true,
+  "error": null,
+  "elapsed_sec": 140.9,
+  "scene_dwell_ms": 4500,
+  "type_delay_ms": 85,
+  "after_reply_ms": 2800,
+  "include_case_overview": true,
+  "videos": [
+    "runs/demo_record/cut_b_20260807T150307Z/video/page@731e2960fa7b1f666c293284dcf21d5a.webm"
+  ],
+  "note": "인트로 씬 체류 + 심문 타자 입력 · runs/ gitignore"
+}
+video: /Users/choiseunghyeon/aiffel-project/truth-room/runs/demo_record/cut_b_20260807T150307Z/video/page@731e2960fa7b1f666c293284dcf21d5a.webm

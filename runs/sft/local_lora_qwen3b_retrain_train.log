@@ -1,0 +1,34 @@
+/Users/choiseunghyeon/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+{"device": "mps", "model": "Qwen/Qwen2.5-3B-Instruct", "n": 243, "gradient_checkpointing": true, "skip_before": false, "max_len": 320, "out_dir": "runs/sft/local_lora_qwen3b_retrain"}
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading checkpoint shards:   0%|          | 0/2 [00:00<?, ?it/s]Loading checkpoint shards:  50%|█████     | 1/2 [00:10<00:10, 10.11s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:15<00:00,  7.50s/it]Loading checkpoint shards: 100%|██████████| 2/2 [00:15<00:00,  7.89s/it]
+The following generation flags are not valid and may be ignored: ['temperature', 'top_p', 'top_k']. Set `TRANSFORMERS_VERBOSITY=info` for more details.
+trainable params: 1,843,200 || all params: 3,087,781,888 || trainable%: 0.0597
+{"phase": "train_start"}
+  0%|          | 0/12 [00:00<?, ?it/s]  8%|▊         | 1/12 [00:10<01:55, 10.51s/it]                                                8%|▊         | 1/12 [00:10<01:55, 10.51s/it] 17%|█▋        | 2/12 [00:21<01:46, 10.63s/it]                                               17%|█▋        | 2/12 [00:21<01:46, 10.63s/it] 25%|██▌       | 3/12 [00:32<01:37, 10.87s/it]                                               25%|██▌       | 3/12 [00:32<01:37, 10.87s/it] 33%|███▎      | 4/12 [00:42<01:23, 10.41s/it]                                               33%|███▎      | 4/12 [00:42<01:23, 10.41s/it] 42%|████▏     | 5/12 [00:51<01:10, 10.10s/it]                                               42%|████▏     | 5/12 [00:51<01:10, 10.10s/it] 50%|█████     | 6/12 [01:02<01:02, 10.38s/it]                                               50%|█████     | 6/12 [01:02<01:02, 10.38s/it] 58%|█████▊    | 7/12 [01:12<00:50, 10.15s/it]                                               58%|█████▊    | 7/12 [01:12<00:50, 10.15s/it] 67%|██████▋   | 8/12 [01:22<00:40, 10.11s/it]                                               67%|██████▋   | 8/12 [01:22<00:40, 10.11s/it] 75%|███████▌  | 9/12 [01:32<00:30, 10.19s/it]                                               75%|███████▌  | 9/12 [01:32<00:30, 10.19s/it] 83%|████████▎ | 10/12 [01:45<00:21, 10.98s/it]                                                83%|████████▎ | 10/12 [01:45<00:21, 10.98s/it] 92%|█████████▏| 11/12 [01:56<00:11, 11.03s/it]                                                92%|█████████▏| 11/12 [01:56<00:11, 11.03s/it]100%|██████████| 12/12 [02:10<00:00, 11.81s/it]                                               100%|██████████| 12/12 [02:10<00:00, 11.81s/it]                                               100%|██████████| 12/12 [02:11<00:00, 11.81s/it]100%|██████████| 12/12 [02:11<00:00, 10.95s/it]
+{'loss': 2.884, 'grad_norm': 0.5787451267242432, 'learning_rate': 0.0002, 'epoch': 0.02}
+{'loss': 2.8221, 'grad_norm': 0.5102424621582031, 'learning_rate': 0.00018333333333333334, 'epoch': 0.03}
+{'loss': 2.7371, 'grad_norm': 0.5167790055274963, 'learning_rate': 0.0001666666666666667, 'epoch': 0.05}
+{'loss': 2.7748, 'grad_norm': 0.4982883632183075, 'learning_rate': 0.00015000000000000001, 'epoch': 0.07}
+{'loss': 2.7465, 'grad_norm': 0.5446249842643738, 'learning_rate': 0.00013333333333333334, 'epoch': 0.08}
+{'loss': 2.6877, 'grad_norm': 0.5630149245262146, 'learning_rate': 0.00011666666666666668, 'epoch': 0.1}
+{'loss': 2.7307, 'grad_norm': 0.5666517019271851, 'learning_rate': 0.0001, 'epoch': 0.12}
+{'loss': 2.7054, 'grad_norm': 0.5408985018730164, 'learning_rate': 8.333333333333334e-05, 'epoch': 0.13}
+{'loss': 2.6644, 'grad_norm': 0.5326207876205444, 'learning_rate': 6.666666666666667e-05, 'epoch': 0.15}
+{'loss': 2.6548, 'grad_norm': 0.5182802677154541, 'learning_rate': 5e-05, 'epoch': 0.16}
+{'loss': 2.6544, 'grad_norm': 0.5064477920532227, 'learning_rate': 3.3333333333333335e-05, 'epoch': 0.18}
+{'loss': 2.6132, 'grad_norm': 0.5292775630950928, 'learning_rate': 1.6666666666666667e-05, 'epoch': 0.2}
+{'train_runtime': 131.3796, 'train_samples_per_second': 0.365, 'train_steps_per_second': 0.091, 'train_loss': 2.722928464412689, 'epoch': 0.2}
+{"phase": "train_done", "train_loss": 2.722928464412689}
+`use_cache=True` is incompatible with gradient checkpointing. Setting `use_cache=False`.
+Caching is incompatible with gradient checkpointing in Qwen2DecoderLayer. Setting `past_key_values=None`.
+/Users/choiseunghyeon/Library/Python/3.9/lib/python/site-packages/torch/utils/checkpoint.py:85: UserWarning: None of the inputs have requires_grad=True. Gradients will be None
+  warnings.warn(
+{
+  "status": "ok",
+  "train_loss": 2.722928464412689,
+  "report": "/Users/choiseunghyeon/aiffel-project/truth-room/runs/sft/local_lora_qwen3b_retrain/report.json",
+  "before0": "당시 야근을 하면서 정산 서류를 검토하고 있었습니다.",
+  "after0": "당시리서울산성안녕民盟军运20000000000000000000000000000000000"
+}

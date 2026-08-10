@@ -1,0 +1,33 @@
+{
+  "created_at": "2026-07-31T10:16:30.353885+00:00",
+  "prompt_rule_checks": [
+    {
+      "suspect_id": "suspect_a",
+      "prompt_chars": 1210,
+      "rules_ok": true,
+      "missing_rules": []
+    },
+    {
+      "suspect_id": "suspect_b",
+      "prompt_chars": 1176,
+      "rules_ok": true,
+      "missing_rules": []
+    },
+    {
+      "suspect_id": "suspect_c",
+      "prompt_chars": 1187,
+      "rules_ok": true,
+      "missing_rules": []
+    }
+  ],
+  "all_rules_present": true,
+  "sft_examples": 78,
+  "live_sample": {
+    "suspect_id": "suspect_b",
+    "question": "그날 밤 어디에 있었습니까?",
+    "answer": "그 시각에는 구내식당에서 휴식 중이었습니다. 라운지로 이동하여 잠시 쉬고 있었던 것으로 기억합니다. 추가적인 질문이 있으시면 말씀해 주시기 바랍니다.",
+    "mentions_lounge_or_alibi": true,
+    "denies_ai": true
+  },
+  "status": "ok"
+}

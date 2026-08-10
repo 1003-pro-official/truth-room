@@ -1,0 +1,15 @@
+{
+  "autogen_available": true,
+  "status": "ok",
+  "answer_preview": "이 양반아, 그건 말이 안 되는 소리야! 나는 그날 밤 야근하면서 정산 서류를 검토하고 있었어. 누가 룸살롱에 가겠냐고, 이 회사가 이렇게 힘든데!",
+  "assistant_note": "법인카드 결제 내역에서 룸살롱 결제 기록이 확인되었습니다.",
+  "gm_status": "lie_broken",
+  "autogen": {
+    "used": true,
+    "elapsed_sec": 4.886,
+    "n_messages": 4,
+    "backend": "autogen_groupchat"
+  },
+  "n_transcript": 4,
+  "culprit_leak": false
+}

@@ -1,0 +1,50 @@
+{
+  "mode": "embedding",
+  "query": "라운지 Wi-Fi 100GB",
+  "top_k": 5,
+  "rrf_k": null,
+  "rerank": false,
+  "n_hits": 5,
+  "hits": [
+    {
+      "chunk_id": "wifi_transfer_log_509",
+      "evidence_id": "ev_net_01",
+      "source_type": "network",
+      "score": 0.477821,
+      "text": "3 ap=lounge-ap-01 note=device=이대리_개인노트북\n2024-07-29T23:08:44+09:00 event=DNS q=netflix.com ip=192.168.1.15\n2024-07-29T23:25:06+09:00 event=BULK_TRANSFER ip=192.168.1.15 mac=AA:BB:CC:11:22:33 ap=lounge-ap-01 bytes=107374182400 proto=HTTPS des"
+    },
+    {
+      "chunk_id": "wifi_transfer_log_69",
+      "evidence_id": null,
+      "source_type": "network",
+      "score": 0.439441,
+      "text": "er=한과장 ap=lounge-ap-03 bytes=3652244\n2024-07-28T05:10:30+09:00 event=DHCP ip=192.168.1.28 mac=AA:BB:CC:34:11:7D user=정대리 ap=lounge-ap-03 bytes=2118372\n2024-07-28T05:10:45+09:00 event=HTTP ip=192.168.1.111 mac=AA:BB:CC:19:18:97 user=배수석 ap=l"
+    },
+    {
+      "chunk_id": "wifi_transfer_log_310",
+      "evidence_id": null,
+      "source_type": "network",
+      "score": 0.429343,
+      "text": "A:BB:CC:90:F3:B5 user=한과장 ap=lounge-ap-03 bytes=4872962\n2024-07-28T22:15:16+09:00 event=ASSOC ip=192.168.1.97 mac=AA:BB:CC:65:9D:D6 user=윤사원 ap=lounge-ap-01 bytes=2880194\n2024-07-28T22:16:07+09:00 event=HTTP ip=192.168.1.171 mac=AA:BB:CC:5B"
+    },
+    {
+      "chunk_id": "wifi_transfer_log_55",
+      "evidence_id": null,
+      "source_type": "network",
+      "score": 0.427396,
+      "text": "8:96 user=한과장 ap=lounge-ap-03 bytes=3912831\n2024-07-28T04:05:57+09:00 event=DNS ip=192.168.1.29 mac=AA:BB:CC:A2:F5:95 user=오주임 ap=lounge-ap-03 bytes=3656123\n2024-07-28T04:06:59+09:00 event=HTTP ip=192.168.1.93 mac=AA:BB:CC:19:57:8F user=박신입"
+    },
+    {
+      "chunk_id": "wifi_transfer_log_427",
+      "evidence_id": null,
+      "source_type": "network",
+      "score": 0.423374,
+      "text": "92.168.1.126 mac=AA:BB:CC:66:82:45 user=한과장 ap=lounge-ap-02 bytes=565864\n2024-07-29T06:20:13+09:00 event=ASSOC ip=192.168.1.157 mac=AA:BB:CC:B9:70:7A user=조연구원 ap=lounge-ap-02 bytes=1988725\n2024-07-29T06:21:38+09:00 event=DHCP ip=192.168.1."
+    }
+  ],
+  "created_at": "2026-07-31T09:04:37.009862+00:00",
+  "note": "embedding=openai+chroma (text-embedding-3-small)",
+  "embedding_model": "text-embedding-3-small",
+  "chroma_dir": "runs/rag/chroma",
+  "collection": "truth_room"
+}

@@ -1,0 +1,16 @@
+{
+  "created_at": "2026-08-07T15:05:28.572597+00:00",
+  "base_url": "https://web-production-072b8.up.railway.app",
+  "cut": "B_full_pace",
+  "ok": true,
+  "error": null,
+  "elapsed_sec": 140.9,
+  "scene_dwell_ms": 4500,
+  "type_delay_ms": 85,
+  "after_reply_ms": 2800,
+  "include_case_overview": true,
+  "videos": [
+    "runs/demo_record/cut_b_20260807T150307Z/video/page@731e2960fa7b1f666c293284dcf21d5a.webm"
+  ],
+  "note": "인트로 씬 체류 + 심문 타자 입력 · runs/ gitignore"
+}

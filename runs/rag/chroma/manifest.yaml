@@ -1,0 +1,7 @@
+backend: openai_chroma
+persist_dir: /Users/choiseunghyeon/aiffel-project/truth-room/runs/rag/chroma
+collection: truth_room
+embedding_model: text-embedding-3-small
+n_docs: 5838
+status: ready
+created_at: '2026-07-31T09:04:34.278727+00:00'

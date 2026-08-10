@@ -1,0 +1,7 @@
+generated_at: '2026-08-07T14:05:17.756020+00:00'
+input: /Users/choiseunghyeon/aiffel-project/truth-room/runs/conversation_log/ask_turns.jsonl
+output: /Users/choiseunghyeon/aiffel-project/truth-room/runs/conversation_log/persona_ft_candidates.jsonl
+n_source: 165
+n_exported: 165
+n_skipped: 0
+note: 말투 FT 후보만. 알리바이/승패 룰은 코드 유지.

@@ -1,0 +1,7 @@
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing ContextPrecision from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import ContextPrecision
+  from ragas.metrics import ContextPrecision, ContextRecall, Faithfulness
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing ContextRecall from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import ContextRecall
+  from ragas.metrics import ContextPrecision, ContextRecall, Faithfulness
+/Users/choiseunghyeon/aiffel-project/truth-room/scripts/eval_ragas.py:65: DeprecationWarning: Importing Faithfulness from 'ragas.metrics' is deprecated and will be removed in v1.0. Please use 'ragas.metrics.collections' instead. Example: from ragas.metrics.collections import Faithfulness
+  from ragas.metrics import ContextPrecision, ContextRecall, Faithfulness
+Evaluating:   0%|          | 0/18 [00:00<?, ?it/s]Evaluating:   6%|▌         | 1/18 [01:19<22:26, 79.20s/it]Evaluating: 100%|██████████| 18/18 [01:19<00:00,  4.40s/it]

@@ -5,7 +5,7 @@ __pycache__/
 .cache/
 .DS_Store
 .pytest_cache/
-runs/
+# runs/ — 팀 공유를 위해 추적 (실험·데모·LoRA·대화로그)
 data/processed/
 *.pt
 node_modules/
