@@ -7,7 +7,6 @@
 > **초기 RAW (Colab 보관):** [`scripts/colab/dateset.py`](scripts/colab/dateset.py) · [scripts/colab/README.md](scripts/colab/README.md) — 본선 재생성은 `scripts/generate_rag_dataset.py`  
 > **말투 로그 자동 수집:** `python3 scripts/auto_ask_collect.py --today` · 질문셋 `data/sft/auto_ask_questions.yaml` · [docs/CONVERSATION_LOG.md](docs/CONVERSATION_LOG.md)  
 > **프로젝트 일정:** [PROJECT_SCHEDULE.md](PROJECT_SCHEDULE.md)  
-> **발표 (8/11 14:00 · 15분 + Q&A 10분):** [PRESENTATION.md](PRESENTATION.md) · 대본 [PRESENTATION_SCRIPT.md](PRESENTATION_SCRIPT.md) · Gamma [PRESENTATION_GAMMA.md](PRESENTATION_GAMMA.md) · 실험 브리핑 [docs/TEAM_EXP_BRIEFING.md](docs/TEAM_EXP_BRIEFING.md)  
 > **계획·스펙:** [MASTER_PLAN.md](MASTER_PLAN.md) · [TECH_SPEC.md](TECH_SPEC.md)
 
 **케이스 `case_01`:** 「100억의 야근자들」— 2026-07-29 야근 중 Omega 가중치 불법 반출.  
