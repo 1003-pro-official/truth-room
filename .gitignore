@@ -20,3 +20,9 @@ web/game/node_modules/
 
 # 발표용 시연 영상 (로컬만)
 .presentation_media/
+
+# 발표용 임시 파일 (로컬 전용)
+PRESENTATION_SLIDES.md
+presentation_package/
+slides.html
+
