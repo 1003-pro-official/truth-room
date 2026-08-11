@@ -2442,3 +2442,72 @@ button {
     font-size: 0.8rem;
   }
 }
+
+.desk-progress {
+  margin: 0.35rem 0 0.5rem;
+  font-size: 0.82rem;
+  color: #b8c2ce;
+}
+
+.desk-progress strong {
+  color: #e8eef4;
+}
+
+.desk-progress-cta {
+  margin: 0 0 0.65rem;
+}
+
+.linkish-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: #9ec4e8;
+  font-size: 0.82rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.linkish-btn:hover {
+  color: #c5dff5;
+}
+
+.desk-item.is-locked {
+  opacity: 0.42;
+  filter: grayscale(0.35);
+}
+
+.evidence-ready-banner {
+  text-align: left;
+}
+
+.evidence-ready-lead {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+}
+
+.evidence-ready-sub {
+  margin: 0;
+  line-height: 1.45;
+  opacity: 0.92;
+}
+
+.evidence-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  justify-content: flex-end;
+}
+
+.ghost-btn {
+  border-radius: 0.45rem;
+  border: 1px solid rgba(154, 163, 176, 0.45);
+  background: transparent;
+  color: #c8d0da;
+  min-width: 3rem;
+  padding: 0 0.9rem;
+}
+
+.ghost-btn:hover {
+  border-color: rgba(200, 210, 220, 0.65);
+  color: #e8eef4;
+}

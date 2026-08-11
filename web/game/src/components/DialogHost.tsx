@@ -43,6 +43,8 @@ export function DialogHost() {
   const confirmClue = useGameStore((s) => s.confirmClue)
   const ackAccuse = useGameStore((s) => s.ackAccuse)
   const ackRevoked = useGameStore((s) => s.ackRevoked)
+  const evidenceReadyMsg = useGameStore((s) => s.evidenceReadyMsg)
+  const setTab = useGameStore((s) => s.setTab)
   const observability = useGameStore((s) => s.observability)
   const obsLoading = useGameStore((s) => s.obsLoading)
   const openObservability = useGameStore((s) => s.openObservability)
@@ -167,6 +169,35 @@ export function DialogHost() {
         <button type="button" className="primary-btn modal-action" onClick={closeModal}>
           확인
         </button>
+      </Modal>
+    )
+  }
+
+  if (modal === 'evidence_ready' && evidenceReadyMsg) {
+    return (
+      <Modal title="증거 확보 완료" dismissible={false} alert>
+        <div className="alert-banner is-ok evidence-ready-banner">
+          {evidenceReadyMsg.split('\n').map((line, i) => (
+            <p key={i} className={i === 0 ? 'evidence-ready-lead' : 'evidence-ready-sub'}>
+              {line || '\u00a0'}
+            </p>
+          ))}
+        </div>
+        <div className="briefing-actions evidence-ready-actions">
+          <button
+            type="button"
+            className="primary-btn modal-action"
+            onClick={() => {
+              setTab('accuse')
+              closeModal()
+            }}
+          >
+            최종 지목으로
+          </button>
+          <button type="button" className="ghost-btn modal-action" onClick={closeModal}>
+            계속 수사
+          </button>
+        </div>
       </Modal>
     )
   }

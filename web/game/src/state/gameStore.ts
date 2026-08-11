@@ -30,6 +30,7 @@ export type ModalKind =
   | 'dossier'
   | 'desk_alert'
   | 'desk_clue'
+  | 'evidence_ready'
   | 'accuse'
   | 'revoked'
   | 'observability'
@@ -99,6 +100,8 @@ type GameStore = {
   modal: ModalKind
   dossier: SuspectProfile | null
   deskAlert: DeskAlert | null
+  evidenceReadyMsg: string | null
+  pendingEvidenceReady: boolean
   accuseFlash: AccuseFlash | null
   revokedMsg: string | null
   caseWon: boolean
@@ -144,6 +147,31 @@ function sessionFromQuery(): string | null {
   return new URLSearchParams(window.location.search).get('session_id')
 }
 
+function buildEvidenceReadyMsg(state: GameState, deskJustComplete: boolean): string {
+  if (deskJustComplete && state.desk_evidence_complete) {
+    const total = state.desk_evidence_total ?? 4
+    return (
+      `책상 실증거 ${total}장을 모두 확보했습니다.\n\n` +
+      `헛수색해도 수사 권한이 더 이상 줄지 않습니다. ` +
+      `「최종 지목」 탭에서 용의자 1명과 결정적 증거 2장을 조합하세요.`
+    )
+  }
+  const total = state.win_evidence_total ?? 3
+  return (
+    `지목용 핵심 증거 ${total}장을 모두 확보했습니다.\n\n` +
+    `「최종 지목」 탭에서 용의자 1명과 결정적 증거 2장을 조합하세요.`
+  )
+}
+
+function evidenceMilestoneHit(prev: GameState, next: GameState): {
+  hit: boolean
+  deskJustComplete: boolean
+} {
+  const accuseReady = !prev.evidence_ready_for_accuse && next.evidence_ready_for_accuse
+  const deskDone = !prev.desk_evidence_complete && next.desk_evidence_complete
+  return { hit: accuseReady || deskDone, deskJustComplete: deskDone }
+}
+
 export const useGameStore = create<GameStore>((set, get) => ({
   bootError: null,
   loading: true,
@@ -159,6 +187,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
   modal: null,
   dossier: null,
   deskAlert: null,
+  evidenceReadyMsg: null,
+  pendingEvidenceReady: false,
   accuseFlash: null,
   revokedMsg: null,
   caseWon: false,
@@ -291,7 +321,7 @@ export const useGameStore = create<GameStore>((set, get) => ({
   closeModal: () => {
     const m = get().modal
     if (m === 'briefing' && !get().gameStarted) return
-    set({ modal: null, deskAlert: null })
+    set({ modal: null, deskAlert: null, evidenceReadyMsg: null })
   },
 
   ask: async (question) => {
@@ -356,6 +386,16 @@ export const useGameStore = create<GameStore>((set, get) => ({
   searchDesk: async (item) => {
     const g = get().game
     if (!g || g.ended || get().busy) return
+    if (item.decoy && g.desk_evidence_complete) {
+      set({
+        modal: 'desk_alert',
+        deskAlert: {
+          kind: 'info',
+          text: '책상의 실증거를 모두 확보했습니다. 「최종 지목」 탭으로 이동하세요.',
+        },
+      })
+      return
+    }
     set({ busy: true })
     const inspected = get().deskInspected.includes(item.id)
       ? get().deskInspected
@@ -367,6 +407,10 @@ export const useGameStore = create<GameStore>((set, get) => ({
         force_evidence_id: item.decoy ? null : item.evidence_id,
       })
       const state = data.state
+      const milestone = evidenceMilestoneHit(g, state)
+      const readyMsg = milestone.hit
+        ? buildEvidenceReadyMsg(state, milestone.deskJustComplete)
+        : null
       if (data.authority_revoked) {
         sfx.revoked()
         set({
@@ -381,6 +425,25 @@ export const useGameStore = create<GameStore>((set, get) => ({
         return
       }
       if (data.useless_search) {
+        if (data.stamina_preserved || data.desk_search_complete) {
+          set({
+            game: state,
+            deskInspected: inspected,
+            busy: false,
+            modal: milestone.hit ? 'evidence_ready' : 'desk_alert',
+            evidenceReadyMsg: milestone.hit ? readyMsg : null,
+            pendingEvidenceReady: false,
+            deskAlert: milestone.hit
+              ? null
+              : {
+                  kind: 'info',
+                  text:
+                    data.message ||
+                    '책상의 실증거를 모두 확보했습니다. 더 이상 헛수색으로 수사 권한이 줄지 않습니다.',
+                },
+          })
+          return
+        }
         sfx.searchMiss()
         set({
           game: state,
@@ -413,6 +476,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
           pendingClues: clues,
           busy: false,
           modal: 'desk_clue',
+          evidenceReadyMsg: milestone.hit ? readyMsg : get().evidenceReadyMsg,
+          pendingEvidenceReady: milestone.hit,
         })
       } else {
         const hit0 = ((data.hits || [])[0] || {}) as Record<string, unknown>
@@ -425,8 +490,12 @@ export const useGameStore = create<GameStore>((set, get) => ({
           game: state,
           deskInspected: inspected,
           busy: false,
-          modal: 'desk_alert',
-          deskAlert: { kind: 'ok', text: `수색 완료 — ${title}` },
+          modal: milestone.hit ? 'evidence_ready' : 'desk_alert',
+          evidenceReadyMsg: milestone.hit ? readyMsg : null,
+          pendingEvidenceReady: false,
+          deskAlert: milestone.hit
+            ? null
+            : { kind: 'ok', text: `수색 완료 — ${title}` },
         })
       }
     } catch (e) {
@@ -440,9 +509,21 @@ export const useGameStore = create<GameStore>((set, get) => ({
   confirmClue: () => {
     const pending = [...get().pendingClues]
     pending.shift()
+    if (pending.length) {
+      set({ pendingClues: pending })
+      return
+    }
+    if (get().pendingEvidenceReady && get().evidenceReadyMsg) {
+      set({
+        pendingClues: [],
+        modal: 'evidence_ready',
+        pendingEvidenceReady: false,
+      })
+      return
+    }
     set({
-      pendingClues: pending,
-      modal: pending.length ? 'desk_clue' : null,
+      pendingClues: [],
+      modal: null,
     })
   },
 
@@ -545,6 +626,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
       accuseFlash: null,
       revokedMsg: null,
       deskAlert: null,
+      evidenceReadyMsg: null,
+      pendingEvidenceReady: false,
       gameStarted: false,
       tab: 'ask',
       llmDegraded: null,

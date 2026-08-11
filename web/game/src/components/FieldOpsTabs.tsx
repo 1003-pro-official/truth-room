@@ -185,12 +185,40 @@ function SearchPanel() {
   const owned = new Set(game?.evidence_ids || [])
   const busy = useGameStore((s) => s.busy)
   const searchDesk = useGameStore((s) => s.searchDesk)
+  const setTab = useGameStore((s) => s.setTab)
+
+  const winCount = game?.win_evidence_count ?? 0
+  const winTotal = game?.win_evidence_total ?? 3
+  const deskCount = game?.desk_evidence_count ?? 0
+  const deskTotal = game?.desk_evidence_total ?? 4
+  const accuseReady = Boolean(game?.evidence_ready_for_accuse)
+  const deskComplete = Boolean(game?.desk_evidence_complete)
 
   return (
     <div className="ops-panel">
       <p className="hint-muted">
         책상 위 증거 후보를 클릭해 수색하세요. 헛수색 시 수사 권한이 감소합니다.
       </p>
+      <p className="desk-progress" role="status">
+        지목 핵심 증거{' '}
+        <strong>
+          {winCount}/{winTotal}
+        </strong>
+        {' · '}
+        책상 실증거{' '}
+        <strong>
+          {deskCount}/{deskTotal}
+        </strong>
+        {accuseReady ? ' · 지목 가능' : null}
+        {deskComplete ? ' · 책상 수색 완료' : null}
+      </p>
+      {accuseReady ? (
+        <p className="desk-progress-cta">
+          <button type="button" className="linkish-btn" onClick={() => setTab('accuse')}>
+            최종 지목 탭으로 이동 →
+          </button>
+        </p>
+      ) : null}
       <p className="desk-swipe-hint">좌우로 밀어 책상을 살펴보세요.</p>
       <div className="desk-scroll">
         <div className="desk-board">
@@ -198,13 +226,18 @@ function SearchPanel() {
             const already =
               (!item.decoy && item.evidence_id && owned.has(item.evidence_id)) ||
               inspected.includes(item.id)
+            const decoyLocked = item.decoy && deskComplete
             return (
               <button
                 key={item.id}
                 type="button"
-                className="desk-item"
-                disabled={Boolean(already) || busy || Boolean(game?.ended)}
-                title={item.hint}
+                className={`desk-item${decoyLocked ? ' is-locked' : ''}`}
+                disabled={Boolean(already) || decoyLocked || busy || Boolean(game?.ended)}
+                title={
+                  decoyLocked
+                    ? '실증거를 모두 확보했습니다'
+                    : item.hint
+                }
                 style={{
                   backgroundImage: `url(${assetUrl(`ui/evidence_desk/${item.file}`)})`,
                 }}

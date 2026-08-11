@@ -93,6 +93,39 @@ CLUE_TITLES: dict[str, str] = {
 
 SMOKING_GUN_IDS = frozenset(CLUE_TITLES.keys())
 
+# 증거 수색 책상 — decoy 제외 실증거 (case_01 기본)
+DESK_EVIDENCE_IDS = frozenset(CLUE_TITLES.keys())
+
+
+def build_evidence_progress(
+    owned: list[str],
+    *,
+    win_evidence_ids: list[str],
+    desk_evidence_ids: list[str] | None = None,
+) -> dict[str, Any]:
+    """수집 진행 — public_state·수색 UX용."""
+    owned_set = {str(e) for e in owned}
+    win_ids = [str(e) for e in win_evidence_ids]
+    desk_ids = [str(e) for e in (desk_evidence_ids if desk_evidence_ids is not None else win_ids)]
+    win_collected = [e for e in win_ids if e in owned_set]
+    desk_collected = [e for e in desk_ids if e in owned_set]
+    win_total = len(win_ids)
+    desk_total = len(desk_ids)
+    ready = win_total > 0 and len(win_collected) >= win_total
+    desk_complete = desk_total > 0 and len(desk_collected) >= desk_total
+    return {
+        "win_evidence_ids": win_ids,
+        "desk_evidence_ids": desk_ids,
+        "win_evidence_collected": win_collected,
+        "desk_evidence_collected": desk_collected,
+        "win_evidence_count": len(win_collected),
+        "win_evidence_total": win_total,
+        "desk_evidence_count": len(desk_collected),
+        "desk_evidence_total": desk_total,
+        "evidence_ready_for_accuse": ready,
+        "desk_evidence_complete": desk_complete,
+    }
+
 
 def clue_title(evidence_id: str) -> str:
     return CLUE_TITLES.get(evidence_id, evidence_id)

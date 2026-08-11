@@ -19,6 +19,16 @@ export type GameState = {
   ended: boolean
   accused?: boolean
   turn?: number
+  win_evidence_ids?: string[]
+  desk_evidence_ids?: string[]
+  win_evidence_collected?: string[]
+  desk_evidence_collected?: string[]
+  win_evidence_count?: number
+  win_evidence_total?: number
+  desk_evidence_count?: number
+  desk_evidence_total?: number
+  evidence_ready_for_accuse?: boolean
+  desk_evidence_complete?: boolean
 }
 
 export type CaseOverview = {
@@ -214,6 +224,9 @@ export const api = {
       ending?: string
       stamina?: number
       stamina_max?: number
+      stamina_preserved?: boolean
+      desk_search_complete?: boolean
+      message?: string
       state: GameState
     }>(`/api/v1/session/${sid}/search`, { method: 'POST', body: JSON.stringify(body) }),
   accuse: (sid: string, body: { suspect_id: string; evidence_ids: string[] }) =>

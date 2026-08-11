@@ -74,3 +74,5 @@ suspects: [suspect_a, suspect_b, suspect_c]
 win_condition:
   accuse_culprit: true
   min_evidence_ids: [ev_card_03, ev_msg_12, ev_net_01]
+# 증거 수색 책상 — decoy 제외 실증거 (4장 수집 시 헛수색 수사권 보호)
+desk_evidence_ids: [ev_card_03, ev_msg_12, ev_net_01, ev_log_07]

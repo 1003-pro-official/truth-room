@@ -26,6 +26,7 @@ if str(ROOT) not in sys.path:
 from lib.game_rules import (  # noqa: E402
     SMOKING_GUN_IDS,
     apply_break_count,
+    build_evidence_progress,
     clue_title,
     judge_combo_accuse,
     load_game_cfg,
@@ -147,6 +148,23 @@ class GameEngine:
 
     def _suspect_ids(self) -> list[str]:
         return list(self.scenario.get("suspects") or self.personas.keys())
+
+    def _win_evidence_ids(self) -> list[str]:
+        wc = self.scenario.get("win_condition") or {}
+        return [str(e) for e in (wc.get("min_evidence_ids") or [])]
+
+    def _desk_evidence_ids(self) -> list[str]:
+        raw = self.scenario.get("desk_evidence_ids")
+        if raw:
+            return [str(e) for e in raw]
+        return list(SMOKING_GUN_IDS)
+
+    def _evidence_progress(self, session: Session) -> dict[str, Any]:
+        return build_evidence_progress(
+            session.evidence_ids,
+            win_evidence_ids=self._win_evidence_ids(),
+            desk_evidence_ids=self._desk_evidence_ids(),
+        )
 
     def _evidence_briefs(self, evidence_ids: list[str]) -> list[str]:
         """조수 프롬프트용 — 확보 증거의 짧은 사실 요약(미보유 내용은 넣지 않음)."""
@@ -321,6 +339,7 @@ class GameEngine:
             "accused": session.accused,
             "turn": len(session.messages),
             "tool_calls": len(session.tool_log),
+            **self._evidence_progress(session),
         }
 
     def _question_topic(self, question: str) -> str:
@@ -963,6 +982,23 @@ class GameEngine:
             return {"error": "session_ended"}
         # 책상 decoy 클릭 — RAG 우회·강제 헛수색 (수사 권한 감소)
         if force_miss:
+            progress = self._evidence_progress(session)
+            if progress["desk_evidence_complete"]:
+                return {
+                    "query": query,
+                    "hits": [],
+                    "evidence_ids": list(session.evidence_ids),
+                    "new_clues": [],
+                    "useless_search": True,
+                    "desk_search_complete": True,
+                    "stamina_preserved": True,
+                    "stamina": session.stamina,
+                    "stamina_max": int(self.game_cfg["stamina_max"]),
+                    "message": (
+                        "책상의 실증거를 모두 확보했습니다. "
+                        "더 이상 헛수색으로 수사 권한이 줄지 않습니다."
+                    ),
+                }
             stamina_info = self._apply_stamina_loss(session, 1)
             return {
                 "query": query,
@@ -1084,7 +1120,19 @@ class GameEngine:
         useless = len(newly) == 0
         stamina_info: dict[str, Any] = {}
         if useless:
-            stamina_info = self._apply_stamina_loss(session, 1)
+            if self._evidence_progress(session)["desk_evidence_complete"]:
+                stamina_info = {
+                    "stamina": session.stamina,
+                    "stamina_max": int(self.game_cfg["stamina_max"]),
+                    "stamina_preserved": True,
+                    "desk_search_complete": True,
+                    "message": (
+                        "책상의 실증거를 모두 확보했습니다. "
+                        "더 이상 헛수색으로 수사 권한이 줄지 않습니다."
+                    ),
+                }
+            else:
+                stamina_info = self._apply_stamina_loss(session, 1)
 
         return {
             "query": query,

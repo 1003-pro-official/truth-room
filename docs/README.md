@@ -18,6 +18,7 @@
 | [CONVERSATION_LOG.md](CONVERSATION_LOG.md) | 실서버 심문 로그 → 말투 재학습 · **안정장치** |
 | [LANGFUSE.md](LANGFUSE.md) | ask 관측 게시판 · Tracing/Sessions · Railway Variables |
 | [ROADMAP_EXPANSION.md](ROADMAP_EXPANSION.md) | 중장기: 진범 랜덤 · 용의자 확장 · **발표 Q&A** |
+| [POST_DLTHON_BACKLOG.md](POST_DLTHON_BACKLOG.md) | **DLthon 이후** PROBLEM 보완 · TRY 발전 (틈틈히) |
 | [../assets/ui/evidence_desk/README.md](../assets/ui/evidence_desk/README.md) | 증거 수색 책상 에셋 스펙 |
 | [WORKFLOW.md](WORKFLOW.md) | Git · 파이프라인 명령 |
 | [INTEGRATION.md](INTEGRATION.md) | PR → main |
